@@ -7,12 +7,14 @@ public sealed class GameManager : IManager
     public GameSceneDependencies SceneDependencies { get; private set; }
     public bool IsInitialized { get; private set; }
     public bool IsSceneBound { get; private set; }
+    public bool IsGameStarted { get; private set; }
 
     public void Initialize()
     {
         SceneDependencies = default;
         IsInitialized = true;
         IsSceneBound = false;
+        IsGameStarted = false;
     }
 
     public void PrepareForSceneLoad()
@@ -22,6 +24,7 @@ public sealed class GameManager : IManager
 
         SceneDependencies = default;
         IsSceneBound = false;
+        IsGameStarted = false;
     }
 
     public void BindScene(GameSceneDependencies sceneDependencies)
@@ -36,5 +39,16 @@ public sealed class GameManager : IManager
         IsSceneBound = true;
 
         Debug.Log("GameManager: Scene dependencies bound successfully.");
+    }
+
+    public void StartGame()
+    {
+        if (!IsInitialized)
+            throw new InvalidOperationException("GameManager must be initialized before the game can start.");
+
+        if (!IsSceneBound)
+            throw new InvalidOperationException("GameManager requires scene dependencies before the game can start.");
+
+        IsGameStarted = true;
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -33,6 +32,8 @@ public sealed class LoadingScreenView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _statusText;
 
     private Tween _spinnerTween;
+    private Sequence _transitionSequence;
+    private AppSceneManager _sceneManager;
     private bool _isInitialized;
 
     public void Initialize()
@@ -40,12 +41,35 @@ public sealed class LoadingScreenView : MonoBehaviour
         if (_isInitialized)
             return;
 
-        ValidateSerializedReferences();
-        ConfigureRootComponents();
         _statusText.text = DefaultStatus;
         _progressFillImage.fillAmount = 0f;
-        SetVisible(false);
         _isInitialized = true;
+    }
+
+    public void Bind(AppSceneManager sceneManager)
+    {
+        if (_sceneManager == sceneManager)
+            return;
+
+        Unbind();
+        Initialize();
+        _sceneManager = sceneManager;
+
+        if (_sceneManager == null)
+            return;
+
+        _sceneManager.SceneLoadStarted += HandleSceneLoadStarted;
+        _sceneManager.SceneLoadCompleted += HandleSceneLoadCompleted;
+    }
+
+    public void Unbind()
+    {
+        if (_sceneManager == null)
+            return;
+
+        _sceneManager.SceneLoadStarted -= HandleSceneLoadStarted;
+        _sceneManager.SceneLoadCompleted -= HandleSceneLoadCompleted;
+        _sceneManager = null;
     }
 
     public void SetStatus(string status)
@@ -60,9 +84,11 @@ public sealed class LoadingScreenView : MonoBehaviour
         _progressFillImage.fillAmount = Mathf.Clamp01(progress);
     }
 
-    public IEnumerator PlayEnterTransition(string status)
+    public void Show(string status = null)
     {
         Initialize();
+        KillTransition();
+
         SetStatus(status);
         SetProgress(0f);
         SetVisible(true);
@@ -71,27 +97,35 @@ public sealed class LoadingScreenView : MonoBehaviour
         _panelRect.localScale = new Vector3(0.96f, 0.96f, 1f);
         StartSpinner();
 
-        Sequence sequence = DOTween.Sequence().SetUpdate(true);
-        sequence.Join(_canvasGroup.DOFade(1f, EnterDuration).SetEase(Ease.OutCubic));
-        sequence.Join(_panelRect.DOScale(1f, EnterDuration).SetEase(Ease.OutBack));
-        yield return sequence.WaitForCompletion();
+        _transitionSequence = DOTween.Sequence().SetUpdate(true);
+        _transitionSequence.Join(_canvasGroup.DOFade(1f, EnterDuration).SetEase(Ease.OutCubic));
+        _transitionSequence.Join(_panelRect.DOScale(1f, EnterDuration).SetEase(Ease.OutBack));
+        _transitionSequence.OnKill(() => _transitionSequence = null);
     }
 
-    public IEnumerator PlayExitTransition()
+    public void Hide()
     {
         Initialize();
+        if (!_rootRect.gameObject.activeSelf)
+            return;
 
-        Sequence sequence = DOTween.Sequence().SetUpdate(true);
-        sequence.Join(_canvasGroup.DOFade(0f, ExitDuration).SetEase(Ease.InCubic));
-        sequence.Join(_panelRect.DOScale(1.03f, ExitDuration).SetEase(Ease.InCubic));
-        yield return sequence.WaitForCompletion();
+        KillTransition();
 
-        StopSpinner();
-        SetVisible(false);
+        _transitionSequence = DOTween.Sequence().SetUpdate(true);
+        _transitionSequence.Join(_canvasGroup.DOFade(0f, ExitDuration).SetEase(Ease.InCubic));
+        _transitionSequence.Join(_panelRect.DOScale(1.03f, ExitDuration).SetEase(Ease.InCubic));
+        _transitionSequence.OnComplete(() =>
+        {
+            StopSpinner();
+            SetVisible(false);
+        });
+        _transitionSequence.OnKill(() => _transitionSequence = null);
     }
 
     private void OnDestroy()
     {
+        Unbind();
+        KillTransition();
         StopSpinner();
     }
 
@@ -102,52 +136,6 @@ public sealed class LoadingScreenView : MonoBehaviour
         _canvasScaler ??= GetComponent<CanvasScaler>();
         _graphicRaycaster ??= GetComponent<GraphicRaycaster>();
         _canvasGroup ??= GetComponent<CanvasGroup>();
-    }
-
-    private void ConfigureRootComponents()
-    {
-        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _canvas.sortingOrder = 5000;
-
-        _canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        _canvasScaler.referenceResolution = new Vector2(1080f, 1920f);
-        _canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-
-        _graphicRaycaster.ignoreReversedGraphics = true;
-        _graphicRaycaster.blockingObjects = GraphicRaycaster.BlockingObjects.None;
-
-        _canvasGroup.interactable = false;
-        _canvasGroup.ignoreParentGroups = true;
-    }
-
-    private void ValidateSerializedReferences()
-    {
-        if (_rootRect == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a root RectTransform reference.");
-
-        if (_canvas == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a Canvas reference.");
-
-        if (_canvasScaler == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a CanvasScaler reference.");
-
-        if (_graphicRaycaster == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a GraphicRaycaster reference.");
-
-        if (_canvasGroup == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a CanvasGroup reference.");
-
-        if (_panelRect == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a panel RectTransform reference.");
-
-        if (_spinnerRect == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a spinner RectTransform reference.");
-
-        if (_progressFillImage == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a progress fill Image reference.");
-
-        if (_statusText == null)
-            throw new MissingReferenceException($"{nameof(LoadingScreenView)} requires a status TextMeshProUGUI reference.");
     }
 
     private void SetVisible(bool isVisible)
@@ -171,5 +159,23 @@ public sealed class LoadingScreenView : MonoBehaviour
             _spinnerTween.Kill();
 
         _spinnerTween = null;
+    }
+
+    private void KillTransition()
+    {
+        if (_transitionSequence != null && _transitionSequence.IsActive())
+            _transitionSequence.Kill();
+
+        _transitionSequence = null;
+    }
+
+    private void HandleSceneLoadStarted(string sceneName)
+    {
+        Show();
+    }
+
+    private void HandleSceneLoadCompleted(string sceneName)
+    {
+        Hide();
     }
 }

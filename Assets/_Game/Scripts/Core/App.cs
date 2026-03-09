@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,6 +9,7 @@ public sealed class App : MonoBehaviour
     public static GameManager       Game { get; private set; }
     public static AppSceneManager   Scenes { get; private set; }
     public static SaveManager       Saver { get; private set; }
+    public static SoundManager      Sound { get; private set; }
 
     [SerializeField] private AppConfig appConfig;
     [SerializeField] private AppDependencies appDependencies;
@@ -33,18 +33,21 @@ public sealed class App : MonoBehaviour
     private void Start()
     {
         InitializeManagers();
-        StartCoroutine(Scenes.LoadGameSceneAsync());
+        Scenes.LoadScene(Config.GameSceneName);
     }
 
     private void CreateManagers()
     {
         Saver = new SaveManager();
-        Game = new GameManager();
         Scenes = new AppSceneManager();
+        Sound = Dependencies.SoundManager;
+        Game = new GameManager();
+        
         _managers.Clear();
         _managers.Add(Saver);
-        _managers.Add(Game);
         _managers.Add(Scenes);
+        _managers.Add(Sound);
+        _managers.Add(Game);
     }
 
     private void InitializeManagers()

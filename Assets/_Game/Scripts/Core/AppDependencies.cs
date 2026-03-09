@@ -1,5 +1,8 @@
+using UnityEngine;
+
 [System.Serializable]
 public struct AppDependencies
 {
-    public LoadingScreenView LoadingScreen { get; }
+    public LoadingScreenView LoadingScreen;
+    public SoundManager SoundManager;
 }

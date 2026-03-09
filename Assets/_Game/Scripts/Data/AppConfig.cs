@@ -4,5 +4,7 @@ using UnityEngine;
 public class AppConfig : ScriptableObject
 {
     public GameConfig GameConfig;
+    public AllSounds SoundsConfig;
     public string GameSceneName;
+    public float SceneTransitionDuration = 1f;
 }

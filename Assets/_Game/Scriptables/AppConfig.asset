@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: AppConfig
   m_EditorClassIdentifier: 
   GameConfig: {fileID: 11400000, guid: 0d9743432439244c9a5e04e7f511a853, type: 2}
-  MainMenuSceneName: Main
+  SoundsConfig: {fileID: 11400000, guid: 6120f60310ea2461ab8a5f74241825c5, type: 2}
   GameSceneName: Game
+  SceneTransitionDuration: 0.5
