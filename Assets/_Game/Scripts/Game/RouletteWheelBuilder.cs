@@ -14,7 +14,7 @@ namespace Ape.Game
             if (random == null)
                 throw new ArgumentNullException(nameof(random));
 
-            GameConfig.ZoneType zoneType = config.GetZoneType(zone);
+            RouletteZoneType zoneType = config.GetZoneType(zone);
             RouletteWheelData wheelData = config.GetWheelData(zoneType);
             if (wheelData == null)
                 throw new InvalidOperationException($"GameConfig is missing a wheel asset for zone type {zoneType}.");
