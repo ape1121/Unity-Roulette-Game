@@ -4,6 +4,5 @@ using UnityEngine;
 public class AppConfig : ScriptableObject
 {
     public GameConfig GameConfig;
-    public string MainMenuSceneName;
     public string GameSceneName;
 }
