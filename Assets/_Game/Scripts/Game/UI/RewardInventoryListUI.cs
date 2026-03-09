@@ -70,10 +70,12 @@ namespace Ape.Game
             if (_contentRoot == null || _rewardCardPrefab == null || App.Profile == null)
                 return;
 
-            GameConfig gameConfig = App.Config != null ? App.Config.GameConfig : null;
+            RouletteConfig rouletteConfig = App.Config != null && App.Config.GameConfig != null
+                ? App.Config.GameConfig.RouletteConfig
+                : null;
             IReadOnlyList<RewardInventoryEntry> inventory = App.Profile.Inventory;
 
-            if (gameConfig == null || inventory == null)
+            if (rouletteConfig == null || inventory == null)
                 return;
 
             for (int i = 0; i < inventory.Count; i++)
@@ -82,7 +84,7 @@ namespace Ape.Game
                 if (entry.Amount <= 0)
                     continue;
 
-                if (!gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
+                if (!rouletteConfig.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
                 {
                     Debug.LogWarning($"Reward inventory entry '{entry.RewardId}' could not be resolved from the reward catalog.", this);
                     continue;

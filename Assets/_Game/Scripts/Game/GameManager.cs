@@ -46,6 +46,7 @@ namespace Ape.Game
         public int PendingGold => _rewardLedger.PendingGold;
         public int SavedCash => App.Profile != null ? App.Profile.CurrentData.Cash : 0;
         public int SavedGold => App.Profile != null ? App.Profile.CurrentData.Gold : 0;
+        private RouletteConfig RouletteConfig => Config != null ? Config.RouletteConfig : null;
         public bool CanSpin => IsGameStarted && Phase == GameRunPhase.AwaitingSpin && ActiveWheel != null && ActiveWheel.Slices.Count > 0;
         public bool CanCashOut => IsGameStarted && Config != null && Phase == GameRunPhase.AwaitingSpin && Config.CanCashOutAtZone(CurrentZone);
         public bool CanContinue => IsGameStarted
@@ -70,6 +71,7 @@ namespace Ape.Game
                 throw new InvalidOperationException("GameManager must be initialized before preparing for scene load.");
 
             StopWheelAnimation();
+            ResetWheelRotation();
             SceneDependencies = default;
             IsSceneBound = false;
             IsGameStarted = false;
@@ -88,7 +90,7 @@ namespace Ape.Game
             IsSceneBound = true;
 
             if (ActiveWheel != null && SceneDependencies.RouletteWheel != null)
-                SceneDependencies.RouletteWheel.BuildWheel(ActiveWheel);
+                SceneDependencies.RouletteWheel.BuildWheel(ActiveWheel, preserveRotation: true);
         }
 
         public void StartGame()
@@ -173,7 +175,7 @@ namespace Ape.Game
             CurrentZoneType = Config.GetZoneType(CurrentZone);
             _rewardLedger.Restore(_pendingContinueCash, _pendingContinueGold, _pendingContinueItemRewards);
             ClearPendingContinueState();
-            BuildWheelForCurrentZone();
+            BuildWheelForCurrentZone(preserveRotation: true);
             Phase = GameRunPhase.AwaitingSpin;
             PublishStateChanged();
             return true;
@@ -182,7 +184,7 @@ namespace Ape.Game
         private void StartRunInternal()
         {
             _runCounter++;
-            _runRandom = new System.Random(unchecked(Config.deterministicSeed + (_runCounter * 9973)));
+            _runRandom = new System.Random(GetRouletteConfig().ResolveRunSeed(_runCounter));
 
             ResetRunState();
             CurrentZone = Config.GetStartingZone();
@@ -192,21 +194,24 @@ namespace Ape.Game
             {
                 Phase = GameRunPhase.BlockedByBuyIn;
                 ActiveWheel = null;
-                SyncWheelToScene();
+                SyncWheelToScene(preserveRotation: true);
                 PublishStateChanged();
                 return;
             }
 
-            BuildWheelForCurrentZone();
+            BuildWheelForCurrentZone(preserveRotation: true);
             Phase = GameRunPhase.AwaitingSpin;
             PublishStateChanged();
         }
 
-        private void BuildWheelForCurrentZone()
+        private void BuildWheelForCurrentZone(bool preserveRotation = true)
         {
             CurrentZoneType = Config.GetZoneType(CurrentZone);
-            ActiveWheel = RouletteWheelBuilder.BuildWheel(Config, CurrentZone, _runRandom);
-            SyncWheelToScene();
+            RouletteConfig rouletteConfig = GetRouletteConfig();
+            RouletteWheelData wheelData = rouletteConfig.GetWheelData(CurrentZoneType);
+            ActiveWheel = RouletteWheelBuilder.BuildWheel(rouletteConfig, wheelData, CurrentZone, _runRandom);
+            CurrentZoneType = ActiveWheel.ZoneType;
+            SyncWheelToScene(preserveRotation);
         }
 
         private RouletteSpinResult ResolveSpin()
@@ -261,7 +266,7 @@ namespace Ape.Game
 
             CurrentZone = spinResult.NextZone;
             CurrentZoneType = Config.GetZoneType(CurrentZone);
-            BuildWheelForCurrentZone();
+            BuildWheelForCurrentZone(preserveRotation: true);
             Phase = GameRunPhase.AwaitingSpin;
         }
 
@@ -310,18 +315,20 @@ namespace Ape.Game
             if (Config == null)
                 throw new MissingReferenceException("GameManager requires AppConfig.GameConfig to be assigned.");
 
-            if (Config.GetRewardCatalog().Length == 0)
-                throw new InvalidOperationException("GameConfig.rewardCatalog must contain at least one RewardData asset.");
+            RouletteConfig rouletteConfig = GetRouletteConfig();
+            if (rouletteConfig.GetRewardCatalog().Length == 0)
+                throw new InvalidOperationException("RouletteConfig must contain at least one RewardData asset in its reward catalog.");
 
-            ValidateWheelAsset(Config.normalWheel, RouletteZoneType.Normal, mustIncludeBomb: true, mustExcludeBomb: false);
-            ValidateWheelAsset(Config.safeWheel, RouletteZoneType.Safe, mustIncludeBomb: false, mustExcludeBomb: true);
-            ValidateWheelAsset(Config.superWheel, RouletteZoneType.Super, mustIncludeBomb: false, mustExcludeBomb: true);
+            ValidateWheelAsset(rouletteConfig, RouletteZoneType.Normal, mustIncludeBomb: true, mustExcludeBomb: false);
+            ValidateWheelAsset(rouletteConfig, RouletteZoneType.Safe, mustIncludeBomb: false, mustExcludeBomb: true);
+            ValidateWheelAsset(rouletteConfig, RouletteZoneType.Super, mustIncludeBomb: false, mustExcludeBomb: true);
         }
 
-        private static void ValidateWheelAsset(RouletteWheelData wheelData, RouletteZoneType zoneType, bool mustIncludeBomb, bool mustExcludeBomb)
+        private static void ValidateWheelAsset(RouletteConfig rouletteConfig, RouletteZoneType zoneType, bool mustIncludeBomb, bool mustExcludeBomb)
         {
+            RouletteWheelData wheelData = rouletteConfig.GetWheelData(zoneType);
             if (wheelData == null)
-                throw new MissingReferenceException($"GameConfig is missing the wheel asset for zone type {zoneType}.");
+                throw new MissingReferenceException($"RouletteConfig is missing the wheel asset for zone type {zoneType}.");
 
             RouletteSliceData[] sliceDefinitions = wheelData.SliceDefinitions;
             if (sliceDefinitions.Length == 0)
@@ -345,22 +352,36 @@ namespace Ape.Game
                 throw new InvalidOperationException($"Wheel asset '{wheelData.name}' must not contain bomb slices for {zoneType} zones.");
         }
 
+        private RouletteConfig GetRouletteConfig()
+        {
+            if (RouletteConfig == null)
+                throw new MissingReferenceException("GameConfig.RouletteConfig must be assigned.");
+
+            return RouletteConfig;
+        }
+
         private void HandleWheelSliceTick(int sliceIndex)
         {
             float pitchMultiplier = 1f + ((sliceIndex % 3) * 0.04f);
             PlaySound(SpinTickSoundName, pitchMultiplier);
         }
 
-        private void SyncWheelToScene()
+        private void SyncWheelToScene(bool preserveRotation = true)
         {
             if (SceneDependencies.RouletteWheel != null)
-                SceneDependencies.RouletteWheel.BuildWheel(ActiveWheel);
+                SceneDependencies.RouletteWheel.BuildWheel(ActiveWheel, preserveRotation);
         }
 
         private void StopWheelAnimation()
         {
             if (SceneDependencies.RouletteWheel != null)
                 SceneDependencies.RouletteWheel.StopAnimation();
+        }
+
+        private void ResetWheelRotation()
+        {
+            if (SceneDependencies.RouletteWheel != null)
+                SceneDependencies.RouletteWheel.ResetWheelRotation();
         }
 
         private void PlaySound(string soundName, float pitchMultiplier = 1f)

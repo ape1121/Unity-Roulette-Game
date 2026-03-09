@@ -3,6 +3,7 @@ using Ape.Data;
 using Ape.Profile;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Ape.Game
@@ -26,7 +27,8 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _zoneValueText;
         [SerializeField] private TextMeshProUGUI _zoneTypeValueText;
         [SerializeField] private TextMeshProUGUI _phaseValueText;
-        [SerializeField] private TextMeshProUGUI _wheelThemeValueText;
+        [FormerlySerializedAs("_wheelThemeValueText")]
+        [SerializeField] private TextMeshProUGUI _wheelTypeValueText;
         [SerializeField] private TextMeshProUGUI _wheelSlicesValueText;
         [SerializeField] private TextMeshProUGUI _statusValueText;
         [SerializeField] private TextMeshProUGUI _lastRewardValueText;
@@ -197,6 +199,7 @@ namespace Ape.Game
             SetText(_zoneValueText, state.CurrentZone > 0 ? state.CurrentZone.ToString() : "-");
             SetText(_zoneTypeValueText, state.CurrentZone > 0 ? FormatZoneType(state.CurrentZoneType) : "-");
             SetText(_phaseValueText, FormatPhase(state.Phase));
+            SetText(_wheelTypeValueText, BuildWheelTypeLabel());
             SetText(_wheelSlicesValueText, state.ActiveSliceCount.ToString());
             SetText(_pendingCashValueText, state.PendingCash.ToString());
             SetText(_pendingGoldValueText, state.PendingGold.ToString());
@@ -226,7 +229,9 @@ namespace Ape.Game
 
             if (App.Profile != null)
             {
-                GameConfig gameConfig = App.Config != null ? App.Config.GameConfig : null;
+                RouletteConfig rouletteConfig = App.Config != null && App.Config.GameConfig != null
+                    ? App.Config.GameConfig.RouletteConfig
+                    : null;
                 var inventory = App.Profile.Inventory;
 
                 if (inventory != null)
@@ -237,8 +242,8 @@ namespace Ape.Game
                         if (entry.Amount <= 0)
                             continue;
 
-                        if (gameConfig != null
-                            && gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData)
+                        if (rouletteConfig != null
+                            && rouletteConfig.TryGetReward(entry.RewardId, out RewardData rewardData)
                             && rewardData != null
                             && rewardData.Kind == RewardData.RewardKind.ItemCard)
                         {
@@ -260,6 +265,14 @@ namespace Ape.Game
 
             int continueCost = Mathf.Max(0, App.Game.Config.continueCost);
             return continueCost > 0 ? $"Continue ({continueCost} Cash)" : "Continue";
+        }
+
+        private static string BuildWheelTypeLabel()
+        {
+            if (App.Game == null || App.Game.ActiveWheel == null || App.Game.ActiveWheel.WheelData == null)
+                return "-";
+
+            return App.Game.ActiveWheel.WheelData.name;
         }
 
         private static string FormatPendingItems(GameStateSnapshot state)

@@ -18,15 +18,6 @@ namespace Ape.Data
         [Min(0)] public int maxLevel;
         [Min(1)] public int safeZoneInterval = 5;
         [Min(1)] public int superZoneInterval = 30;
-        public int deterministicSeed = 1337;
-
-        [Header("Reward Catalog")]
-        public RouletteRewards rewardCatalog;
-
-        [Header("Wheel Assets")]
-        public RouletteWheelData normalWheel;
-        public RouletteWheelData safeWheel;
-        public RouletteWheelData superWheel;
 
         public bool HasLevelCap => maxLevel > 0;
 
@@ -65,32 +56,6 @@ namespace Ape.Data
         public bool IsFinalZone(int zone)
         {
             return HasLevelCap && Mathf.Max(1, zone) >= maxLevel;
-        }
-
-        public RouletteWheelData GetWheelData(int zone)
-        {
-            return GetWheelData(GetZoneType(zone));
-        }
-
-        public RouletteWheelData GetWheelData(RouletteZoneType zoneType)
-        {
-            return zoneType switch
-            {
-                RouletteZoneType.Safe => safeWheel,
-                RouletteZoneType.Super => superWheel,
-                _ => normalWheel
-            };
-        }
-
-        public RewardData[] GetRewardCatalog()
-        {
-            return rewardCatalog?.rewards ?? System.Array.Empty<RewardData>();
-        }
-
-        public bool TryGetReward(string rewardId, out RewardData rewardData)
-        {
-            rewardData = null;
-            return rewardCatalog != null && rewardCatalog.TryGetReward(rewardId, out rewardData);
         }
     }
 }

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9667269869b3d4f9daa08233ec7fa6e1, type: 3}
+  m_Name: RouletteConfig
+  m_EditorClassIdentifier: 
+  deterministicSeed: 1337
+  randomizeSeedOnRunStart: 1
+  rewardCatalog: {fileID: 11400000, guid: b3ee2a81a570d4a0aa284fb0cb84a1ac, type: 2}
+  wheels:
+  - {fileID: 11400000, guid: 5459fef807a9e44cc806482946fe9a1e, type: 2}
+  - {fileID: 11400000, guid: 616e30cc6c7f647a0b4b0fc1e628c71a, type: 2}
+  - {fileID: 11400000, guid: de97977c4668d4ff1bec61a3f4dc7999, type: 2}

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 namespace Ape.Game
 {
@@ -12,8 +14,11 @@ namespace Ape.Game
         [SerializeField] private RectTransform _rootRect;
         [SerializeField] private RectTransform _wheelRotatorRect;
         [SerializeField] private RectTransform _sliceRootRect;
+        [SerializeField] private Image _wheelBackgroundImage;
         [SerializeField] private RouletteRewardSliceUI _rewardSlicePrefab;
-        [Min(100f)] [SerializeField] private float _diameter = 640f;
+        [SerializeField] private bool _useBackgroundShortestDimension = true;
+        [FormerlySerializedAs("_diameter")]
+        [Min(100f)] [SerializeField] private float _fallbackDiameter = 640f;
         [Min(0f)] [SerializeField] private float _sliceRadiusPadding = 72f;
 
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
@@ -21,15 +26,21 @@ namespace Ape.Game
         private Sequence _spinSequence;
         private float _currentRotationDegrees;
 
-        public void BuildWheel(RouletteResolvedWheel wheel)
+        public void BuildWheel(RouletteResolvedWheel wheel, bool preserveRotation = true)
         {
             ClearSlices();
+            ApplyWheelBackground(wheel);
 
             if (wheel == null || wheel.Slices == null || wheel.Slices.Count == 0 || _rewardSlicePrefab == null || _sliceRootRect == null)
+            {
+                if (!preserveRotation)
+                    SetWheelRotation(0f);
+
                 return;
+            }
 
             float sliceAngle = 360f / wheel.Slices.Count;
-            float radius = Mathf.Max(0f, (_diameter * 0.5f) - _sliceRadiusPadding);
+            float radius = Mathf.Max(0f, (ResolveWheelDiameter() * 0.5f) - _sliceRadiusPadding);
 
             for (int i = 0; i < wheel.Slices.Count; i++)
             {
@@ -39,7 +50,8 @@ namespace Ape.Game
                 _spawnedSlices.Add(sliceView);
             }
 
-            SetWheelRotation(0f);
+            if (!preserveRotation)
+                SetWheelRotation(0f);
         }
 
         public void StopAnimation()
@@ -48,6 +60,12 @@ namespace Ape.Game
                 _spinSequence.Kill();
 
             _spinSequence = null;
+        }
+
+        public void ResetWheelRotation()
+        {
+            StopAnimation();
+            SetWheelRotation(0f);
         }
 
         public void PlaySpin(RouletteResolvedWheel wheel, int targetSliceIndex, Action<int> onSliceTick, Action onComplete)
@@ -80,7 +98,7 @@ namespace Ape.Game
                     },
                     overshootRotation,
                     wheel.SpinDuration)
-                .SetEase(Ease.OutQuart);
+                .SetEase(wheel.SpinEase);
 
             Tween settleTween = DOTween.To(
                     () => animatedRotation,
@@ -91,14 +109,14 @@ namespace Ape.Game
                         EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
                     },
                     endRotation,
-                    0.24f)
-                .SetEase(Ease.OutBack);
+                    wheel.SettleDuration)
+                .SetEase(wheel.SettleEase);
 
             _spinSequence = DOTween.Sequence();
-            _spinSequence.Append(_wheelRotatorRect.DOScale(1.05f, 0.18f).SetEase(Ease.OutCubic));
+            _spinSequence.Append(_wheelRotatorRect.DOScale(wheel.StartScale, wheel.StartScaleDuration).SetEase(wheel.ScaleEase));
             _spinSequence.Join(mainRotationTween);
             _spinSequence.Append(settleTween);
-            _spinSequence.Append(_wheelRotatorRect.DOScale(1f, 0.12f).SetEase(Ease.OutCubic));
+            _spinSequence.Append(_wheelRotatorRect.DOScale(1f, wheel.EndScaleDuration).SetEase(wheel.ScaleEase));
             _spinSequence.OnComplete(() =>
             {
                 _currentRotationDegrees = endRotation;
@@ -136,6 +154,26 @@ namespace Ape.Game
             }
 
             _spawnedSlices.Clear();
+        }
+
+        private void ApplyWheelBackground(RouletteResolvedWheel wheel)
+        {
+            if (_wheelBackgroundImage == null)
+                return;
+
+            Sprite backgroundSprite = wheel != null ? wheel.WheelBackground : null;
+            _wheelBackgroundImage.sprite = backgroundSprite;
+            _wheelBackgroundImage.enabled = backgroundSprite != null;
+        }
+
+        private float ResolveWheelDiameter()
+        {
+            if (!_useBackgroundShortestDimension || _wheelBackgroundImage == null)
+                return _fallbackDiameter;
+
+            RectTransform backgroundRect = _wheelBackgroundImage.rectTransform;
+            float shortestDimension = Mathf.Min(backgroundRect.rect.width, backgroundRect.rect.height);
+            return shortestDimension > 0f ? shortestDimension : _fallbackDiameter;
         }
 
         private void LayoutSlice(RectTransform sliceRect, int index, float sliceAngle, float radius)

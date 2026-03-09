@@ -6,18 +6,16 @@ namespace Ape.Game
 {
     public static class RouletteWheelBuilder
     {
-        public static RouletteResolvedWheel BuildWheel(GameConfig config, int zone, System.Random random)
+        public static RouletteResolvedWheel BuildWheel(RouletteConfig rouletteConfig, RouletteWheelData wheelData, int zone, System.Random random)
         {
-            if (config == null)
-                throw new ArgumentNullException(nameof(config));
+            if (rouletteConfig == null)
+                throw new ArgumentNullException(nameof(rouletteConfig));
+
+            if (wheelData == null)
+                throw new ArgumentNullException(nameof(wheelData));
 
             if (random == null)
                 throw new ArgumentNullException(nameof(random));
-
-            RouletteZoneType zoneType = config.GetZoneType(zone);
-            RouletteWheelData wheelData = config.GetWheelData(zoneType);
-            if (wheelData == null)
-                throw new InvalidOperationException($"GameConfig is missing a wheel asset for zone type {zoneType}.");
 
             RouletteSliceData[] sliceDefinitions = wheelData.SliceDefinitions;
             if (sliceDefinitions.Length == 0)
@@ -38,7 +36,7 @@ namespace Ape.Game
                     continue;
                 }
 
-                RewardData rewardData = SelectReward(config.GetRewardCatalog(), sliceRule, usedRewardIds, random);
+                RewardData rewardData = SelectReward(rouletteConfig.GetRewardCatalog(), sliceRule, usedRewardIds, random);
                 if (rewardData == null)
                     throw new InvalidOperationException($"No rewards matched slice rule '{sliceRule.name}' while building wheel '{wheelData.name}'.");
 
@@ -52,7 +50,7 @@ namespace Ape.Game
                 slices.Add(new RouletteResolvedSlice(i, sliceRule, resolvedReward));
             }
 
-            return new RouletteResolvedWheel(wheelData, zoneType, slices);
+            return new RouletteResolvedWheel(wheelData, slices);
         }
 
         private static RewardData SelectReward(RewardData[] rewardCatalog, RouletteSliceData sliceRule, HashSet<string> usedRewardIds, System.Random random)

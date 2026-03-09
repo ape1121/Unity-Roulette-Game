@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a064141707ad4a29b853c0fdc747bbf, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: 
+  RouletteConfig: {fileID: 11400000, guid: 9c2d1b130dd2545cf8cd83da7fd578af, type: 2}
   cashOutOnSafeZoneOnly: 1
   continueEnabled: 0
   continueCost: 0
@@ -20,8 +21,3 @@ MonoBehaviour:
   maxLevel: 0
   safeZoneInterval: 5
   superZoneInterval: 30
-  deterministicSeed: 1337
-  rewardCatalog: {fileID: 11400000, guid: b3ee2a81a570d4a0aa284fb0cb84a1ac, type: 2}
-  normalWheel: {fileID: 11400000, guid: 5459fef807a9e44cc806482946fe9a1e, type: 2}
-  safeWheel: {fileID: 11400000, guid: 616e30cc6c7f647a0b4b0fc1e628c71a, type: 2}
-  superWheel: {fileID: 11400000, guid: 616e30cc6c7f647a0b4b0fc1e628c71a, type: 2}
