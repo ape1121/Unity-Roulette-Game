@@ -10,19 +10,28 @@ public sealed class AppSceneManager : IManager
     private SceneBootstrapper _activeSceneBootstrapper;
     private LoadingScreenView _activeLoadingScreen;
 
-    public IEnumerator LoadGameSceneAsync(LoadingScreenView loadingScreen)
+    public void Initialize()
+    {
+        _isLoading = false;
+        _isSceneBootstrapComplete = false;
+        _activeSceneBootstrapper = null;
+        _activeLoadingScreen = null;
+    }
+
+    public IEnumerator LoadGameSceneAsync()
     {
         if (_isLoading)
             yield break;
 
+
         _isLoading = true;
         _isSceneBootstrapComplete = false;
         _activeSceneBootstrapper = null;
-        _activeLoadingScreen = loadingScreen;
+        _activeLoadingScreen = App.Dependencies.LoadingScreen;
 
         try
         {
-            yield return loadingScreen.PlayEnterTransition("Loading game");
+            yield return _activeLoadingScreen.PlayEnterTransition("Loading game");
             App.Game.PrepareForSceneLoad();
 
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(App.Config.GameSceneName, LoadSceneMode.Single);
@@ -33,12 +42,12 @@ public sealed class AppSceneManager : IManager
 
             while (loadOperation.progress < 0.9f)
             {
-                loadingScreen.SetProgress(loadOperation.progress / 0.9f);
+                _activeLoadingScreen.SetProgress(loadOperation.progress / 0.9f);
                 yield return null;
             }
 
-            loadingScreen.SetStatus("Bootstrapping scene");
-            loadingScreen.SetProgress(1f);
+            _activeLoadingScreen.SetStatus("Bootstrapping scene");
+            _activeLoadingScreen.SetProgress(1f);
 
             loadOperation.allowSceneActivation = true;
 
