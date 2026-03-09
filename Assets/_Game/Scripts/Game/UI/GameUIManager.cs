@@ -314,12 +314,12 @@ namespace Ape.Game
             return $"{spinResult.SelectedSlice.Reward.RewardName} x{spinResult.SelectedSlice.Reward.Amount}";
         }
 
-        private static string FormatZoneType(GameConfig.ZoneType zoneType)
+        private static string FormatZoneType(RouletteZoneType zoneType)
         {
             return zoneType switch
             {
-                GameConfig.ZoneType.Safe => "Safe",
-                GameConfig.ZoneType.Super => "Super",
+                RouletteZoneType.Safe => "Safe",
+                RouletteZoneType.Super => "Super",
                 _ => "Normal"
             };
         }

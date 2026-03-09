@@ -5,7 +5,7 @@ namespace Ape.Game
     public readonly struct RouletteSpinResult
     {
         public int ZoneBeforeSpin { get; }
-        public GameConfig.ZoneType ZoneType { get; }
+        public RouletteZoneType ZoneType { get; }
         public int SelectedSliceIndex { get; }
         public RouletteResolvedSlice SelectedSlice { get; }
         public bool CompletedRun { get; }
@@ -13,7 +13,7 @@ namespace Ape.Game
 
         public RouletteSpinResult(
             int zoneBeforeSpin,
-            GameConfig.ZoneType zoneType,
+            RouletteZoneType zoneType,
             int selectedSliceIndex,
             RouletteResolvedSlice selectedSlice,
             bool completedRun,

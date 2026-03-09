@@ -6,7 +6,7 @@ namespace Ape.Game
     {
         public GameRunPhase Phase { get; }
         public int CurrentZone { get; }
-        public GameConfig.ZoneType CurrentZoneType { get; }
+        public RouletteZoneType CurrentZoneType { get; }
         public int PendingCash { get; }
         public int PendingGold { get; }
         public int PendingItemCardCount { get; }
@@ -23,7 +23,7 @@ namespace Ape.Game
         public GameStateSnapshot(
             GameRunPhase phase,
             int currentZone,
-            GameConfig.ZoneType currentZoneType,
+            RouletteZoneType currentZoneType,
             int pendingCash,
             int pendingGold,
             int pendingItemCardCount,

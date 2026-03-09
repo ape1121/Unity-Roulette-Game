@@ -7,19 +7,7 @@ namespace Ape.Data
     [CreateAssetMenu(fileName = "GameConfig", menuName = "CriticalShot/Core/GameConfig")]
     public class GameConfig : ScriptableObject
     {
-        public enum ZoneType
-        {
-            Normal,
-            Safe,
-            Super
-        }
-
-        public enum WheelVisualTheme
-        {
-            Bronze,
-            Silver,
-            Gold
-        }
+        public RouletteConfig RouletteConfig;
 
         [Header("Run Rules")]
         public bool cashOutOnSafeZoneOnly = true;
@@ -52,17 +40,17 @@ namespace Ape.Data
             return resolvedStartingZone;
         }
 
-        public ZoneType GetZoneType(int zone)
+        public RouletteZoneType GetZoneType(int zone)
         {
             int resolvedZone = Mathf.Max(1, zone);
 
             if (resolvedZone % Mathf.Max(1, superZoneInterval) == 0)
-                return ZoneType.Super;
+                return RouletteZoneType.Super;
 
             if (resolvedZone % Mathf.Max(1, safeZoneInterval) == 0)
-                return ZoneType.Safe;
+                return RouletteZoneType.Safe;
 
-            return ZoneType.Normal;
+            return RouletteZoneType.Normal;
         }
 
         public bool CanCashOutAtZone(int zone)
@@ -70,8 +58,8 @@ namespace Ape.Data
             if (!cashOutOnSafeZoneOnly)
                 return true;
 
-            ZoneType zoneType = GetZoneType(zone);
-            return zoneType == ZoneType.Safe || zoneType == ZoneType.Super;
+            RouletteZoneType zoneType = GetZoneType(zone);
+            return zoneType == RouletteZoneType.Safe || zoneType == RouletteZoneType.Super;
         }
 
         public bool IsFinalZone(int zone)
@@ -84,12 +72,12 @@ namespace Ape.Data
             return GetWheelData(GetZoneType(zone));
         }
 
-        public RouletteWheelData GetWheelData(ZoneType zoneType)
+        public RouletteWheelData GetWheelData(RouletteZoneType zoneType)
         {
             return zoneType switch
             {
-                ZoneType.Safe => safeWheel,
-                ZoneType.Super => superWheel,
+                RouletteZoneType.Safe => safeWheel,
+                RouletteZoneType.Super => superWheel,
                 _ => normalWheel
             };
         }

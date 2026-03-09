@@ -36,7 +36,7 @@ namespace Ape.Game
         public bool IsGameStarted { get; private set; }
         public GameRunPhase Phase { get; private set; }
         public int CurrentZone { get; private set; }
-        public GameConfig.ZoneType CurrentZoneType { get; private set; }
+        public RouletteZoneType CurrentZoneType { get; private set; }
         public RouletteResolvedWheel ActiveWheel { get; private set; }
         public bool HasUsedContinue { get; private set; }
         public RouletteSpinResult LastSpinResult { get; private set; }
@@ -313,12 +313,12 @@ namespace Ape.Game
             if (Config.GetRewardCatalog().Length == 0)
                 throw new InvalidOperationException("GameConfig.rewardCatalog must contain at least one RewardData asset.");
 
-            ValidateWheelAsset(Config.normalWheel, GameConfig.ZoneType.Normal, mustIncludeBomb: true, mustExcludeBomb: false);
-            ValidateWheelAsset(Config.safeWheel, GameConfig.ZoneType.Safe, mustIncludeBomb: false, mustExcludeBomb: true);
-            ValidateWheelAsset(Config.superWheel, GameConfig.ZoneType.Super, mustIncludeBomb: false, mustExcludeBomb: true);
+            ValidateWheelAsset(Config.normalWheel, RouletteZoneType.Normal, mustIncludeBomb: true, mustExcludeBomb: false);
+            ValidateWheelAsset(Config.safeWheel, RouletteZoneType.Safe, mustIncludeBomb: false, mustExcludeBomb: true);
+            ValidateWheelAsset(Config.superWheel, RouletteZoneType.Super, mustIncludeBomb: false, mustExcludeBomb: true);
         }
 
-        private static void ValidateWheelAsset(RouletteWheelData wheelData, GameConfig.ZoneType zoneType, bool mustIncludeBomb, bool mustExcludeBomb)
+        private static void ValidateWheelAsset(RouletteWheelData wheelData, RouletteZoneType zoneType, bool mustIncludeBomb, bool mustExcludeBomb)
         {
             if (wheelData == null)
                 throw new MissingReferenceException($"GameConfig is missing the wheel asset for zone type {zoneType}.");
@@ -412,7 +412,7 @@ namespace Ape.Game
             StopWheelAnimation();
             Phase = GameRunPhase.None;
             CurrentZone = 0;
-            CurrentZoneType = GameConfig.ZoneType.Normal;
+            CurrentZoneType = RouletteZoneType.Normal;
             ActiveWheel = null;
             HasUsedContinue = false;
             LastSpinResult = default;

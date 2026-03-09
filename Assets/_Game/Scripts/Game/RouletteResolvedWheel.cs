@@ -6,10 +6,10 @@ namespace Ape.Game
     public sealed class RouletteResolvedWheel
     {
         public RouletteWheelData WheelData { get; }
-        public GameConfig.ZoneType ZoneType { get; }
+        public RouletteZoneType ZoneType { get; }
         public IReadOnlyList<RouletteResolvedSlice> Slices { get; }
 
-        public RouletteResolvedWheel(RouletteWheelData wheelData, GameConfig.ZoneType zoneType, IReadOnlyList<RouletteResolvedSlice> slices)
+        public RouletteResolvedWheel(RouletteWheelData wheelData, RouletteZoneType zoneType, IReadOnlyList<RouletteResolvedSlice> slices)
         {
             WheelData = wheelData;
             ZoneType = zoneType;
