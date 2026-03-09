@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public sealed class SaveManager : IManager
+public sealed class ProfileManager : IManager
 {
     private const string SaveKey = "CriticalShot.SaveData";
 
