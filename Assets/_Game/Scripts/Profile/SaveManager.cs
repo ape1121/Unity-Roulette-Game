@@ -1,48 +1,52 @@
+using Ape.Core;
 using UnityEngine;
 
-public sealed class ProfileManager : IManager
+namespace Ape.Profile
 {
-    private const string SaveKey = "CriticalShot.SaveData";
-
-    private SaveData _currentData;
-
-    public SaveData CurrentData => _currentData;
-
-    public void Initialize()
+    public sealed class ProfileManager : IManager
     {
-        Load();
-    }
+        private const string SaveKey = "CriticalShot.SaveData";
 
-    public SaveData Load()
-    {
-        if (!PlayerPrefs.HasKey(SaveKey))
+        private SaveData _currentData;
+
+        public SaveData CurrentData => _currentData;
+
+        public void Initialize()
         {
-            _currentData = default;
+            Load();
+        }
+
+        public SaveData Load()
+        {
+            if (!PlayerPrefs.HasKey(SaveKey))
+            {
+                _currentData = default;
+                return _currentData;
+            }
+
+            _currentData = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(SaveKey));
             return _currentData;
         }
 
-        _currentData = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(SaveKey));
-        return _currentData;
-    }
+        public void Save()
+        {
+            string json = JsonUtility.ToJson(_currentData);
+            PlayerPrefs.SetString(SaveKey, json);
+            PlayerPrefs.Save();
+        }
 
-    public void Save()
-    {
-        string json = JsonUtility.ToJson(_currentData);
-        PlayerPrefs.SetString(SaveKey, json);
-        PlayerPrefs.Save();
-    }
+        public void SetData(SaveData saveData, bool saveImmediately = true)
+        {
+            _currentData = saveData;
 
-    public void SetData(SaveData saveData, bool saveImmediately = true)
-    {
-        _currentData = saveData;
+            if (saveImmediately)
+                Save();
+        }
 
-        if (saveImmediately)
+        public void Reset()
+        {
+            _currentData = default;
             Save();
-    }
-
-    public void Reset()
-    {
-        _currentData = default;
-        Save();
+        }
     }
 }

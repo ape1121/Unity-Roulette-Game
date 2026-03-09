@@ -1,8 +1,15 @@
+using Ape.Scenes;
+using Ape.Sounds;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-[System.Serializable]
-public struct AppDependencies
+namespace Ape.Core
 {
-    public LoadingScreenView LoadingScreen;
-    public SoundManager SoundManager;
+    [System.Serializable]
+    [MovedFrom(false, sourceNamespace: "")]
+    public struct AppDependencies
+    {
+        public LoadingScreenView LoadingScreen;
+        public SoundManager SoundManager;
+    }
 }

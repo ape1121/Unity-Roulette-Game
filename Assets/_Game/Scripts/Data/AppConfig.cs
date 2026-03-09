@@ -1,10 +1,16 @@
+using Ape.Sounds;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-[CreateAssetMenu(fileName = "AppConfig", menuName = "CriticalShot/Configs/AppConfig")]
-public class AppConfig : ScriptableObject
+namespace Ape.Data
 {
-    public GameConfig GameConfig;
-    public AllSounds SoundsConfig;
-    public string GameSceneName;
-    public float SceneTransitionDuration = 1f;
+    [MovedFrom(false, sourceNamespace: "")]
+    [CreateAssetMenu(fileName = "AppConfig", menuName = "CriticalShot/Configs/AppConfig")]
+    public class AppConfig : ScriptableObject
+    {
+        public GameConfig GameConfig;
+        public AllSounds SoundsConfig;
+        public string GameSceneName;
+        public float SceneTransitionDuration = 1f;
+    }
 }

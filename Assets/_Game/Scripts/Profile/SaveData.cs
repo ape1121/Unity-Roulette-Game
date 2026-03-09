@@ -1,8 +1,11 @@
 using System;
 
-[Serializable]
-public struct SaveData
+namespace Ape.Profile
 {
-    public int Level;
-    public int Cash;
+    [Serializable]
+    public struct SaveData
+    {
+        public int Level;
+        public int Cash;
+    }
 }

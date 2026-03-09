@@ -1,20 +1,24 @@
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.UI;
 
-[DisallowMultipleComponent]
-[RequireComponent(typeof(RectTransform))]
-[RequireComponent(typeof(Canvas))]
-[RequireComponent(typeof(CanvasScaler))]
-[RequireComponent(typeof(GraphicRaycaster))]
-[RequireComponent(typeof(CanvasGroup))]
-public sealed class LoadingScreenView : MonoBehaviour
+namespace Ape.Scenes
 {
-    private const float EnterDuration = 0.35f;
-    private const float ExitDuration = 0.30f;
-    private const float SpinnerRotationDuration = 1.1f;
-    private const string DefaultStatus = "Loading";
+    [MovedFrom(false, sourceNamespace: "")]
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(RectTransform))]
+    [RequireComponent(typeof(Canvas))]
+    [RequireComponent(typeof(CanvasScaler))]
+    [RequireComponent(typeof(GraphicRaycaster))]
+    [RequireComponent(typeof(CanvasGroup))]
+    public sealed class LoadingScreenView : MonoBehaviour
+    {
+        private const float EnterDuration = 0.35f;
+        private const float ExitDuration = 0.30f;
+        private const float SpinnerRotationDuration = 1.1f;
+        private const string DefaultStatus = "Loading";
 
     [Header("Structure")]
     [SerializeField] private RectTransform _rootRect;
@@ -177,5 +181,6 @@ public sealed class LoadingScreenView : MonoBehaviour
     private void HandleSceneLoadCompleted(string sceneName)
     {
         Hide();
+    }
     }
 }

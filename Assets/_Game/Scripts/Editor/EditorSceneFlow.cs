@@ -8,10 +8,12 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-[InitializeOnLoad]
-public static class EditorSceneFlow
+namespace Ape.Editor
 {
-    private const string LoaderScenePath = "Assets/_Game/Scenes/Loader.unity";
+    [InitializeOnLoad]
+    public static class EditorSceneFlow
+    {
+        private const string LoaderScenePath = "Assets/_Game/Scenes/Loader.unity";
 
     private const string RestorePendingKey = "EditorSceneFlow.RestorePending";
     private const string PreviousSetupKey = "EditorSceneFlow.PreviousSetup";
@@ -687,7 +689,7 @@ public static class EditorSceneFlow
         if (entityId == null)
             return null;
 
-        Type editorUtilityType = typeof(Editor).Assembly.GetType("UnityEditor.EditorUtility");
+        Type editorUtilityType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.EditorUtility");
         if (editorUtilityType == null)
             return null;
 
@@ -1040,5 +1042,6 @@ public static class EditorSceneFlow
         hierarchyRestoreAttemptsRemaining = 0;
         SessionState.EraseString(ExpandedHierarchyStateKey);
         EditorApplication.delayCall -= TryRestoreHierarchyDelayed;
+    }
     }
 }

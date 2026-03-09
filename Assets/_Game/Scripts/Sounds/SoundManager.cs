@@ -1,31 +1,36 @@
 using System.Collections;
 using System.Collections.Generic;
+using Ape.Core;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-public class SoundManager : MonoBehaviour, IManager
+namespace Ape.Sounds
 {
-    public AllSounds allSounds => App.Config.SoundsConfig;
+    [MovedFrom(false, sourceNamespace: "")]
+    public class SoundManager : MonoBehaviour, IManager
+    {
+        public AllSounds allSounds => App.Config.SoundsConfig;
 
-    [SerializeField]
-    private int poolSize = 10;
+        [SerializeField]
+        private int poolSize = 10;
 
-    private Queue<AudioSource> audioSourcePool;
-    private List<AudioSource> activeAudioSources;
-    private AudioSource currentBGM;
+        private Queue<AudioSource> audioSourcePool;
+        private List<AudioSource> activeAudioSources;
+        private AudioSource currentBGM;
 
-    [SerializeField]
-    private float uiVolume = 1f;
+        [SerializeField]
+        private float uiVolume = 1f;
 
-    private float masterVolume = 1f;
-    private float sfxVolume = 1f;
-    private float musicVolume = 1f;
+        private float masterVolume = 1f;
+        private float sfxVolume = 1f;
+        private float musicVolume = 1f;
 
-    private Dictionary<string, Sound> soundDictionary;
-    private Dictionary<string, float> soundCooldowns = new Dictionary<string, float>();
-    private const float DEFAULT_COOLDOWN = 0.05f;
+        private Dictionary<string, Sound> soundDictionary;
+        private Dictionary<string, float> soundCooldowns = new Dictionary<string, float>();
+        private const float DEFAULT_COOLDOWN = 0.05f;
 
-    private Dictionary<string, Coroutine> activeFadeOuts = new Dictionary<string, Coroutine>();
-    private Dictionary<string, Coroutine> activeDelayedSounds = new Dictionary<string, Coroutine>();
+        private Dictionary<string, Coroutine> activeFadeOuts = new Dictionary<string, Coroutine>();
+        private Dictionary<string, Coroutine> activeDelayedSounds = new Dictionary<string, Coroutine>();
 
     public void Initialize()
     {
@@ -351,5 +356,6 @@ public class SoundManager : MonoBehaviour, IManager
         {
             ReleaseAudioSource(audioSource);
         }
+    }
     }
 }

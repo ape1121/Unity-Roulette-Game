@@ -1,7 +1,12 @@
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-[CreateAssetMenu(fileName = "AllSounds", menuName = "CriticalShot/Sounds/AllSounds", order = 1)]
-public class AllSounds : ScriptableObject
+namespace Ape.Sounds
 {
-    public Sound[] sounds;
+    [MovedFrom(false, sourceNamespace: "")]
+    [CreateAssetMenu(fileName = "AllSounds", menuName = "CriticalShot/Sounds/AllSounds", order = 1)]
+    public class AllSounds : ScriptableObject
+    {
+        public Sound[] sounds;
+    }
 }

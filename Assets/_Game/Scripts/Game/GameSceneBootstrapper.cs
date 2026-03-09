@@ -1,13 +1,20 @@
+using Ape.Core;
+using Ape.Scenes;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-public sealed class GameSceneBootstrapper : SceneBootstrapper
+namespace Ape.Game
 {
-    [SerializeField] private Camera _mainCamera;
-
-    protected override void BootstrapScene()
+    [MovedFrom(false, sourceNamespace: "")]
+    public sealed class GameSceneBootstrapper : SceneBootstrapper
     {
-        App.Game.PrepareForSceneLoad();
-        App.Game.BindScene(new GameSceneDependencies(_mainCamera));
-        App.Game.StartGame();
+        [SerializeField] private Camera _mainCamera;
+
+        protected override void BootstrapScene()
+        {
+            App.Game.PrepareForSceneLoad();
+            App.Game.BindScene(new GameSceneDependencies(_mainCamera));
+            App.Game.StartGame();
+        }
     }
 }

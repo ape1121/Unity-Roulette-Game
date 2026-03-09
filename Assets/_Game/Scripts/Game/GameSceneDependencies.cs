@@ -1,11 +1,14 @@
 using UnityEngine;
 
-public readonly struct GameSceneDependencies
+namespace Ape.Game
 {
-    public Camera MainCamera { get; }
-
-    public GameSceneDependencies(Camera mainCamera)
+    public readonly struct GameSceneDependencies
     {
-        MainCamera = mainCamera;
+        public Camera MainCamera { get; }
+
+        public GameSceneDependencies(Camera mainCamera)
+        {
+            MainCamera = mainCamera;
+        }
     }
 }

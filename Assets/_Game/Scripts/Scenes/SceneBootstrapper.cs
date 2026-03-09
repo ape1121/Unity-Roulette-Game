@@ -1,13 +1,18 @@
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-public class SceneBootstrapper : MonoBehaviour
+namespace Ape.Scenes
 {
-    protected virtual void BootstrapScene()
+    [MovedFrom(false, sourceNamespace: "")]
+    public class SceneBootstrapper : MonoBehaviour
     {
-    }
+        protected virtual void BootstrapScene()
+        {
+        }
 
-    private void Start()
-    {
-        BootstrapScene();
+        private void Start()
+        {
+            BootstrapScene();
+        }
     }
 }

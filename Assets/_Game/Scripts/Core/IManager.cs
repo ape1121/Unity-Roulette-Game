@@ -1,6 +1,9 @@
-public interface IManager
+namespace Ape.Core
 {
-    void Initialize();
-    void Tick(float deltaTime) {}
-    void Shutdown() {}
+    public interface IManager
+    {
+        void Initialize();
+        void Tick(float deltaTime) {}
+        void Shutdown() {}
+    }
 }

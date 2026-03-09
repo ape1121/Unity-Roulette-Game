@@ -1,15 +1,18 @@
 using System;
 using System.Collections;
+using Ape.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public sealed class AppSceneManager : IManager
+namespace Ape.Scenes
 {
-    public event Action<string> SceneLoadStarted;
-    public event Action<string> SceneLoadCompleted;
+    public sealed class AppSceneManager : IManager
+    {
+        public event Action<string> SceneLoadStarted;
+        public event Action<string> SceneLoadCompleted;
 
-    private bool _isLoading;
-    private Coroutine _loadSceneCoroutine;
+        private bool _isLoading;
+        private Coroutine _loadSceneCoroutine;
 
     public void Initialize()
     {
@@ -75,5 +78,6 @@ public sealed class AppSceneManager : IManager
         SceneLoadCompleted = null;
         _isLoading = false;
         _loadSceneCoroutine = null;
+    }
     }
 }

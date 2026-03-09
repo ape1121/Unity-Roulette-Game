@@ -9,11 +9,13 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public sealed class EditorSceneSelector : EditorWindow
+namespace Ape.Editor
 {
-    private const string ScenesRootPath = "Assets/_Game/Scenes";
-    private const string PersistedSceneStatesKey = "EditorSceneSelector.SceneStates";
-    private const int RestoreAttemptCount = 10;
+    public sealed class EditorSceneSelector : EditorWindow
+    {
+        private const string ScenesRootPath = "Assets/_Game/Scenes";
+        private const string PersistedSceneStatesKey = "EditorSceneSelector.SceneStates";
+        private const int RestoreAttemptCount = 10;
 
     [Serializable]
     private sealed class SceneStateContainer
@@ -968,7 +970,7 @@ public sealed class EditorSceneSelector : EditorWindow
         if (entityId == null)
             return null;
 
-        Type editorUtilityType = typeof(Editor).Assembly.GetType("UnityEditor.EditorUtility");
+        Type editorUtilityType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.EditorUtility");
         if (editorUtilityType == null)
             return null;
 
@@ -1074,5 +1076,6 @@ public sealed class EditorSceneSelector : EditorWindow
         }
 
         return false;
+    }
     }
 }

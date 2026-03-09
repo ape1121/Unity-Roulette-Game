@@ -1,14 +1,18 @@
-using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-[CreateAssetMenu(fileName = "New Sound", menuName = "CriticalShot/Sounds/Sound")]
-public class Sound : ScriptableObject
+namespace Ape.Sounds
 {
-    public string Name;
-    public AudioClip Clip;
-    [Range(0f, 1f)]
-    public float Volume = 1f;
-    [Range(0.1f, 3f)]
-    public float Pitch = 1f;
-    public bool Loop = false;
+    [MovedFrom(false, sourceNamespace: "")]
+    [CreateAssetMenu(fileName = "New Sound", menuName = "CriticalShot/Sounds/Sound")]
+    public class Sound : ScriptableObject
+    {
+        public string Name;
+        public AudioClip Clip;
+        [Range(0f, 1f)]
+        public float Volume = 1f;
+        [Range(0.1f, 3f)]
+        public float Pitch = 1f;
+        public bool Loop = false;
+    }
 }
