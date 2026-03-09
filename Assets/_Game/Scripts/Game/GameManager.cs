@@ -378,17 +378,10 @@ namespace Ape.Game
 
         private GameStateSnapshot BuildStateSnapshot()
         {
-            GameConfig.WheelVisualTheme wheelTheme = ActiveWheel != null
-                ? ActiveWheel.VisualTheme
-                : Config != null && CurrentZone > 0 && Config.GetWheelData(CurrentZoneType) != null
-                    ? Config.GetWheelData(CurrentZoneType).VisualTheme
-                    : GameConfig.WheelVisualTheme.Bronze;
-
             return new GameStateSnapshot(
                 Phase,
                 CurrentZone,
                 CurrentZoneType,
-                wheelTheme,
                 PendingCash,
                 PendingGold,
                 _rewardLedger.PendingItemCardCount,

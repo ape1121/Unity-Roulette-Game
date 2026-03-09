@@ -21,8 +21,7 @@ MonoBehaviour:
   safeZoneInterval: 5
   superZoneInterval: 30
   deterministicSeed: 1337
-  rewardCatalog:
-  - {fileID: 0}
-  normalWheel: {fileID: 0}
-  safeWheel: {fileID: 0}
-  superWheel: {fileID: 0}
+  rewardCatalog: {fileID: 11400000, guid: b3ee2a81a570d4a0aa284fb0cb84a1ac, type: 2}
+  normalWheel: {fileID: 11400000, guid: 5459fef807a9e44cc806482946fe9a1e, type: 2}
+  safeWheel: {fileID: 11400000, guid: 616e30cc6c7f647a0b4b0fc1e628c71a, type: 2}
+  superWheel: {fileID: 11400000, guid: 616e30cc6c7f647a0b4b0fc1e628c71a, type: 2}

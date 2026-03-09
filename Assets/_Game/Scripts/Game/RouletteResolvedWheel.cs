@@ -16,7 +16,6 @@ namespace Ape.Game
             Slices = slices;
         }
 
-        public GameConfig.WheelVisualTheme VisualTheme => WheelData != null ? WheelData.VisualTheme : GameConfig.WheelVisualTheme.Bronze;
         public float SpinDuration => WheelData != null ? WheelData.SpinDuration : 3f;
         public int FullRotations => WheelData != null ? WheelData.FullRotations : 6;
         public float SettleOvershootDegrees => WheelData != null ? WheelData.SettleOvershootDegrees : 0f;

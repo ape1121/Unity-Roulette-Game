@@ -4,7 +4,7 @@ using UnityEngine.Scripting.APIUpdating;
 namespace Ape.Data
 {
     [MovedFrom(false, sourceNamespace: "")]
-    [CreateAssetMenu(fileName = "GameConfig", menuName = "CriticalShot/Configs/GameConfig")]
+    [CreateAssetMenu(fileName = "GameConfig", menuName = "CriticalShot/Core/GameConfig")]
     public class GameConfig : ScriptableObject
     {
         public enum ZoneType
@@ -33,7 +33,7 @@ namespace Ape.Data
         public int deterministicSeed = 1337;
 
         [Header("Reward Catalog")]
-        public RewardData[] rewardCatalog;
+        public RouletteRewards rewardCatalog;
 
         [Header("Wheel Assets")]
         public RouletteWheelData normalWheel;
@@ -96,7 +96,13 @@ namespace Ape.Data
 
         public RewardData[] GetRewardCatalog()
         {
-            return rewardCatalog ?? System.Array.Empty<RewardData>();
+            return rewardCatalog?.rewards ?? System.Array.Empty<RewardData>();
+        }
+
+        public bool TryGetReward(string rewardId, out RewardData rewardData)
+        {
+            rewardData = null;
+            return rewardCatalog != null && rewardCatalog.TryGetReward(rewardId, out rewardData);
         }
     }
 }

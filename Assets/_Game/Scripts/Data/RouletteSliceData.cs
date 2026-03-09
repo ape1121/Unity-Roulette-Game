@@ -5,7 +5,7 @@ using UnityEngine.Scripting.APIUpdating;
 namespace Ape.Data
 {
     [MovedFrom(false, sourceNamespace: "")]
-    [CreateAssetMenu(fileName = "RouletteSliceData", menuName = "CriticalShot/Configs/Roulette Slice Data")]
+    [CreateAssetMenu(fileName = "RouletteSliceData", menuName = "CriticalShot/Roulette/Roulette Slice Data")]
     public sealed class RouletteSliceData : ScriptableObject
     {
         [Serializable]

@@ -4,7 +4,7 @@ using UnityEngine.Scripting.APIUpdating;
 namespace Ape.Data
 {
     [MovedFrom(false, sourceNamespace: "")]
-    [CreateAssetMenu(fileName = "RewardData", menuName = "CriticalShot/Configs/Reward Data")]
+    [CreateAssetMenu(fileName = "RewardData", menuName = "CriticalShot/Roulette/Reward Data")]
     public sealed class RewardData : ScriptableObject
     {
         public enum RewardKind

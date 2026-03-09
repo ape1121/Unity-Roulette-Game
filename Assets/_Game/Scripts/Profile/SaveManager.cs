@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using Ape.Core;
 using UnityEngine;
 
@@ -9,6 +10,8 @@ namespace Ape.Profile
         private const string SaveKey = "CriticalShot.SaveData";
 
         private SaveData _currentData;
+
+        public event Action<SaveData> DataChanged;
 
         public SaveData CurrentData => _currentData;
         public IReadOnlyList<RewardInventoryEntry> Inventory => _currentData.Inventory;
@@ -23,11 +26,13 @@ namespace Ape.Profile
             if (!PlayerPrefs.HasKey(SaveKey))
             {
                 _currentData = CreateDefaultData();
+                PublishDataChanged();
                 return _currentData;
             }
 
             _currentData = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(SaveKey));
             EnsureDataInitialized();
+            PublishDataChanged();
             return _currentData;
         }
 
@@ -37,6 +42,7 @@ namespace Ape.Profile
             string json = JsonUtility.ToJson(_currentData);
             PlayerPrefs.SetString(SaveKey, json);
             PlayerPrefs.Save();
+            PublishDataChanged();
         }
 
         public bool CanAffordCash(int amount)
@@ -106,6 +112,8 @@ namespace Ape.Profile
 
             if (saveImmediately)
                 Save();
+            else
+                PublishDataChanged();
         }
 
         public void Reset()
@@ -152,6 +160,11 @@ namespace Ape.Profile
             }
 
             _currentData.Inventory.Add(new RewardInventoryEntry(rewardId, resolvedAmount));
+        }
+
+        private void PublishDataChanged()
+        {
+            DataChanged?.Invoke(_currentData);
         }
     }
 }

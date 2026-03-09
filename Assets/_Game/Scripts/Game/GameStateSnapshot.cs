@@ -7,7 +7,6 @@ namespace Ape.Game
         public GameRunPhase Phase { get; }
         public int CurrentZone { get; }
         public GameConfig.ZoneType CurrentZoneType { get; }
-        public GameConfig.WheelVisualTheme CurrentWheelTheme { get; }
         public int PendingCash { get; }
         public int PendingGold { get; }
         public int PendingItemCardCount { get; }
@@ -25,7 +24,6 @@ namespace Ape.Game
             GameRunPhase phase,
             int currentZone,
             GameConfig.ZoneType currentZoneType,
-            GameConfig.WheelVisualTheme currentWheelTheme,
             int pendingCash,
             int pendingGold,
             int pendingItemCardCount,
@@ -42,7 +40,6 @@ namespace Ape.Game
             Phase = phase;
             CurrentZone = currentZone;
             CurrentZoneType = currentZoneType;
-            CurrentWheelTheme = currentWheelTheme;
             PendingCash = pendingCash;
             PendingGold = pendingGold;
             PendingItemCardCount = pendingItemCardCount;

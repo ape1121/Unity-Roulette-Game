@@ -5,7 +5,7 @@ using UnityEngine.Scripting.APIUpdating;
 namespace Ape.Data
 {
     [MovedFrom(false, sourceNamespace: "")]
-    [CreateAssetMenu(fileName = "AppConfig", menuName = "CriticalShot/Configs/AppConfig")]
+    [CreateAssetMenu(fileName = "AppConfig", menuName = "CriticalShot/Core/AppConfig")]
     public class AppConfig : ScriptableObject
     {
         public GameConfig GameConfig;
