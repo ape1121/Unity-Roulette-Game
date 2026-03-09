@@ -9,11 +9,12 @@ namespace Ape.Game
     public sealed class GameSceneBootstrapper : SceneBootstrapper
     {
         [SerializeField] private Camera _mainCamera;
+        [SerializeField] private RouletteWheelUI _rouletteWheel;
 
         protected override void BootstrapScene()
         {
             App.Game.PrepareForSceneLoad();
-            App.Game.BindScene(new GameSceneDependencies(_mainCamera));
+            App.Game.BindScene(new GameSceneDependencies(_mainCamera, _rouletteWheel));
             App.Game.StartGame();
         }
     }

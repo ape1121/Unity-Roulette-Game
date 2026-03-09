@@ -1,0 +1,24 @@
+using System.Collections.Generic;
+using Ape.Data;
+
+namespace Ape.Game
+{
+    public sealed class RouletteResolvedWheel
+    {
+        public RouletteWheelData WheelData { get; }
+        public GameConfig.ZoneType ZoneType { get; }
+        public IReadOnlyList<RouletteResolvedSlice> Slices { get; }
+
+        public RouletteResolvedWheel(RouletteWheelData wheelData, GameConfig.ZoneType zoneType, IReadOnlyList<RouletteResolvedSlice> slices)
+        {
+            WheelData = wheelData;
+            ZoneType = zoneType;
+            Slices = slices;
+        }
+
+        public GameConfig.WheelVisualTheme VisualTheme => WheelData != null ? WheelData.VisualTheme : GameConfig.WheelVisualTheme.Bronze;
+        public float SpinDuration => WheelData != null ? WheelData.SpinDuration : 3f;
+        public int FullRotations => WheelData != null ? WheelData.FullRotations : 6;
+        public float SettleOvershootDegrees => WheelData != null ? WheelData.SettleOvershootDegrees : 0f;
+    }
+}

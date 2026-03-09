@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ape.Profile
 {
@@ -7,5 +8,7 @@ namespace Ape.Profile
     {
         public int Level;
         public int Cash;
+        public int Gold;
+        public List<RewardInventoryEntry> Inventory;
     }
 }

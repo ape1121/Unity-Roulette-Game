@@ -13,6 +13,16 @@ MonoBehaviour:
   m_Name: GameConfig
   m_EditorClassIdentifier: 
   cashOutOnSafeZoneOnly: 1
+  continueEnabled: 0
   continueCost: 0
   buyInCost: 0
+  startingZone: 1
   maxLevel: 0
+  safeZoneInterval: 5
+  superZoneInterval: 30
+  deterministicSeed: 1337
+  rewardCatalog:
+  - {fileID: 0}
+  normalWheel: {fileID: 0}
+  safeWheel: {fileID: 0}
+  superWheel: {fileID: 0}
