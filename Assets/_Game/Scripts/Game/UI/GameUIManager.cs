@@ -253,7 +253,7 @@ namespace Ape.Game
             SetButtonInteractable(_cashOutButton, state.CanCashOut);
             SetButtonInteractable(_continueButton, state.CanContinue);
             SetButtonInteractable(_restartButton, state.CanRestart);
-            SetSpinButtonIdleState(state.CanSpin);
+            SetWheelIdlePresentationState(state.CanSpin, IsBeforeFirstSpinOfRun());
 
             SetText(_continueButtonLabel, BuildContinueButtonLabel());
 
@@ -271,7 +271,7 @@ namespace Ape.Game
                                       || (isGameOver && cashOutAnytimeEnabled);
             RectTransform desiredOverlayRoot = ResolveDesiredOverlayRoot(isGameOver, showCashOutOverlay);
 
-            bool showContinueButton = desiredOverlayRoot == _gameOverRoot && state.CanContinue;
+            bool showContinueButton = ResolveContinueButtonVisibility(state.CanContinue, desiredOverlayRoot, instant);
             SetButtonVisible(_continueButton, showContinueButton);
 
             UpdateOverlaySlot(desiredOverlayRoot, instant);
@@ -385,6 +385,21 @@ namespace Ape.Game
                 return _cashOutOverlayRoot;
 
             return null;
+        }
+
+        private bool ResolveContinueButtonVisibility(bool canContinue, RectTransform desiredOverlayRoot, bool instant)
+        {
+            if (_continueButton == null)
+                return false;
+
+            if (desiredOverlayRoot == _gameOverRoot)
+                return canContinue;
+
+            if (instant || GetOverlayRootState(_gameOverRoot) == OverlayRootState.Hidden)
+                return false;
+
+            // Preserve the current game-over layout while the overlay is still animating out.
+            return _continueButton.gameObject.activeSelf;
         }
 
         private void InitializeSlidingRoot(RectTransform root)
@@ -657,14 +672,19 @@ namespace Ape.Game
                 button.interactable = isInteractable;
         }
 
-        private static void SetSpinButtonIdleState(bool isActive)
+        private static bool IsBeforeFirstSpinOfRun()
+        {
+            return App.Game != null && App.Game.LastSpinResult.SelectedSlice.SliceRule == null;
+        }
+
+        private static void SetWheelIdlePresentationState(bool isSpinButtonIdleActive, bool isWheelIdleRotationActive)
         {
             if (App.Game == null)
                 return;
 
             RouletteWheelUI rouletteWheel = App.Game.SceneDependencies.RouletteWheel;
             if (rouletteWheel != null)
-                rouletteWheel.SetSpinButtonIdleActive(isActive);
+                rouletteWheel.SetIdlePresentationActive(isSpinButtonIdleActive, isSpinButtonIdleActive && isWheelIdleRotationActive);
         }
 
         private static void SetButtonVisible(Button button, bool isVisible)

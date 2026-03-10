@@ -57,6 +57,9 @@ namespace Ape.Game
         [Min(0.1f)] [SerializeField] private float _spinButtonIdlePulseDuration = 0.8f;
         [SerializeField] private Ease _spinButtonIdlePulseEase = Ease.InOutSine;
 
+        [Header("Wheel Idle Rotation")]
+        [SerializeField] private float _idleRotationSpeedDegreesPerSecond = 8f;
+
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
         private Sequence _spinSequence;
@@ -68,12 +71,14 @@ namespace Ape.Game
         private float _prevAnimatedRotation;
         private Vector3 _spinButtonIdleBaseScale = Vector3.one;
         private bool _hasSpinButtonIdleBaseScale;
+        private bool _wheelIdleRotationActive;
 
         private void OnEnable()
         {
             _spinButton ??= GetComponentInChildren<Button>(true);
             _spinButtonPulseTarget ??= _spinButton != null ? _spinButton.transform as RectTransform : null;
             CacheSpinButtonIdleBaseScale();
+            _wheelIdleRotationActive = false;
             StopSpinButtonIdleAnimation(resetScale: true);
         }
 
@@ -131,6 +136,7 @@ namespace Ape.Game
                 return;
             }
 
+            _wheelIdleRotationActive = false;
             StopSpinButtonIdleAnimation(resetScale: true);
             StopAnimation();
 
@@ -201,15 +207,29 @@ namespace Ape.Game
             _spinSequence.OnKill(() => _spinSequence = null);
         }
 
-        public void SetSpinButtonIdleActive(bool isActive)
+        public void SetIdlePresentationActive(bool isButtonIdleActive, bool isWheelIdleRotationActive)
         {
-            if (isActive)
+            _wheelIdleRotationActive = isWheelIdleRotationActive;
+
+            if (isButtonIdleActive)
             {
                 StartSpinButtonIdleAnimation();
                 return;
             }
 
             StopSpinButtonIdleAnimation(resetScale: true);
+        }
+
+        private void Update()
+        {
+            if (!_wheelIdleRotationActive || _wheelRotatorRect == null || (_spinSequence != null && _spinSequence.IsActive()))
+                return;
+
+            float deltaTime = Time.deltaTime;
+            if (deltaTime <= 0f)
+                return;
+
+            SetWheelRotation(_currentRotationDegrees + (_idleRotationSpeedDegreesPerSecond * deltaTime));
         }
 
         private void OnRectTransformDimensionsChange()
