@@ -77,7 +77,6 @@ public class UIButton : Button
 
         ApplyExtraImageTint(visualState, instant);
         HandlePressAnimation(state, instant);
-        HandleClickSound(state, instant);
         UpdateHoverScale(instant);
     }
 
@@ -114,6 +113,8 @@ public class UIButton : Button
     public override void OnPointerDown(PointerEventData eventData)
     {
         base.OnPointerDown(eventData);
+        if (eventData.button == PointerEventData.InputButton.Left)
+            PlayClickSound();
         UpdateHoverScale(instant: false);
     }
 
@@ -123,12 +124,18 @@ public class UIButton : Button
         UpdateHoverScale(instant: false);
     }
 
-    private void HandleClickSound(SelectionState state, bool instant)
+    public override void OnSubmit(BaseEventData eventData)
     {
-        if (state == SelectionState.Pressed && !string.IsNullOrEmpty(clickSound))
-        {
-            App.Sound.PlaySound(clickSound, true);
-        }
+        PlayClickSound();
+        base.OnSubmit(eventData);
+    }
+
+    private void PlayClickSound()
+    {
+        if (string.IsNullOrEmpty(clickSound) || !IsActive() || !IsInteractable())
+            return;
+
+        App.Sound.PlaySound(clickSound, true);
     }
 
     private void ApplyExtraImageTint(SelectionState state, bool instant)

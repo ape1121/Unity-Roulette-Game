@@ -66,7 +66,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 5f8ef37fefe8046fd935f9022f07d400, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 29ffb835f757b405eac0817c31b7b268, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -136,6 +136,16 @@ MonoBehaviour:
   _fallbackDiameter: 1152
   _sliceRadiusPaddingRatio: 0.208
   _sliceSizeRatio: 0.126
+  _indicatorSwayMaxAngle: 60
+  _indicatorSwayFrequency: 12
+  _indicatorSwayDamping: 2
+  _overshootMin: 4
+  _overshootMax: 25
+  _maxExtraBounces: 1
+  _extraBounceDuration: 0.18
+  _squeekerChance: 0.42
+  _squeekerEdgeOffset: 0.42
+  _squeekerCrawlDuration: 0.3
 --- !u!1 &1557323243026473409
 GameObject:
   m_ObjectHideFlags: 0

@@ -23,6 +23,7 @@ namespace Ape.Game
         [SerializeField] private RectTransform _gameOverRoot;
         [SerializeField] private float _gameOverSlideDuration = 0.4f;
         [SerializeField] private Ease _gameOverSlideEase = Ease.OutBack;
+        [SerializeField] private Ease _gameOverHideEase = Ease.InBack;
 
         [Header("Run State")]
         [SerializeField] private TextMeshProUGUI _zoneValueText;
@@ -40,8 +41,8 @@ namespace Ape.Game
         [Header("Profile")]
         [SerializeField] private TextMeshProUGUI _savedCashValueText;
         [SerializeField] private TextMeshProUGUI _savedGoldValueText;
-        [SerializeField] private TextMeshProUGUI _inventoryKindsValueText;
-        [SerializeField] private TextMeshProUGUI _inventoryCardsValueText;
+        [SerializeField] private GameObject _inventoryPendingBadgeRoot;
+        [SerializeField] private TextMeshProUGUI _inventoryPendingCountText;
         [FormerlySerializedAs("_inventoryList")]
         [SerializeField] private InventoryUIWindow _inventoryWindow;
 
@@ -55,6 +56,8 @@ namespace Ape.Game
 
         private void OnEnable()
         {
+            _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
+
             if (_gameOverRoot != null)
             {
                 _gameOverAnchoredPos = _gameOverRoot.anchoredPosition;
@@ -181,6 +184,8 @@ namespace Ape.Game
 
         private void HandleInventoryClicked()
         {
+            _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
+
             if (_inventoryWindow == null)
                 return;
 
@@ -190,7 +195,6 @@ namespace Ape.Game
         private void HandleGameStateChanged(GameStateSnapshot snapshot)
         {
             RefreshState(snapshot, instant: false);
-            RefreshProfileSummary();
         }
 
         private void HandleSpinResolved(RouletteSpinResult spinResult)
@@ -206,7 +210,6 @@ namespace Ape.Game
         private void RefreshAll()
         {
             RefreshState(App.Game != null ? App.Game.CurrentState : default, instant: true);
-            RefreshProfileSummary();
 
             if (_inventoryWindow != null)
                 _inventoryWindow.Refresh();
@@ -230,6 +233,7 @@ namespace Ape.Game
             SetText(_savedCashValueText, state.SavedCash.ToString());
             SetText(_savedGoldValueText, state.SavedGold.ToString());
             SetText(_statusValueText, BuildStatusLabel(state));
+            RefreshInventoryPendingUi(state.PendingInventoryRewardCount);
 
             if (_zoneTypeValueText != null)
                 _zoneTypeValueText.gameObject.SetActive(showZoneType);
@@ -251,44 +255,17 @@ namespace Ape.Game
             if (isGameOver)
                 ShowGameOver(instant);
             else
-                HideGameOver();
+                HideGameOver(instant);
         }
 
-        private void RefreshProfileSummary()
+        private void RefreshInventoryPendingUi(int pendingItemCount)
         {
-            int inventoryKinds = 0;
-            int inventoryRewards = 0;
+            int clampedPendingItemCount = Mathf.Max(0, pendingItemCount);
 
-            if (App.Profile != null)
-            {
-                GameConfig gameConfig = App.Config != null
-                    ? App.Config.GameConfig
-                    : null;
-                var inventory = App.Profile.Inventory;
+            if (_inventoryPendingBadgeRoot != null)
+                _inventoryPendingBadgeRoot.SetActive(clampedPendingItemCount > 0);
 
-                if (inventory != null)
-                {
-                    for (int i = 0; i < inventory.Count; i++)
-                    {
-                        RewardInventoryEntry entry = inventory[i];
-                        if (entry.Amount <= 0)
-                            continue;
-
-                        if (gameConfig != null
-                            && gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData)
-                            && rewardData != null
-                            && rewardData.Kind != RewardData.RewardKind.Cash
-                            && rewardData.Kind != RewardData.RewardKind.Gold)
-                        {
-                            inventoryKinds++;
-                            inventoryRewards += entry.Amount;
-                        }
-                    }
-                }
-            }
-
-            SetText(_inventoryKindsValueText, inventoryKinds.ToString());
-            SetText(_inventoryCardsValueText, inventoryRewards.ToString());
+            SetText(_inventoryPendingCountText, clampedPendingItemCount.ToString());
         }
 
         private string BuildContinueButtonLabel()
@@ -387,22 +364,36 @@ namespace Ape.Game
                 return;
             }
 
-            // Start off-screen below, slide up to cached position
-            var rect = _gameOverRoot.rect;
-            _gameOverRoot.anchoredPosition = _gameOverAnchoredPos + Vector2.down * rect.height;
+            // Start off-screen below, slide up to cached position.
+            _gameOverRoot.anchoredPosition = GetHiddenGameOverAnchoredPosition();
             _gameOverSlideTween = _gameOverRoot.DOAnchorPos(_gameOverAnchoredPos, _gameOverSlideDuration)
                 .SetEase(_gameOverSlideEase)
                 .SetLink(_gameOverRoot.gameObject, LinkBehaviour.KillOnDestroy)
                 .OnKill(() => _gameOverSlideTween = null);
         }
 
-        private void HideGameOver()
+        private void HideGameOver(bool instant)
         {
             if (_gameOverRoot == null)
                 return;
 
             KillGameOverTween();
-            _gameOverRoot.gameObject.SetActive(false);
+
+            if (!_gameOverRoot.gameObject.activeSelf)
+                return;
+
+            if (instant)
+            {
+                _gameOverRoot.anchoredPosition = GetHiddenGameOverAnchoredPosition();
+                _gameOverRoot.gameObject.SetActive(false);
+                return;
+            }
+
+            _gameOverSlideTween = _gameOverRoot.DOAnchorPos(GetHiddenGameOverAnchoredPosition(), _gameOverSlideDuration)
+                .SetEase(_gameOverHideEase)
+                .SetLink(_gameOverRoot.gameObject, LinkBehaviour.KillOnDestroy)
+                .OnComplete(() => _gameOverRoot.gameObject.SetActive(false))
+                .OnKill(() => _gameOverSlideTween = null);
         }
 
         private void KillGameOverTween()
@@ -412,6 +403,11 @@ namespace Ape.Game
                 _gameOverSlideTween.Kill();
                 _gameOverSlideTween = null;
             }
+        }
+
+        private Vector2 GetHiddenGameOverAnchoredPosition()
+        {
+            return _gameOverAnchoredPos + Vector2.down * _gameOverRoot.rect.height;
         }
 
         private static void SetButtonInteractable(Button button, bool isInteractable)

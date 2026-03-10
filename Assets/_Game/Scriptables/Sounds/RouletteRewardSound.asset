@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eac6331a5a9944b2e9c62eb9ec9c40ca, type: 3}
-  m_Name: ButtonClickSound
+  m_Name: RouletteRewardSound
   m_EditorClassIdentifier: 
-  Name: click
-  Clip: {fileID: 8300000, guid: 8068f71fb4dd34f5c8a3f1fe6a1b406b, type: 3}
-  Volume: 0.366
-  Pitch: 1
+  Name: roulette_spin_reward
+  Clip: {fileID: 8300000, guid: 4db6ef373365d4cc589b8d0285542a76, type: 3}
+  Volume: 1
+  Pitch: 0.7
   Loop: 0
