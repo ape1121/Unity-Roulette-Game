@@ -23,7 +23,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  spinDuration: 5
+  spinDuration: 3
   fullRotations: 1
   settleOvershootDegrees: 6
   settleDuration: 0.24

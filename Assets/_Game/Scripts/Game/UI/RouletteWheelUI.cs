@@ -19,15 +19,18 @@ namespace Ape.Game
         [SerializeField] private bool _useBackgroundShortestDimension = true;
         [FormerlySerializedAs("_diameter")]
         [Min(100f)] [SerializeField] private float _fallbackDiameter = 640f;
-        [Min(0f)] [SerializeField] private float _sliceRadiusPadding = 72f;
+        [Range(0f, 0.5f)] [SerializeField] private float _sliceRadiusPaddingRatio = 0.1125f; // 72/640
+        [Range(0.05f, 0.5f)] [SerializeField] private float _sliceSizeRatio = 0.15625f; // 100/640
 
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
         private Sequence _spinSequence;
         private float _currentRotationDegrees;
+        private RouletteResolvedWheel _lastWheel;
 
         public void BuildWheel(RouletteResolvedWheel wheel, bool preserveRotation = true)
         {
+            _lastWheel = wheel;
             ClearSlices();
             ApplyWheelBackground(wheel);
 
@@ -40,13 +43,15 @@ namespace Ape.Game
             }
 
             float sliceAngle = 360f / wheel.Slices.Count;
-            float radius = Mathf.Max(0f, (ResolveWheelDiameter() * 0.5f) - _sliceRadiusPadding);
+            float diameter = ResolveWheelDiameter();
+            float radius = Mathf.Max(0f, (diameter * 0.5f) - (diameter * _sliceRadiusPaddingRatio));
+            float sliceSize = diameter * _sliceSizeRatio;
 
             for (int i = 0; i < wheel.Slices.Count; i++)
             {
                 RouletteRewardSliceUI sliceView = Instantiate(_rewardSlicePrefab, _sliceRootRect);
                 sliceView.Bind(wheel.Slices[i]);
-                LayoutSlice(sliceView.RootRect, i, sliceAngle, radius);
+                LayoutSlice(sliceView.RootRect, i, sliceAngle, radius, sliceSize);
                 _spawnedSlices.Add(sliceView);
             }
 
@@ -126,6 +131,14 @@ namespace Ape.Game
             _spinSequence.OnKill(() => _spinSequence = null);
         }
 
+        private void OnRectTransformDimensionsChange()
+        {
+            if (_lastWheel == null || _spawnedSlices.Count == 0)
+                return;
+
+            RelayoutSlices(_lastWheel);
+        }
+
         private void OnDestroy()
         {
             StopAnimation();
@@ -176,7 +189,21 @@ namespace Ape.Game
             return shortestDimension > 0f ? shortestDimension : _fallbackDiameter;
         }
 
-        private void LayoutSlice(RectTransform sliceRect, int index, float sliceAngle, float radius)
+        private void RelayoutSlices(RouletteResolvedWheel wheel)
+        {
+            float sliceAngle = 360f / wheel.Slices.Count;
+            float diameter = ResolveWheelDiameter();
+            float radius = Mathf.Max(0f, (diameter * 0.5f) - (diameter * _sliceRadiusPaddingRatio));
+            float sliceSize = diameter * _sliceSizeRatio;
+
+            for (int i = 0; i < _spawnedSlices.Count; i++)
+            {
+                if (_spawnedSlices[i] == null) continue;
+                LayoutSlice(_spawnedSlices[i].RootRect, i, sliceAngle, radius, sliceSize);
+            }
+        }
+
+        private void LayoutSlice(RectTransform sliceRect, int index, float sliceAngle, float radius, float size)
         {
             if (sliceRect == null)
                 return;
@@ -184,6 +211,7 @@ namespace Ape.Game
             sliceRect.anchorMin = new Vector2(0.5f, 0.5f);
             sliceRect.anchorMax = new Vector2(0.5f, 0.5f);
             sliceRect.pivot = new Vector2(0.5f, 0.5f);
+            sliceRect.sizeDelta = new Vector2(size, size);
 
             float centerAngle = 90f - (index * sliceAngle);
             float radians = centerAngle * Mathf.Deg2Rad;

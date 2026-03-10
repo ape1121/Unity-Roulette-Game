@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: CommonRewardData
   m_EditorClassIdentifier: 
-  rewardId: Small Chest
-  rewardName: CommonRewardData
+  rewardId: case
+  rewardName: CASE
   icon: {fileID: 21300000, guid: fbd026c2d845c467bbeb5470b615768e, type: 3}
   rewardKind: 2
   rarity: 0
