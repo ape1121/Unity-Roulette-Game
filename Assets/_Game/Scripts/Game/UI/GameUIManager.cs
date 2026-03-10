@@ -59,6 +59,7 @@ namespace Ape.Game
         [SerializeField] private InventoryUIWindow _inventoryWindow;
 
         [Header("Feedback")]
+        [SerializeField] private GameUIEffects _effects;
         [SerializeField] private GameObject _spinningBlockerRoot;
 
         private bool _gameSubscribed;
@@ -69,10 +70,10 @@ namespace Ape.Game
         private readonly Dictionary<RectTransform, Vector2> _companionRootBaseAnchoredPositions = new Dictionary<RectTransform, Vector2>();
         private RectTransform _desiredOverlayRoot;
 
+        public GameUIEffects Effects => _effects;
+
         private void OnEnable()
         {
-            _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
-
             InitializeSlidingRoot(_gameOverRoot);
             InitializeSlidingRoot(_cashOutOverlayRoot);
             InitializeCompanionRoots(_overlaySlideCompanionRoots);
@@ -91,6 +92,7 @@ namespace Ape.Game
 
         private void OnValidate()
         {
+            _effects ??= GetComponent<GameUIEffects>();
             _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
         }
 

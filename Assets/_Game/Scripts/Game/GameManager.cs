@@ -122,6 +122,7 @@ namespace Ape.Game
             if (!CanSpin)
                 return false;
 
+            PlaySpinStartUiShake();
             spinResult = ResolveSpin();
             LastSpinResult = spinResult;
             _pendingSpinResult = spinResult;
@@ -239,6 +240,7 @@ namespace Ape.Game
         {
             if (spinResult.WasBomb)
             {
+                PlayBombUiShake();
                 CaptureContinueState();
                 _rewardLedger.Clear();
                 Phase = GameRunPhase.Busted;
@@ -374,6 +376,16 @@ namespace Ape.Game
                 return;
 
             App.Sound.PlaySound(soundName, isUI: true, pitchMultiplier: pitchMultiplier);
+        }
+
+        private void PlaySpinStartUiShake()
+        {
+            SceneDependencies.UIManager?.Effects?.PlaySpinStartShake();
+        }
+
+        private void PlayBombUiShake()
+        {
+            SceneDependencies.UIManager?.Effects?.PlayBombShake();
         }
 
         private void PublishStateChanged()
