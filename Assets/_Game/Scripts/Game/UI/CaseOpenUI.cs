@@ -120,7 +120,12 @@ namespace Ape.Game
                     cardRect.localScale = Vector3.one;
                 }
 
-                card.Bind(rewards[i], ResolveRarityColor(rewards[i]));
+                ResolvedReward reward = rewards[i];
+                Color rarityColor = reward.HasReward && App.Game != null
+                    ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
+                    : Color.white;
+
+                card.Bind(reward, rarityColor);
                 card.gameObject.SetActive(true);
             }
 
@@ -208,13 +213,6 @@ namespace Ape.Game
             _winnerLabel.text = !reward.HasReward
                 ? string.Empty
                 : $"{reward.RewardName} {reward.FormatAmountLabel()}";
-        }
-
-        private static Color ResolveRarityColor(ResolvedReward reward)
-        {
-            return reward.HasReward && App.Game != null
-                ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
-                : Color.white;
         }
     }
 }

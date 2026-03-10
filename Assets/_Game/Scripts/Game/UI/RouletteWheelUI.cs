@@ -105,7 +105,12 @@ namespace Ape.Game
             for (int i = 0; i < wheel.Slices.Count; i++)
             {
                 RouletteRewardSliceUI sliceView = Instantiate(_rewardSlicePrefab, _sliceRootRect);
-                sliceView.Bind(wheel.Slices[i], ResolveRarityColor(wheel.Slices[i].Reward));
+                RouletteResolvedSlice slice = wheel.Slices[i];
+                Color rarityColor = slice.Reward.HasReward && App.Game != null
+                    ? App.Game.Rewards.GetRarityColor(slice.Reward.Rarity, Color.white)
+                    : Color.white;
+
+                sliceView.Bind(slice, rarityColor);
                 LayoutSlice(sliceView.RootRect, i, sliceAngle, radius, sliceSize);
                 _spawnedSlices.Add(sliceView);
             }
@@ -365,14 +370,6 @@ namespace Ape.Game
             float pitchMultiplier = 1f + ((sliceIndex % pitchCycle) * _tickPitchStep);
             PlayUISound(SpinTickSoundName, pitchMultiplier);
         }
-
-        private static Color ResolveRarityColor(ResolvedReward reward)
-        {
-            return reward.HasReward && App.Game != null
-                ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
-                : Color.white;
-        }
-
         private float ComputeRandomizedOvershoot()
         {
             return Random.Range(_overshootMin, Mathf.Max(_overshootMin, _overshootMax));

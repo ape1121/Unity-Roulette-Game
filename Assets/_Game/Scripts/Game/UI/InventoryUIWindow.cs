@@ -453,7 +453,12 @@ namespace Ape.Game
                 if (card == null)
                     continue;
 
-                card.Bind(rewards[i], ResolveRarityColor(rewards[i]));
+                ResolvedReward reward = rewards[i];
+                Color rarityColor = reward.HasReward && App.Game != null
+                    ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
+                    : Color.white;
+
+                card.Bind(reward, rarityColor);
                 card.gameObject.SetActive(true);
             }
 
@@ -660,13 +665,6 @@ namespace Ape.Game
                 return nameComparison;
 
             return right.Amount.CompareTo(left.Amount);
-        }
-
-        private static Color ResolveRarityColor(ResolvedReward reward)
-        {
-            return reward.HasReward && App.Game != null
-                ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
-                : Color.white;
         }
     }
 }
