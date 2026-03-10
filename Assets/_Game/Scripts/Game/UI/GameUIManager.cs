@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Ape.Core;
 using Ape.Data;
 using Ape.Profile;
@@ -12,6 +13,14 @@ namespace Ape.Game
     [DisallowMultipleComponent]
     public sealed class GameUIManager : MonoBehaviour
     {
+        private enum OverlayRootState
+        {
+            Hidden,
+            Showing,
+            Visible,
+            Hiding
+        }
+
         [Header("Action Buttons")]
         [SerializeField] private Button _spinButton;
         [SerializeField] private Button _cashOutButton;
@@ -21,6 +30,9 @@ namespace Ape.Game
 
         [SerializeField] private TextMeshProUGUI _continueButtonLabel;
         [SerializeField] private RectTransform _gameOverRoot;
+        [SerializeField] private RectTransform _cashOutOverlayRoot;
+        [SerializeField] private RectTransform _overlayShownPositionSource;
+        [SerializeField] private RectTransform[] _overlaySlideCompanionRoots;
         [SerializeField] private float _gameOverSlideDuration = 0.4f;
         [SerializeField] private Ease _gameOverSlideEase = Ease.OutBack;
         [SerializeField] private Ease _gameOverHideEase = Ease.InBack;
@@ -51,18 +63,19 @@ namespace Ape.Game
 
         private bool _gameSubscribed;
         private bool _profileSubscribed;
-        private Tween _gameOverSlideTween;
-        private Vector2 _gameOverAnchoredPos;
+        private readonly Dictionary<RectTransform, Tween> _overlayTweens = new Dictionary<RectTransform, Tween>();
+        private readonly Dictionary<RectTransform, OverlayRootState> _overlayRootStates = new Dictionary<RectTransform, OverlayRootState>();
+        private readonly Dictionary<RectTransform, Vector2> _overlayShownAnchoredPositions = new Dictionary<RectTransform, Vector2>();
+        private readonly Dictionary<RectTransform, Vector2> _companionRootBaseAnchoredPositions = new Dictionary<RectTransform, Vector2>();
+        private RectTransform _desiredOverlayRoot;
 
         private void OnEnable()
         {
             _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
 
-            if (_gameOverRoot != null)
-            {
-                _gameOverAnchoredPos = _gameOverRoot.anchoredPosition;
-                _gameOverRoot.gameObject.SetActive(false);
-            }
+            InitializeSlidingRoot(_gameOverRoot);
+            InitializeSlidingRoot(_cashOutOverlayRoot);
+            InitializeCompanionRoots(_overlaySlideCompanionRoots);
 
             BindButtons();
             SubscribeToManagers();
@@ -71,7 +84,7 @@ namespace Ape.Game
 
         private void OnDisable()
         {
-            KillGameOverTween();
+            KillOverlayTweens();
             UnsubscribeFromManagers();
             UnbindButtons();
         }
@@ -249,14 +262,19 @@ namespace Ape.Game
             bool isGameOver = state.Phase == GameRunPhase.Busted
                               || state.Phase == GameRunPhase.CashedOut
                               || state.Phase == GameRunPhase.Completed;
+            bool isAwaitingSpin = state.Phase == GameRunPhase.AwaitingSpin;
+            bool isSafeZone = state.CurrentZoneType == RouletteZoneType.Safe
+                              || state.CurrentZoneType == RouletteZoneType.Super;
+            bool cashOutAnytimeEnabled = IsCashOutAnytimeEnabled();
+            bool showCashOutOverlay = (isAwaitingSpin && (state.CanCashOut || isSafeZone))
+                                      || (isGameOver && cashOutAnytimeEnabled);
+            RectTransform desiredOverlayRoot = ResolveDesiredOverlayRoot(isGameOver, showCashOutOverlay);
 
-            bool showContinueButton = !isGameOver || state.CanContinue;
+            bool showContinueButton = desiredOverlayRoot == _gameOverRoot && state.CanContinue;
             SetButtonVisible(_continueButton, showContinueButton);
 
-            if (isGameOver)
-                ShowGameOver(instant);
-            else
-                HideGameOver(instant);
+            UpdateOverlaySlot(desiredOverlayRoot, instant);
+            UpdateCompanionRoots(desiredOverlayRoot != null, desiredOverlayRoot, instant);
         }
 
         private void RefreshInventoryPendingUi(int pendingItemCount)
@@ -350,64 +368,286 @@ namespace Ape.Game
             };
         }
 
-        private void ShowGameOver(bool instant)
+        private bool IsCashOutAnytimeEnabled()
         {
-            if (_gameOverRoot == null)
+            return App.Game != null
+                   && App.Game.Config != null
+                   && !App.Game.Config.cashOutOnSafeZoneOnly;
+        }
+
+        private RectTransform ResolveDesiredOverlayRoot(bool showGameOverOverlay, bool showCashOutOverlay)
+        {
+            if (showGameOverOverlay)
+                return _gameOverRoot;
+
+            if (showCashOutOverlay)
+                return _cashOutOverlayRoot;
+
+            return null;
+        }
+
+        private void InitializeSlidingRoot(RectTransform root)
+        {
+            if (root == null)
                 return;
 
-            KillGameOverTween();
-            _gameOverRoot.gameObject.SetActive(true);
+            CacheShownOverlayAnchoredPosition(root);
+            _overlayRootStates[root] = OverlayRootState.Hidden;
+            root.anchoredPosition = GetHiddenOverlayAnchoredPosition(root);
+            root.gameObject.SetActive(false);
+        }
+
+        private void InitializeCompanionRoots(RectTransform[] roots)
+        {
+            if (roots == null)
+                return;
+
+            for (int i = 0; i < roots.Length; i++)
+            {
+                RectTransform root = roots[i];
+
+                if (root == _gameOverRoot || root == _cashOutOverlayRoot)
+                    continue;
+
+                if (root == null)
+                    continue;
+
+                _companionRootBaseAnchoredPositions[root] = root.anchoredPosition;
+            }
+        }
+
+        private void UpdateOverlaySlot(RectTransform desiredRoot, bool instant)
+        {
+            _desiredOverlayRoot = desiredRoot;
 
             if (instant)
             {
-                _gameOverRoot.anchoredPosition = _gameOverAnchoredPos;
+                SetOverlayRootVisibleImmediate(_gameOverRoot, desiredRoot == _gameOverRoot);
+                SetOverlayRootVisibleImmediate(_cashOutOverlayRoot, desiredRoot == _cashOutOverlayRoot);
                 return;
             }
 
-            // Start off-screen below, slide up to cached position.
-            _gameOverRoot.anchoredPosition = GetHiddenGameOverAnchoredPosition();
-            _gameOverSlideTween = _gameOverRoot.DOAnchorPos(_gameOverAnchoredPos, _gameOverSlideDuration)
+            RectTransform occupyingRoot = GetOccupyingOverlayRoot();
+
+            if (occupyingRoot != null && occupyingRoot != desiredRoot)
+            {
+                HideOverlayRoot(occupyingRoot);
+                return;
+            }
+
+            if (desiredRoot == null)
+                return;
+
+            ShowOverlayRoot(desiredRoot);
+        }
+
+        private RectTransform GetOccupyingOverlayRoot()
+        {
+            if (IsOverlayRootOccupyingSlot(_gameOverRoot))
+                return _gameOverRoot;
+
+            if (IsOverlayRootOccupyingSlot(_cashOutOverlayRoot))
+                return _cashOutOverlayRoot;
+
+            return null;
+        }
+
+        private bool IsOverlayRootOccupyingSlot(RectTransform root)
+        {
+            return root != null && GetOverlayRootState(root) != OverlayRootState.Hidden;
+        }
+
+        private OverlayRootState GetOverlayRootState(RectTransform root)
+        {
+            return root != null && _overlayRootStates.TryGetValue(root, out OverlayRootState state)
+                ? state
+                : OverlayRootState.Hidden;
+        }
+
+        private void SetOverlayRootState(RectTransform root, OverlayRootState state)
+        {
+            if (root != null)
+                _overlayRootStates[root] = state;
+        }
+
+        private void SetOverlayRootVisibleImmediate(RectTransform root, bool isVisible)
+        {
+            if (root == null)
+                return;
+
+            KillOverlayTween(root);
+
+            if (isVisible)
+            {
+                root.gameObject.SetActive(true);
+                root.anchoredPosition = GetShownOverlayAnchoredPosition(root);
+                SetOverlayRootState(root, OverlayRootState.Visible);
+                return;
+            }
+
+            root.anchoredPosition = GetHiddenOverlayAnchoredPosition(root);
+            root.gameObject.SetActive(false);
+            SetOverlayRootState(root, OverlayRootState.Hidden);
+        }
+
+        private void ShowOverlayRoot(RectTransform root)
+        {
+            if (root == null)
+                return;
+
+            OverlayRootState state = GetOverlayRootState(root);
+
+            if (state == OverlayRootState.Visible || state == OverlayRootState.Showing)
+                return;
+
+            KillOverlayTween(root);
+            root.gameObject.SetActive(true);
+
+            if (state == OverlayRootState.Hidden)
+                root.anchoredPosition = GetHiddenOverlayAnchoredPosition(root);
+
+            SetOverlayRootState(root, OverlayRootState.Showing);
+            Tween showTween = root.DOAnchorPos(GetShownOverlayAnchoredPosition(root), _gameOverSlideDuration)
                 .SetEase(_gameOverSlideEase)
-                .SetLink(_gameOverRoot.gameObject, LinkBehaviour.KillOnDestroy)
-                .OnKill(() => _gameOverSlideTween = null);
+                .SetLink(root.gameObject, LinkBehaviour.KillOnDestroy)
+                .OnComplete(() => SetOverlayRootState(root, OverlayRootState.Visible))
+                .OnKill(() => _overlayTweens.Remove(root));
+            _overlayTweens[root] = showTween;
         }
 
-        private void HideGameOver(bool instant)
+        private void HideOverlayRoot(RectTransform root)
         {
-            if (_gameOverRoot == null)
+            if (root == null)
                 return;
 
-            KillGameOverTween();
+            OverlayRootState state = GetOverlayRootState(root);
 
-            if (!_gameOverRoot.gameObject.activeSelf)
+            if (state == OverlayRootState.Hidden || state == OverlayRootState.Hiding)
                 return;
 
-            if (instant)
-            {
-                _gameOverRoot.anchoredPosition = GetHiddenGameOverAnchoredPosition();
-                _gameOverRoot.gameObject.SetActive(false);
-                return;
-            }
+            KillOverlayTween(root);
+            SetOverlayRootState(root, OverlayRootState.Hiding);
 
-            _gameOverSlideTween = _gameOverRoot.DOAnchorPos(GetHiddenGameOverAnchoredPosition(), _gameOverSlideDuration)
+            Tween hideTween = root.DOAnchorPos(GetHiddenOverlayAnchoredPosition(root), _gameOverSlideDuration)
                 .SetEase(_gameOverHideEase)
-                .SetLink(_gameOverRoot.gameObject, LinkBehaviour.KillOnDestroy)
-                .OnComplete(() => _gameOverRoot.gameObject.SetActive(false))
-                .OnKill(() => _gameOverSlideTween = null);
+                .SetLink(root.gameObject, LinkBehaviour.KillOnDestroy)
+                .OnComplete(() =>
+                {
+                    root.gameObject.SetActive(false);
+                    SetOverlayRootState(root, OverlayRootState.Hidden);
+
+                    if (_desiredOverlayRoot != null && _desiredOverlayRoot != root && GetOccupyingOverlayRoot() == null)
+                        ShowOverlayRoot(_desiredOverlayRoot);
+                })
+                .OnKill(() => _overlayTweens.Remove(root));
+            _overlayTweens[root] = hideTween;
         }
 
-        private void KillGameOverTween()
+        private void UpdateCompanionRoots(bool shiftUp, RectTransform referenceOverlayRoot, bool instant)
         {
-            if (_gameOverSlideTween != null && _gameOverSlideTween.IsActive())
+            if (_overlaySlideCompanionRoots == null)
+                return;
+
+            Vector2 offset = shiftUp ? GetOverlaySlideOffset(referenceOverlayRoot) : Vector2.zero;
+
+            for (int i = 0; i < _overlaySlideCompanionRoots.Length; i++)
             {
-                _gameOverSlideTween.Kill();
-                _gameOverSlideTween = null;
+                RectTransform root = _overlaySlideCompanionRoots[i];
+
+                if (root == null)
+                    continue;
+
+                if (!_companionRootBaseAnchoredPositions.TryGetValue(root, out Vector2 baseAnchoredPosition))
+                {
+                    baseAnchoredPosition = root.anchoredPosition;
+                    _companionRootBaseAnchoredPositions[root] = baseAnchoredPosition;
+                }
+
+                Vector2 targetAnchoredPosition = baseAnchoredPosition + offset;
+
+                KillOverlayTween(root);
+
+                if (instant)
+                {
+                    root.anchoredPosition = targetAnchoredPosition;
+                    continue;
+                }
+
+                if (root.anchoredPosition == targetAnchoredPosition)
+                    continue;
+
+                Tween companionTween = root.DOAnchorPos(targetAnchoredPosition, _gameOverSlideDuration)
+                    .SetEase(shiftUp ? _gameOverSlideEase : _gameOverHideEase)
+                    .SetLink(root.gameObject, LinkBehaviour.KillOnDestroy)
+                    .OnKill(() => _overlayTweens.Remove(root));
+                _overlayTweens[root] = companionTween;
             }
         }
 
-        private Vector2 GetHiddenGameOverAnchoredPosition()
+        private Vector2 GetOverlaySlideOffset(RectTransform root)
         {
-            return _gameOverAnchoredPos + Vector2.down * _gameOverRoot.rect.height;
+            return root == null
+                ? Vector2.zero
+                : GetShownOverlayAnchoredPosition(root) - GetHiddenOverlayAnchoredPosition(root);
+        }
+
+        private void KillOverlayTweens()
+        {
+            KillOverlayTween(_gameOverRoot);
+            KillOverlayTween(_cashOutOverlayRoot);
+
+            if (_overlaySlideCompanionRoots == null)
+                return;
+
+            for (int i = 0; i < _overlaySlideCompanionRoots.Length; i++)
+                KillOverlayTween(_overlaySlideCompanionRoots[i]);
+        }
+
+        private void KillOverlayTween(RectTransform root)
+        {
+            if (root == null)
+                return;
+
+            if (_overlayTweens.TryGetValue(root, out Tween overlayTween) && overlayTween != null && overlayTween.IsActive())
+                overlayTween.Kill();
+
+            _overlayTweens.Remove(root);
+        }
+
+        private void CacheShownOverlayAnchoredPosition(RectTransform root)
+        {
+            if (root == null)
+                return;
+
+            _overlayShownAnchoredPositions[root] = ResolveShownOverlayAnchoredPosition(root);
+        }
+
+        private Vector2 GetShownOverlayAnchoredPosition(RectTransform root)
+        {
+            if (root == null)
+                return Vector2.zero;
+
+            if (_overlayShownPositionSource != null)
+                return _overlayShownPositionSource.anchoredPosition;
+
+            if (_overlayShownAnchoredPositions.TryGetValue(root, out Vector2 shownAnchoredPosition))
+                return shownAnchoredPosition;
+
+            shownAnchoredPosition = root.anchoredPosition;
+            _overlayShownAnchoredPositions[root] = shownAnchoredPosition;
+            return shownAnchoredPosition;
+        }
+
+        private Vector2 ResolveShownOverlayAnchoredPosition(RectTransform root)
+        {
+            return _overlayShownPositionSource != null
+                ? _overlayShownPositionSource.anchoredPosition
+                : root.anchoredPosition;
+        }
+
+        private Vector2 GetHiddenOverlayAnchoredPosition(RectTransform root)
+        {
+            return GetShownOverlayAnchoredPosition(root) + Vector2.down * root.rect.height;
         }
 
         private static void SetButtonInteractable(Button button, bool isInteractable)
