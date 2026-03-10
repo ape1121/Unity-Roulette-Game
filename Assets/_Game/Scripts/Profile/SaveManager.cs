@@ -74,6 +74,69 @@ namespace Ape.Profile
                 Save();
         }
 
+        public void AddInventoryReward(string rewardId, int amount, bool saveImmediately = true)
+        {
+            EnsureDataInitialized();
+
+            if (!AddInventoryInternal(rewardId, amount))
+                return;
+
+            if (saveImmediately)
+                Save();
+        }
+
+        public int GetInventoryRewardCount(string rewardId)
+        {
+            EnsureDataInitialized();
+
+            if (string.IsNullOrWhiteSpace(rewardId))
+                return 0;
+
+            for (int i = 0; i < _currentData.Inventory.Count; i++)
+            {
+                if (_currentData.Inventory[i].RewardId == rewardId)
+                    return Mathf.Max(0, _currentData.Inventory[i].Amount);
+            }
+
+            return 0;
+        }
+
+        public bool TrySpendInventoryReward(string rewardId, int amount, bool saveImmediately = true)
+        {
+            EnsureDataInitialized();
+
+            if (string.IsNullOrWhiteSpace(rewardId))
+                return false;
+
+            int resolvedAmount = Mathf.Max(0, amount);
+            if (resolvedAmount == 0)
+                return true;
+
+            for (int i = 0; i < _currentData.Inventory.Count; i++)
+            {
+                if (_currentData.Inventory[i].RewardId != rewardId)
+                    continue;
+
+                RewardInventoryEntry entry = _currentData.Inventory[i];
+                if (entry.Amount < resolvedAmount)
+                    return false;
+
+                entry.Amount -= resolvedAmount;
+
+                if (entry.Amount > 0)
+                    _currentData.Inventory[i] = entry;
+                else
+                    _currentData.Inventory.RemoveAt(i);
+
+                if (saveImmediately)
+                    Save();
+
+                return true;
+            }
+
+            return false;
+        }
+
         public bool TrySpendCash(int amount, bool saveImmediately = true)
         {
             int resolvedAmount = Mathf.Max(0, amount);
@@ -139,14 +202,14 @@ namespace Ape.Profile
                 _currentData.Inventory = new List<RewardInventoryEntry>();
         }
 
-        private void AddInventoryInternal(string rewardId, int amount)
+        private bool AddInventoryInternal(string rewardId, int amount)
         {
             if (string.IsNullOrWhiteSpace(rewardId))
-                return;
+                return false;
 
             int resolvedAmount = Mathf.Max(0, amount);
             if (resolvedAmount == 0)
-                return;
+                return false;
 
             for (int i = 0; i < _currentData.Inventory.Count; i++)
             {
@@ -156,10 +219,11 @@ namespace Ape.Profile
                 RewardInventoryEntry entry = _currentData.Inventory[i];
                 entry.Amount += resolvedAmount;
                 _currentData.Inventory[i] = entry;
-                return;
+                return true;
             }
 
             _currentData.Inventory.Add(new RewardInventoryEntry(rewardId, resolvedAmount));
+            return true;
         }
 
         private void PublishDataChanged()

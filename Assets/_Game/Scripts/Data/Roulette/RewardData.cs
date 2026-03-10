@@ -11,7 +11,8 @@ namespace Ape.Data
         {
             Cash,
             Gold,
-            ItemCard
+            ItemCard,
+            Case
         }
 
         public enum RewardRarity

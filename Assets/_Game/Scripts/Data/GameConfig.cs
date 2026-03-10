@@ -8,6 +8,7 @@ namespace Ape.Data
     public class GameConfig : ScriptableObject
     {
         public RouletteConfig RouletteConfig;
+        public CaseRewardsConfig CaseRewardsConfig;
 
         [Header("Run Rules")]
         public bool cashOutOnSafeZoneOnly = true;
@@ -56,6 +57,25 @@ namespace Ape.Data
         public bool IsFinalZone(int zone)
         {
             return HasLevelCap && Mathf.Max(1, zone) >= maxLevel;
+        }
+
+        public bool TryGetReward(string rewardId, out RewardData rewardData)
+        {
+            rewardData = null;
+
+            if (RouletteConfig != null && RouletteConfig.TryGetReward(rewardId, out rewardData))
+                return true;
+
+            if (CaseRewardsConfig != null && CaseRewardsConfig.TryGetReward(rewardId, out rewardData))
+                return true;
+
+            return false;
+        }
+
+        public bool TryGetCaseDefinition(string rewardId, out CaseRewardsConfig.CaseDefinition caseDefinition)
+        {
+            caseDefinition = default;
+            return CaseRewardsConfig != null && CaseRewardsConfig.TryGetCase(rewardId, out caseDefinition);
         }
     }
 }

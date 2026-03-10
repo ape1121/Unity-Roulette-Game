@@ -52,13 +52,7 @@ namespace Ape.Game
                 _nameText.text = slice.DisplayName;
 
             if (_amountText != null)
-            {
-                _amountText.text = slice.Reward.RewardKind switch
-                {
-                    Data.RewardData.RewardKind.ItemCard => $"x{slice.Reward.Amount}",
-                    _ => $"+{slice.Reward.Amount}"
-                };
-            }
+                _amountText.text = slice.Reward.FormatAmountLabel();
         }
 
         private void OnValidate()

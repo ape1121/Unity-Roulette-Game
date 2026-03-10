@@ -9,8 +9,8 @@ namespace Ape.Game
         public RouletteZoneType CurrentZoneType { get; }
         public int PendingCash { get; }
         public int PendingGold { get; }
-        public int PendingItemCardCount { get; }
-        public int PendingItemCardKinds { get; }
+        public int PendingInventoryRewardCount { get; }
+        public int PendingInventoryRewardKinds { get; }
         public int SavedCash { get; }
         public int SavedGold { get; }
         public bool HasUsedContinue { get; }
@@ -26,8 +26,8 @@ namespace Ape.Game
             RouletteZoneType currentZoneType,
             int pendingCash,
             int pendingGold,
-            int pendingItemCardCount,
-            int pendingItemCardKinds,
+            int pendingInventoryRewardCount,
+            int pendingInventoryRewardKinds,
             int savedCash,
             int savedGold,
             bool hasUsedContinue,
@@ -42,8 +42,8 @@ namespace Ape.Game
             CurrentZoneType = currentZoneType;
             PendingCash = pendingCash;
             PendingGold = pendingGold;
-            PendingItemCardCount = pendingItemCardCount;
-            PendingItemCardKinds = pendingItemCardKinds;
+            PendingInventoryRewardCount = pendingInventoryRewardCount;
+            PendingInventoryRewardKinds = pendingInventoryRewardKinds;
             SavedCash = savedCash;
             SavedGold = savedGold;
             HasUsedContinue = hasUsedContinue;

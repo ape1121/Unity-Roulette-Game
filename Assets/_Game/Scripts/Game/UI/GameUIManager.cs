@@ -17,6 +17,7 @@ namespace Ape.Game
         [SerializeField] private Button _cashOutButton;
         [SerializeField] private Button _continueButton;
         [SerializeField] private Button _restartButton;
+        [SerializeField] private Button _inventoryButton;
 
         [SerializeField] private TextMeshProUGUI _continueButtonLabel;
         [SerializeField] private RectTransform _gameOverRoot;
@@ -41,7 +42,8 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _savedGoldValueText;
         [SerializeField] private TextMeshProUGUI _inventoryKindsValueText;
         [SerializeField] private TextMeshProUGUI _inventoryCardsValueText;
-        [SerializeField] private RewardInventoryListUI _inventoryList;
+        [FormerlySerializedAs("_inventoryList")]
+        [SerializeField] private InventoryUIWindow _inventoryWindow;
 
         [Header("Feedback")]
         [SerializeField] private GameObject _spinningBlockerRoot;
@@ -73,7 +75,7 @@ namespace Ape.Game
 
         private void OnValidate()
         {
-            _inventoryList ??= GetComponentInChildren<RewardInventoryListUI>(true);
+            _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
         }
 
         private void BindButtons()
@@ -91,6 +93,9 @@ namespace Ape.Game
 
             if (_restartButton != null)
                 _restartButton.onClick.AddListener(HandleRestartClicked);
+
+            if (_inventoryButton != null)
+                _inventoryButton.onClick.AddListener(HandleInventoryClicked);
         }
 
         private void UnbindButtons()
@@ -106,6 +111,9 @@ namespace Ape.Game
 
             if (_restartButton != null)
                 _restartButton.onClick.RemoveListener(HandleRestartClicked);
+
+            if (_inventoryButton != null)
+                _inventoryButton.onClick.RemoveListener(HandleInventoryClicked);
         }
 
         private void SubscribeToManagers()
@@ -171,6 +179,14 @@ namespace Ape.Game
             App.Game.TryRestartRun();
         }
 
+        private void HandleInventoryClicked()
+        {
+            if (_inventoryWindow == null)
+                return;
+
+            _inventoryWindow.Toggle();
+        }
+
         private void HandleGameStateChanged(GameStateSnapshot snapshot)
         {
             RefreshState(snapshot, instant: false);
@@ -192,8 +208,8 @@ namespace Ape.Game
             RefreshState(App.Game != null ? App.Game.CurrentState : default, instant: true);
             RefreshProfileSummary();
 
-            if (_inventoryList != null)
-                _inventoryList.Refresh();
+            if (_inventoryWindow != null)
+                _inventoryWindow.Refresh();
 
             if (App.Game != null)
                 SetText(_lastRewardValueText, BuildSpinResultLabel(App.Game.LastSpinResult));
@@ -203,8 +219,10 @@ namespace Ape.Game
 
         private void RefreshState(GameStateSnapshot state, bool instant)
         {
+            bool showZoneType = state.CurrentZone > 0 && state.CurrentZoneType != RouletteZoneType.Normal;
+
             SetText(_zoneValueText, state.CurrentZone > 0 ? "FLOOR " + state.CurrentZone.ToString() : "-");
-            SetText(_zoneTypeValueText, state.CurrentZone > 0 ? FormatZoneType(state.CurrentZoneType) : "-");
+            SetText(_zoneTypeValueText, showZoneType ? FormatZoneType(state.CurrentZoneType) : string.Empty);
             SetText(_phaseValueText, FormatPhase(state.Phase));
             SetText(_pendingCashValueText, state.PendingCash.ToString());
             SetText(_pendingGoldValueText, state.PendingGold.ToString());
@@ -212,6 +230,9 @@ namespace Ape.Game
             SetText(_savedCashValueText, state.SavedCash.ToString());
             SetText(_savedGoldValueText, state.SavedGold.ToString());
             SetText(_statusValueText, BuildStatusLabel(state));
+
+            if (_zoneTypeValueText != null)
+                _zoneTypeValueText.gameObject.SetActive(showZoneType);
 
             SetButtonInteractable(_spinButton, state.CanSpin);
             SetButtonInteractable(_cashOutButton, state.CanCashOut);
@@ -236,12 +257,12 @@ namespace Ape.Game
         private void RefreshProfileSummary()
         {
             int inventoryKinds = 0;
-            int inventoryCards = 0;
+            int inventoryRewards = 0;
 
             if (App.Profile != null)
             {
-                RouletteConfig rouletteConfig = App.Config != null && App.Config.GameConfig != null
-                    ? App.Config.GameConfig.RouletteConfig
+                GameConfig gameConfig = App.Config != null
+                    ? App.Config.GameConfig
                     : null;
                 var inventory = App.Profile.Inventory;
 
@@ -253,20 +274,21 @@ namespace Ape.Game
                         if (entry.Amount <= 0)
                             continue;
 
-                        if (rouletteConfig != null
-                            && rouletteConfig.TryGetReward(entry.RewardId, out RewardData rewardData)
+                        if (gameConfig != null
+                            && gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData)
                             && rewardData != null
-                            && rewardData.Kind == RewardData.RewardKind.ItemCard)
+                            && rewardData.Kind != RewardData.RewardKind.Cash
+                            && rewardData.Kind != RewardData.RewardKind.Gold)
                         {
                             inventoryKinds++;
-                            inventoryCards += entry.Amount;
+                            inventoryRewards += entry.Amount;
                         }
                     }
                 }
             }
 
             SetText(_inventoryKindsValueText, inventoryKinds.ToString());
-            SetText(_inventoryCardsValueText, inventoryCards.ToString());
+            SetText(_inventoryCardsValueText, inventoryRewards.ToString());
         }
 
         private string BuildContinueButtonLabel()
@@ -280,8 +302,8 @@ namespace Ape.Game
 
         private static string FormatPendingItems(GameStateSnapshot state)
         {
-            return state.PendingItemCardKinds > 0
-                ? $"{state.PendingItemCardCount} ({state.PendingItemCardKinds} kinds)"
+            return state.PendingInventoryRewardKinds > 0
+                ? $"{state.PendingInventoryRewardCount} ({state.PendingInventoryRewardKinds} kinds)"
                 : "0";
         }
 
@@ -327,7 +349,7 @@ namespace Ape.Game
             if (spinResult.SelectedSlice.Reward.RewardData == null)
                 return spinResult.SelectedSlice.DisplayName;
 
-            return $"{spinResult.SelectedSlice.Reward.RewardName} x{spinResult.SelectedSlice.Reward.Amount}";
+            return $"{spinResult.SelectedSlice.Reward.RewardName} {spinResult.SelectedSlice.Reward.FormatAmountLabel()}";
         }
 
         private static string FormatZoneType(RouletteZoneType zoneType)

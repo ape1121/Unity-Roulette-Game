@@ -19,6 +19,7 @@ namespace Ape.Data
         [SerializeField] private bool allowCashRewards = true;
         [SerializeField] private bool allowGoldRewards = true;
         [SerializeField] private bool allowItemRewards = true;
+        [SerializeField] private bool allowCaseRewards;
         [SerializeField] private RewardData.RewardRarity minimumRarity = RewardData.RewardRarity.Common;
         [SerializeField] private RewardData.RewardRarity maximumRarity = RewardData.RewardRarity.Legendary;
         [Min(1)] [SerializeField] private int amountMultiplier = 1;
@@ -42,6 +43,7 @@ namespace Ape.Data
                 RewardData.RewardKind.Cash => allowCashRewards,
                 RewardData.RewardKind.Gold => allowGoldRewards,
                 RewardData.RewardKind.ItemCard => allowItemRewards,
+                RewardData.RewardKind.Case => allowCaseRewards,
                 _ => false
             };
         }

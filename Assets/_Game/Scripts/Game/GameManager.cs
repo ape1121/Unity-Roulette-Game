@@ -16,7 +16,7 @@ namespace Ape.Game
         private const string SpinBombSoundName = "roulette_spin_bomb";
 
         private readonly RouletteRewardLedger _rewardLedger = new RouletteRewardLedger();
-        private readonly List<ResolvedReward> _pendingContinueItemRewards = new List<ResolvedReward>();
+        private readonly List<ResolvedReward> _pendingContinueInventoryRewards = new List<ResolvedReward>();
 
         private System.Random _runRandom;
         private RouletteSpinResult _pendingSpinResult;
@@ -30,6 +30,7 @@ namespace Ape.Game
         public event Action<RouletteSpinResult> SpinResolved;
 
         public GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
+        public RewardManager Rewards { get; } = new RewardManager();
         public GameSceneDependencies SceneDependencies { get; private set; }
         public bool IsInitialized { get; private set; }
         public bool IsSceneBound { get; private set; }
@@ -40,7 +41,7 @@ namespace Ape.Game
         public RouletteResolvedWheel ActiveWheel { get; private set; }
         public bool HasUsedContinue { get; private set; }
         public RouletteSpinResult LastSpinResult { get; private set; }
-        public IReadOnlyList<ResolvedReward> PendingItemRewards => _rewardLedger.ItemRewards;
+        public IReadOnlyList<ResolvedReward> PendingInventoryRewards => _rewardLedger.InventoryRewards;
         public GameStateSnapshot CurrentState => BuildStateSnapshot();
         public int PendingCash => _rewardLedger.PendingCash;
         public int PendingGold => _rewardLedger.PendingGold;
@@ -173,7 +174,7 @@ namespace Ape.Game
             HasUsedContinue = true;
             CurrentZone = _pendingContinueZone;
             CurrentZoneType = Config.GetZoneType(CurrentZone);
-            _rewardLedger.Restore(_pendingContinueCash, _pendingContinueGold, _pendingContinueItemRewards);
+            _rewardLedger.Restore(_pendingContinueCash, _pendingContinueGold, _pendingContinueInventoryRewards);
             ClearPendingContinueState();
             BuildWheelForCurrentZone(preserveRotation: true);
             Phase = GameRunPhase.AwaitingSpin;
@@ -275,10 +276,10 @@ namespace Ape.Game
             _pendingContinueZone = CurrentZone;
             _pendingContinueCash = _rewardLedger.PendingCash;
             _pendingContinueGold = _rewardLedger.PendingGold;
-            _pendingContinueItemRewards.Clear();
+            _pendingContinueInventoryRewards.Clear();
 
-            for (int i = 0; i < _rewardLedger.ItemRewards.Count; i++)
-                _pendingContinueItemRewards.Add(_rewardLedger.ItemRewards[i]);
+            for (int i = 0; i < _rewardLedger.InventoryRewards.Count; i++)
+                _pendingContinueInventoryRewards.Add(_rewardLedger.InventoryRewards[i]);
         }
 
         private void ClearPendingContinueState()
@@ -286,15 +287,12 @@ namespace Ape.Game
             _pendingContinueZone = 0;
             _pendingContinueCash = 0;
             _pendingContinueGold = 0;
-            _pendingContinueItemRewards.Clear();
+            _pendingContinueInventoryRewards.Clear();
         }
 
         private void BankPendingRewards()
         {
-            if (App.Profile == null)
-                throw new InvalidOperationException("GameManager requires ProfileManager before rewards can be banked.");
-
-            App.Profile.ApplyBankedRewards(PendingCash, PendingGold, _rewardLedger.CreateInventorySnapshot());
+            Rewards.GrantRewards(PendingCash, PendingGold, _rewardLedger.InventoryRewards);
             _rewardLedger.Clear();
         }
 
@@ -405,8 +403,8 @@ namespace Ape.Game
                 CurrentZoneType,
                 PendingCash,
                 PendingGold,
-                _rewardLedger.PendingItemCardCount,
-                _rewardLedger.ItemRewards.Count,
+                _rewardLedger.PendingInventoryRewardCount,
+                _rewardLedger.InventoryRewards.Count,
                 SavedCash,
                 SavedGold,
                 HasUsedContinue,
@@ -425,6 +423,7 @@ namespace Ape.Game
             IsGameStarted = false;
             _runCounter = 0;
             _runRandom = null;
+            Rewards.ResetState();
             ResetRunState();
         }
 

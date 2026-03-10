@@ -6,20 +6,20 @@ namespace Ape.Game
 {
     public sealed class RouletteRewardLedger
     {
-        private readonly List<ResolvedReward> _itemRewards = new List<ResolvedReward>();
+        private readonly List<ResolvedReward> _inventoryRewards = new List<ResolvedReward>();
 
-        public IReadOnlyList<ResolvedReward> ItemRewards => _itemRewards;
+        public IReadOnlyList<ResolvedReward> InventoryRewards => _inventoryRewards;
         public int PendingCash { get; private set; }
         public int PendingGold { get; private set; }
 
-        public int PendingItemCardCount
+        public int PendingInventoryRewardCount
         {
             get
             {
                 int total = 0;
 
-                for (int i = 0; i < _itemRewards.Count; i++)
-                    total += _itemRewards[i].Amount;
+                for (int i = 0; i < _inventoryRewards.Count; i++)
+                    total += _inventoryRewards[i].Amount;
 
                 return total;
             }
@@ -29,7 +29,7 @@ namespace Ape.Game
         {
             PendingCash = 0;
             PendingGold = 0;
-            _itemRewards.Clear();
+            _inventoryRewards.Clear();
         }
 
         public void AddReward(ResolvedReward reward)
@@ -45,39 +45,39 @@ namespace Ape.Game
                     return;
             }
 
-            for (int i = 0; i < _itemRewards.Count; i++)
+            for (int i = 0; i < _inventoryRewards.Count; i++)
             {
-                if (_itemRewards[i].RewardId != reward.RewardId)
+                if (_inventoryRewards[i].RewardId != reward.RewardId)
                     continue;
 
-                _itemRewards[i] = _itemRewards[i].WithAmount(_itemRewards[i].Amount + reward.Amount);
+                _inventoryRewards[i] = _inventoryRewards[i].WithAmount(_inventoryRewards[i].Amount + reward.Amount);
                 return;
             }
 
-            _itemRewards.Add(reward);
+            _inventoryRewards.Add(reward);
         }
 
         public List<RewardInventoryEntry> CreateInventorySnapshot()
         {
-            List<RewardInventoryEntry> snapshot = new List<RewardInventoryEntry>(_itemRewards.Count);
+            List<RewardInventoryEntry> snapshot = new List<RewardInventoryEntry>(_inventoryRewards.Count);
 
-            for (int i = 0; i < _itemRewards.Count; i++)
-                snapshot.Add(new RewardInventoryEntry(_itemRewards[i].RewardId, _itemRewards[i].Amount));
+            for (int i = 0; i < _inventoryRewards.Count; i++)
+                snapshot.Add(new RewardInventoryEntry(_inventoryRewards[i].RewardId, _inventoryRewards[i].Amount));
 
             return snapshot;
         }
 
-        public void Restore(int pendingCash, int pendingGold, IReadOnlyList<ResolvedReward> itemRewards)
+        public void Restore(int pendingCash, int pendingGold, IReadOnlyList<ResolvedReward> inventoryRewards)
         {
             PendingCash = pendingCash;
             PendingGold = pendingGold;
-            _itemRewards.Clear();
+            _inventoryRewards.Clear();
 
-            if (itemRewards == null)
+            if (inventoryRewards == null)
                 return;
 
-            for (int i = 0; i < itemRewards.Count; i++)
-                _itemRewards.Add(itemRewards[i]);
+            for (int i = 0; i < inventoryRewards.Count; i++)
+                _inventoryRewards.Add(inventoryRewards[i]);
         }
     }
 }
