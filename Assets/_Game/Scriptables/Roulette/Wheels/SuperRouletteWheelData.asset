@@ -15,13 +15,13 @@ MonoBehaviour:
   zoneType: 2
   allowDuplicateRewards: 1
   sliceDefinitions:
+  - {fileID: 11400000, guid: 4f2421f5340ae448a9a8b5b1d511c60d, type: 2}
+  - {fileID: 11400000, guid: d0c53c1e305e44ab58a35d1f803d9367, type: 2}
+  - {fileID: 11400000, guid: e241c89aec236453bbf881d4ba3def2b, type: 2}
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
+  - {fileID: 11400000, guid: 4f2421f5340ae448a9a8b5b1d511c60d, type: 2}
+  - {fileID: 11400000, guid: d0c53c1e305e44ab58a35d1f803d9367, type: 2}
+  - {fileID: 11400000, guid: e241c89aec236453bbf881d4ba3def2b, type: 2}
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
   spinDuration: 3.4
   fullRotations: 6
