@@ -50,14 +50,32 @@ namespace Ape.Game
         [Min(0f)] [SerializeField] private float _tickPitchStep = 0.04f;
         [Min(1)] [SerializeField] private int _tickPitchCycle = 3;
 
+        [Header("Spin Button Idle")]
+        [SerializeField] private Button _spinButton;
+        [SerializeField] private RectTransform _spinButtonPulseTarget;
+        [Min(1f)] [SerializeField] private float _spinButtonIdleScaleMultiplier = 1.08f;
+        [Min(0.1f)] [SerializeField] private float _spinButtonIdlePulseDuration = 0.8f;
+        [SerializeField] private Ease _spinButtonIdlePulseEase = Ease.InOutSine;
+
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
         private Sequence _spinSequence;
+        private Tween _spinButtonIdleTween;
         private float _currentRotationDegrees;
         private RouletteResolvedWheel _lastWheel;
         private float _indicatorVelocity;
         private float _indicatorAngle;
         private float _prevAnimatedRotation;
+        private Vector3 _spinButtonIdleBaseScale = Vector3.one;
+        private bool _hasSpinButtonIdleBaseScale;
+
+        private void OnEnable()
+        {
+            _spinButton ??= GetComponentInChildren<Button>(true);
+            _spinButtonPulseTarget ??= _spinButton != null ? _spinButton.transform as RectTransform : null;
+            CacheSpinButtonIdleBaseScale();
+            StopSpinButtonIdleAnimation(resetScale: true);
+        }
 
         public void BuildWheel(RouletteResolvedWheel wheel, bool preserveRotation = true)
         {
@@ -113,6 +131,7 @@ namespace Ape.Game
                 return;
             }
 
+            StopSpinButtonIdleAnimation(resetScale: true);
             StopAnimation();
 
             float sliceAngle = 360f / wheel.Slices.Count;
@@ -182,6 +201,17 @@ namespace Ape.Game
             _spinSequence.OnKill(() => _spinSequence = null);
         }
 
+        public void SetSpinButtonIdleActive(bool isActive)
+        {
+            if (isActive)
+            {
+                StartSpinButtonIdleAnimation();
+                return;
+            }
+
+            StopSpinButtonIdleAnimation(resetScale: true);
+        }
+
         private void OnRectTransformDimensionsChange()
         {
             if (_lastWheel == null || _spawnedSlices.Count == 0)
@@ -192,6 +222,7 @@ namespace Ape.Game
 
         private void OnDestroy()
         {
+            StopSpinButtonIdleAnimation(resetScale: true);
             StopAnimation();
         }
 
@@ -200,6 +231,9 @@ namespace Ape.Game
             _rootRect ??= GetComponent<RectTransform>();
             _wheelRotatorRect ??= _rootRect;
             _sliceRootRect ??= _wheelRotatorRect;
+            _spinButton ??= GetComponentInChildren<Button>(true);
+            _spinButtonPulseTarget ??= _spinButton != null ? _spinButton.transform as RectTransform : null;
+            CacheSpinButtonIdleBaseScale();
         }
 
         private void ClearSlices()
@@ -374,6 +408,61 @@ namespace Ape.Game
 
             if (_wheelRotatorRect != null)
                 _wheelRotatorRect.localRotation = Quaternion.Euler(0f, 0f, rotationDegrees);
+        }
+
+        private void StartSpinButtonIdleAnimation()
+        {
+            RectTransform pulseTarget = ResolveSpinButtonPulseTarget();
+            if (pulseTarget == null || _spinButton == null || !_spinButton.IsInteractable() || !_spinButton.gameObject.activeInHierarchy)
+            {
+                StopSpinButtonIdleAnimation(resetScale: true);
+                return;
+            }
+
+            CacheSpinButtonIdleBaseScale();
+
+            if (_spinButtonIdleTween != null && _spinButtonIdleTween.IsActive())
+                return;
+
+            pulseTarget.localScale = _spinButtonIdleBaseScale;
+            _spinButtonIdleTween = pulseTarget.DOScale(_spinButtonIdleBaseScale * _spinButtonIdleScaleMultiplier, _spinButtonIdlePulseDuration)
+                .SetEase(_spinButtonIdlePulseEase)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetLink(pulseTarget.gameObject, LinkBehaviour.KillOnDestroy)
+                .OnKill(() => _spinButtonIdleTween = null);
+        }
+
+        private void StopSpinButtonIdleAnimation(bool resetScale)
+        {
+            if (_spinButtonIdleTween != null && _spinButtonIdleTween.IsActive())
+                _spinButtonIdleTween.Kill();
+
+            _spinButtonIdleTween = null;
+
+            if (!resetScale)
+                return;
+
+            RectTransform pulseTarget = ResolveSpinButtonPulseTarget();
+            if (pulseTarget != null && _hasSpinButtonIdleBaseScale)
+                pulseTarget.localScale = _spinButtonIdleBaseScale;
+        }
+
+        private RectTransform ResolveSpinButtonPulseTarget()
+        {
+            if (_spinButtonPulseTarget != null)
+                return _spinButtonPulseTarget;
+
+            return _spinButton != null ? _spinButton.transform as RectTransform : null;
+        }
+
+        private void CacheSpinButtonIdleBaseScale()
+        {
+            RectTransform pulseTarget = ResolveSpinButtonPulseTarget();
+            if (pulseTarget == null)
+                return;
+
+            _spinButtonIdleBaseScale = pulseTarget.localScale;
+            _hasSpinButtonIdleBaseScale = true;
         }
 
         private static void PlayUISound(string soundName, float pitchMultiplier = 1f)

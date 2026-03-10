@@ -253,6 +253,7 @@ namespace Ape.Game
             SetButtonInteractable(_cashOutButton, state.CanCashOut);
             SetButtonInteractable(_continueButton, state.CanContinue);
             SetButtonInteractable(_restartButton, state.CanRestart);
+            SetSpinButtonIdleState(state.CanSpin);
 
             SetText(_continueButtonLabel, BuildContinueButtonLabel());
 
@@ -654,6 +655,16 @@ namespace Ape.Game
         {
             if (button != null)
                 button.interactable = isInteractable;
+        }
+
+        private static void SetSpinButtonIdleState(bool isActive)
+        {
+            if (App.Game == null)
+                return;
+
+            RouletteWheelUI rouletteWheel = App.Game.SceneDependencies.RouletteWheel;
+            if (rouletteWheel != null)
+                rouletteWheel.SetSpinButtonIdleActive(isActive);
         }
 
         private static void SetButtonVisible(Button button, bool isVisible)
