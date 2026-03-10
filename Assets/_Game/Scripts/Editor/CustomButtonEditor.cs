@@ -3,7 +3,7 @@ using UnityEditor.UI;
 
 [CustomEditor(typeof(UIButton))]
 [CanEditMultipleObjects]
-public class UIButtonEditor : ButtonEditor
+public class CustomButtonEditor : ButtonEditor
 {
 	public override void OnInspectorGUI()
 	{

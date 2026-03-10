@@ -15,7 +15,7 @@ MonoBehaviour:
   rewardId: rcase
   rewardName: Rare Case
   icon: {fileID: 21300000, guid: c1a6837b144b8407d9e689775970267a, type: 3}
-  rewardKind: 2
+  rewardKind: 3
   rarity: 1
   minAmount: 1
   maxAmount: 1

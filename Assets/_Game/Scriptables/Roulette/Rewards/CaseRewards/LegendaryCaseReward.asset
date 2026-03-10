@@ -15,7 +15,7 @@ MonoBehaviour:
   rewardId: lcase
   rewardName: Legendary Case
   icon: {fileID: 21300000, guid: 803445e9b5445404aa871cbcb77cb8e7, type: 3}
-  rewardKind: 2
+  rewardKind: 3
   rarity: 3
   minAmount: 1
   maxAmount: 1

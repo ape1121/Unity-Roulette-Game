@@ -15,7 +15,7 @@ MonoBehaviour:
   rewardId: ccase
   rewardName: Common Case
   icon: {fileID: 21300000, guid: 2567a4f70de7f48ef88fb40513b73e8e, type: 3}
-  rewardKind: 2
+  rewardKind: 3
   rarity: 0
   minAmount: 1
   maxAmount: 1
