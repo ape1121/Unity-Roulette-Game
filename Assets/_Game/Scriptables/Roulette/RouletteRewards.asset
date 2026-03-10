@@ -14,3 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewards:
   - {fileID: 11400000, guid: 30f3218da7329475db49434dbeb5bbec, type: 2}
+  - {fileID: 11400000, guid: 5af6a0970924e46da9d82b9c08af1cf7, type: 2}
+  - {fileID: 11400000, guid: 2a114cd80501e4fc19fb0c64802ee872, type: 2}
+  - {fileID: 11400000, guid: 65749fac285914beaac6e2df5bfb6fce, type: 2}
+  - {fileID: 11400000, guid: 313935c2da39c40c9a4ee02c8c3dd8cc, type: 2}
+  - {fileID: 11400000, guid: c748fe9577cb643259d4c216b17743e7, type: 2}
+  - {fileID: 11400000, guid: c584e22ade78145f2b31211c937286c4, type: 2}
+  - {fileID: 11400000, guid: 616856f85df4642749d00633e79f2e90, type: 2}
+  - {fileID: 11400000, guid: 06effe86875fd4ae89a0f44ae9d325ac, type: 2}
+  - {fileID: 11400000, guid: c76ffff7099414095a8d8011b1abe484, type: 2}

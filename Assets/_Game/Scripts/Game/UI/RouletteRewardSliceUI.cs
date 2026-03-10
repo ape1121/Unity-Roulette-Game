@@ -16,6 +16,7 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _amountText;
         [SerializeField] private Color _bombBorderColor = new Color32(255, 89, 89, 255);
         [SerializeField] private Sprite _bombIcon;
+        [SerializeField] private bool showDisplayNames = false;
 
         public RectTransform RootRect => _rootRect;
 
@@ -56,7 +57,7 @@ namespace Ape.Game
 
             if (_nameText != null)
             {
-                _nameText.gameObject.SetActive(true);
+                _nameText.gameObject.SetActive(showDisplayNames);
                 _nameText.text = slice.DisplayName;
             }
 
