@@ -1,4 +1,3 @@
-using Ape.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,12 +12,9 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _amountText;
 
-        public void Bind(ResolvedReward reward)
+        public void Bind(ResolvedReward reward, Color rarityColor)
         {
             bool hasReward = reward.HasReward;
-            Color rarityColor = hasReward && App.Game != null
-                ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
-                : Color.white;
 
             if (_iconImage != null)
             {

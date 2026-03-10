@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ape.Core;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -119,7 +120,7 @@ namespace Ape.Game
                     cardRect.localScale = Vector3.one;
                 }
 
-                card.Bind(rewards[i]);
+                card.Bind(rewards[i], ResolveRarityColor(rewards[i]));
                 card.gameObject.SetActive(true);
             }
 
@@ -207,6 +208,13 @@ namespace Ape.Game
             _winnerLabel.text = !reward.HasReward
                 ? string.Empty
                 : $"{reward.RewardName} {reward.FormatAmountLabel()}";
+        }
+
+        private static Color ResolveRarityColor(ResolvedReward reward)
+        {
+            return reward.HasReward && App.Game != null
+                ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
+                : Color.white;
         }
     }
 }

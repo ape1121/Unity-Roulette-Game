@@ -1,4 +1,3 @@
-using Ape.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,7 +19,7 @@ namespace Ape.Game
 
         public RectTransform RootRect => _rootRect;
 
-        public void Bind(RouletteResolvedSlice slice)
+        public void Bind(RouletteResolvedSlice slice, Color rarityColor)
         {
             if (slice.IsBomb)
             {
@@ -42,10 +41,6 @@ namespace Ape.Game
                 return;
             }
 
-            Color rarityColor = App.Game != null
-                ? App.Game.Rewards.GetRarityColor(slice.Reward.Rarity, Color.white)
-                : Color.white;
-
             if (_iconImage != null)
             {
                 _iconImage.enabled = slice.Reward.HasReward && slice.Reward.Icon != null;
@@ -61,7 +56,8 @@ namespace Ape.Game
                 _nameText.text = slice.DisplayName;
             }
 
-            if (_amountText != null)
+            if (_amountText != null && slice.Reward.HasReward)
+                _amountText.gameObject.SetActive(slice.Reward.Amount > 1);
                 _amountText.text = slice.Reward.FormatAmountLabel();
         }
 

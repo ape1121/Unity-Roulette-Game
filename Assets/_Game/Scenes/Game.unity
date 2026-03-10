@@ -207,7 +207,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 128
+  m_fontSize: 78.6
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -956,7 +956,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 72
+  m_fontSize: 52.9
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1091,7 +1091,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 136.55
+  m_fontSize: 76.8
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -2173,7 +2173,6 @@ MonoBehaviour:
   _zoneTypeValueText: {fileID: 0}
   _phaseValueText: {fileID: 463250499}
   _statusValueText: {fileID: 198527866}
-  _lastRewardValueText: {fileID: 0}
   _pendingCashValueText: {fileID: 1781192487}
   _pendingGoldValueText: {fileID: 405484797}
   _pendingItemsValueText: {fileID: 419712318}
@@ -2183,7 +2182,6 @@ MonoBehaviour:
   _inventoryPendingCountText: {fileID: 419712318}
   _inventoryWindow: {fileID: 144985688}
   _effects: {fileID: 1504315746}
-  _spinningBlockerRoot: {fileID: 0}
 --- !u!114 &1504315746
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2501,7 +2499,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 136.55
+  m_fontSize: 76.8
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -2986,7 +2984,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 128
+  m_fontSize: 78.6
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -3090,14 +3088,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1504315744}
     m_Modifications:
-    - target: {fileID: 71430748017712284, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430748017712284, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 71430748478013254, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -3186,14 +3176,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: InventoryUI
       objectReference: {fileID: 0}
-    - target: {fileID: 71430748590191027, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430748590191027, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 71430748651748322, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -3215,26 +3197,6 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 71430749760838184, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430749760838184, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0.00042373865
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430749854754761, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430749854754761, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430749854754761, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 71430749854754761, guid: 827acbb62597a4c8f9260acd97e99361, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
