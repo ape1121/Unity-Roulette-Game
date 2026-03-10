@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: RouletteConfig
   m_EditorClassIdentifier: 
   deterministicSeed: 1337
-  randomizeSeedOnRunStart: 1
+  randomizeSeedOnRunStart: 0
   rewardCatalog: {fileID: 11400000, guid: b3ee2a81a570d4a0aa284fb0cb84a1ac, type: 2}
   wheels:
   - {fileID: 11400000, guid: 5459fef807a9e44cc806482946fe9a1e, type: 2}

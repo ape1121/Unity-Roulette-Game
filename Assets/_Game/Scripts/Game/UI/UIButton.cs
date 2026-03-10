@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class UIButton : Button
 {
     [SerializeField] protected Image[] extraImages;
+    [SerializeField] private RectTransform pressTarget;
     [SerializeField] private float pressOffset = 4f;
     [SerializeField, Min(0f)] private float pressDownDuration = 0.04f;
     [SerializeField, Min(0f)] private float pressUpDuration = 0.08f;
@@ -50,9 +51,10 @@ public class UIButton : Button
         KillPressTween();
         KillHoverScaleTween();
 
-        if (rectTransform != null && hasActivePressBasePosition)
+        if (hasActivePressBasePosition)
         {
-            rectTransform.anchoredPosition = activePressBasePosition;
+            var pt = ResolvePressTarget();
+            if (pt != null) pt.anchoredPosition = activePressBasePosition;
         }
 
         RectTransform resolvedHoverScaleTarget = ResolveHoverScaleTarget();
@@ -168,6 +170,8 @@ public class UIButton : Button
         }
     }
 
+    private RectTransform ResolvePressTarget() => pressTarget != null ? pressTarget : rectTransform;
+
     private void HandlePressAnimation(SelectionState state, bool instant)
     {
         if (rectTransform == null)
@@ -195,13 +199,14 @@ public class UIButton : Button
         if (isVisuallyPressed)
             return;
 
-        activePressBasePosition = rectTransform.anchoredPosition;
+        var target = ResolvePressTarget();
+        activePressBasePosition = target.anchoredPosition;
         hasActivePressBasePosition = true;
         isVisuallyPressed = true;
         Vector2 pressedAnchoredPosition = activePressBasePosition + (Vector2.down * pressOffset);
 
         KillPressTween();
-        pressTween = rectTransform.DOAnchorPos(pressedAnchoredPosition, pressDownDuration)
+        pressTween = target.DOAnchorPos(pressedAnchoredPosition, pressDownDuration)
             .SetEase(pressDownEase)
             .SetTarget(this)
             .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
@@ -213,9 +218,10 @@ public class UIButton : Button
         if (!isVisuallyPressed || !hasActivePressBasePosition)
             return;
 
+        var target = ResolvePressTarget();
         isVisuallyPressed = false;
         KillPressTween();
-        pressTween = rectTransform.DOAnchorPos(activePressBasePosition, pressUpDuration)
+        pressTween = target.DOAnchorPos(activePressBasePosition, pressUpDuration)
             .SetEase(pressUpEase)
             .SetTarget(this)
             .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
@@ -226,23 +232,24 @@ public class UIButton : Button
     private void ApplyInstantPressState(bool shouldBePressed)
     {
         KillPressTween();
+        var target = ResolvePressTarget();
 
         if (shouldBePressed)
         {
             if (!isVisuallyPressed)
             {
-                activePressBasePosition = rectTransform.anchoredPosition;
+                activePressBasePosition = target.anchoredPosition;
                 hasActivePressBasePosition = true;
             }
 
-            rectTransform.anchoredPosition = activePressBasePosition + (Vector2.down * pressOffset);
+            target.anchoredPosition = activePressBasePosition + (Vector2.down * pressOffset);
             isVisuallyPressed = true;
             return;
         }
 
         if (isVisuallyPressed && hasActivePressBasePosition)
         {
-            rectTransform.anchoredPosition = activePressBasePosition;
+            target.anchoredPosition = activePressBasePosition;
         }
 
         hasActivePressBasePosition = false;

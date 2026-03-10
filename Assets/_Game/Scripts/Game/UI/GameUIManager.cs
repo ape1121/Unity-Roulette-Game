@@ -1,6 +1,7 @@
 using Ape.Core;
 using Ape.Data;
 using Ape.Profile;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -17,11 +18,10 @@ namespace Ape.Game
         [SerializeField] private Button _continueButton;
         [SerializeField] private Button _restartButton;
 
-        [Header("Button Labels")]
-        [SerializeField] private TextMeshProUGUI _spinButtonLabel;
-        [SerializeField] private TextMeshProUGUI _cashOutButtonLabel;
         [SerializeField] private TextMeshProUGUI _continueButtonLabel;
-        [SerializeField] private TextMeshProUGUI _restartButtonLabel;
+        [SerializeField] private RectTransform _gameOverRoot;
+        [SerializeField] private float _gameOverSlideDuration = 0.4f;
+        [SerializeField] private Ease _gameOverSlideEase = Ease.OutBack;
 
         [Header("Run State")]
         [SerializeField] private TextMeshProUGUI _zoneValueText;
@@ -48,9 +48,17 @@ namespace Ape.Game
 
         private bool _gameSubscribed;
         private bool _profileSubscribed;
+        private Tween _gameOverSlideTween;
+        private Vector2 _gameOverAnchoredPos;
 
         private void OnEnable()
         {
+            if (_gameOverRoot != null)
+            {
+                _gameOverAnchoredPos = _gameOverRoot.anchoredPosition;
+                _gameOverRoot.gameObject.SetActive(false);
+            }
+
             BindButtons();
             SubscribeToManagers();
             RefreshAll();
@@ -58,6 +66,7 @@ namespace Ape.Game
 
         private void OnDisable()
         {
+            KillGameOverTween();
             UnsubscribeFromManagers();
             UnbindButtons();
         }
@@ -164,7 +173,7 @@ namespace Ape.Game
 
         private void HandleGameStateChanged(GameStateSnapshot snapshot)
         {
-            RefreshState(snapshot);
+            RefreshState(snapshot, instant: false);
             RefreshProfileSummary();
         }
 
@@ -180,7 +189,7 @@ namespace Ape.Game
 
         private void RefreshAll()
         {
-            RefreshState(App.Game != null ? App.Game.CurrentState : default);
+            RefreshState(App.Game != null ? App.Game.CurrentState : default, instant: true);
             RefreshProfileSummary();
 
             if (_inventoryList != null)
@@ -192,7 +201,7 @@ namespace Ape.Game
                 SetText(_lastRewardValueText, "-");
         }
 
-        private void RefreshState(GameStateSnapshot state)
+        private void RefreshState(GameStateSnapshot state, bool instant)
         {
             SetText(_zoneValueText, state.CurrentZone > 0 ? "FLOOR " + state.CurrentZone.ToString() : "-");
             SetText(_zoneTypeValueText, state.CurrentZone > 0 ? FormatZoneType(state.CurrentZoneType) : "-");
@@ -209,13 +218,19 @@ namespace Ape.Game
             SetButtonInteractable(_continueButton, state.CanContinue);
             SetButtonInteractable(_restartButton, state.CanRestart);
 
-            SetText(_spinButtonLabel, "Spin");
-            SetText(_cashOutButtonLabel, "Cash Out");
             SetText(_continueButtonLabel, BuildContinueButtonLabel());
-            SetText(_restartButtonLabel, "Restart");
 
             if (_spinningBlockerRoot != null)
                 _spinningBlockerRoot.SetActive(state.Phase == GameRunPhase.Spinning);
+
+            bool isGameOver = state.Phase == GameRunPhase.Busted
+                              || state.Phase == GameRunPhase.CashedOut
+                              || state.Phase == GameRunPhase.Completed;
+
+            if (isGameOver)
+                ShowGameOver(instant);
+            else
+                HideGameOver();
         }
 
         private void RefreshProfileSummary()
@@ -257,10 +272,10 @@ namespace Ape.Game
         private string BuildContinueButtonLabel()
         {
             if (App.Game == null || App.Game.Config == null)
-                return "Continue";
+                return "CONTINUE";
 
             int continueCost = Mathf.Max(0, App.Game.Config.continueCost);
-            return continueCost > 0 ? $"Continue ({continueCost} Cash)" : "Continue";
+            return continueCost > 0 ? $"CONTINUE ({continueCost} CASH)" : "CONTINUE";
         }
 
         private static string FormatPendingItems(GameStateSnapshot state)
@@ -334,6 +349,47 @@ namespace Ape.Game
                 GameRunPhase.CashedOut => "Cashed Out",
                 _ => phase.ToString()
             };
+        }
+
+        private void ShowGameOver(bool instant)
+        {
+            if (_gameOverRoot == null)
+                return;
+
+            KillGameOverTween();
+            _gameOverRoot.gameObject.SetActive(true);
+
+            if (instant)
+            {
+                _gameOverRoot.anchoredPosition = _gameOverAnchoredPos;
+                return;
+            }
+
+            // Start off-screen below, slide up to cached position
+            var rect = _gameOverRoot.rect;
+            _gameOverRoot.anchoredPosition = _gameOverAnchoredPos + Vector2.down * rect.height;
+            _gameOverSlideTween = _gameOverRoot.DOAnchorPos(_gameOverAnchoredPos, _gameOverSlideDuration)
+                .SetEase(_gameOverSlideEase)
+                .SetLink(_gameOverRoot.gameObject, LinkBehaviour.KillOnDestroy)
+                .OnKill(() => _gameOverSlideTween = null);
+        }
+
+        private void HideGameOver()
+        {
+            if (_gameOverRoot == null)
+                return;
+
+            KillGameOverTween();
+            _gameOverRoot.gameObject.SetActive(false);
+        }
+
+        private void KillGameOverTween()
+        {
+            if (_gameOverSlideTween != null && _gameOverSlideTween.IsActive())
+            {
+                _gameOverSlideTween.Kill();
+                _gameOverSlideTween = null;
+            }
         }
 
         private static void SetButtonInteractable(Button button, bool isInteractable)
