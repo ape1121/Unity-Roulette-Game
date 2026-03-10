@@ -1,10 +1,8 @@
 using Ape.Sounds;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Data
 {
-    [MovedFrom(false, sourceNamespace: "")]
     [CreateAssetMenu(fileName = "AppConfig", menuName = "CriticalShot/Core/AppConfig")]
     public class AppConfig : ScriptableObject
     {

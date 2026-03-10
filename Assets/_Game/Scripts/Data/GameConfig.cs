@@ -1,12 +1,11 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Data
 {
-    [MovedFrom(false, sourceNamespace: "")]
     [CreateAssetMenu(fileName = "GameConfig", menuName = "CriticalShot/Core/GameConfig")]
     public class GameConfig : ScriptableObject
     {
+        public RarityCollection RarityCollection;
         public RouletteConfig RouletteConfig;
         public CaseRewardsConfig CaseRewardsConfig;
 

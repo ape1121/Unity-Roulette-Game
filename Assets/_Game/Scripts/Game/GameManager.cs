@@ -60,6 +60,7 @@ namespace Ape.Game
         {
             ResetManagerState();
             IsInitialized = true;
+            Rewards.Initialize();
         }
 
         public void PrepareForSceneLoad()

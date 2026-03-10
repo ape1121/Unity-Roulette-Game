@@ -1,12 +1,10 @@
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.UI;
 
 namespace Ape.Scenes
 {
-    [MovedFrom(false, sourceNamespace: "")]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RectTransform))]
     [RequireComponent(typeof(Canvas))]

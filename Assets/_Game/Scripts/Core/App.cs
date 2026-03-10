@@ -5,11 +5,9 @@ using Ape.Profile;
 using Ape.Scenes;
 using Ape.Sounds;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Core
 {
-    [MovedFrom(false, sourceNamespace: "")]
     public sealed class App : MonoBehaviour
     {
         public static App               Instance { get; private set; }

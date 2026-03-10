@@ -1,3 +1,4 @@
+using Ape.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,7 +24,7 @@ namespace Ape.Game
             }
 
             if (_rarityBorderImage != null)
-                _rarityBorderImage.color = hasReward ? RewardRarityColorUtility.GetColor(reward.Rarity) : Color.white;
+                _rarityBorderImage.color = hasReward ? App.Game.Rewards.GetRarityData(reward.Rarity).Color : Color.white;
 
             if (_nameText != null)
                 _nameText.text = hasReward ? reward.RewardName : string.Empty;

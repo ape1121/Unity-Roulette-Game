@@ -1,3 +1,4 @@
+using Ape.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -47,7 +48,7 @@ namespace Ape.Game
             }
 
             if (_rarityBorderImage != null)
-                _rarityBorderImage.color = RewardRarityColorUtility.GetColor(slice.Reward.Rarity);
+                _rarityBorderImage.color = App.Game.Rewards.GetRarityData(slice.Reward.Rarity).Color;
 
             if (_nameText != null)
                 _nameText.text = slice.DisplayName;

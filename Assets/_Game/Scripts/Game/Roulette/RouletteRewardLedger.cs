@@ -36,11 +36,11 @@ namespace Ape.Game
         {
             switch (reward.RewardKind)
             {
-                case RewardData.RewardKind.Cash:
+                case RewardType.Cash:
                     PendingCash += reward.Amount;
                     return;
 
-                case RewardData.RewardKind.Gold:
+                case RewardType.Gold:
                     PendingGold += reward.Amount;
                     return;
             }

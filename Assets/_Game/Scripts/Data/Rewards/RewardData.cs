@@ -1,33 +1,15 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Data
 {
-    [MovedFrom(false, sourceNamespace: "")]
-    [CreateAssetMenu(fileName = "RewardData", menuName = "CriticalShot/Roulette/Reward Data")]
+    [CreateAssetMenu(fileName = "RewardData", menuName = "Critical Shot/Rewards/Reward Data")]
     public sealed class RewardData : ScriptableObject
     {
-        public enum RewardKind
-        {
-            Cash,
-            Gold,
-            ItemCard,
-            Case
-        }
-
-        public enum RewardRarity
-        {
-            Common,
-            Rare,
-            Epic,
-            Legendary
-        }
-
         [SerializeField] private string rewardId;
         [SerializeField] private string rewardName;
         [SerializeField] private Sprite icon;
-        [SerializeField] private RewardKind rewardKind = RewardKind.ItemCard;
-        [SerializeField] private RewardRarity rarity = RewardRarity.Common;
+        [SerializeField] private RewardType rewardKind = RewardType.ItemCard;
+        [SerializeField] private RarityType rarity = RarityType.Common;
         [Min(1)] [SerializeField] private int minAmount = 1;
         [Min(1)] [SerializeField] private int maxAmount = 1;
         [Min(0)] [SerializeField] private int amountIncreasePerZone;
@@ -35,8 +17,8 @@ namespace Ape.Data
         public string RewardId => string.IsNullOrWhiteSpace(rewardId) ? name : rewardId;
         public string RewardName => string.IsNullOrWhiteSpace(rewardName) ? name : rewardName;
         public Sprite Icon => icon;
-        public RewardKind Kind => rewardKind;
-        public RewardRarity Rarity => rarity;
+        public RewardType Kind => rewardKind;
+        public RarityType Rarity => rarity;
 
         public int ResolveAmount(int zone, int amountMultiplier, int flatAmountBonus, System.Random random)
         {

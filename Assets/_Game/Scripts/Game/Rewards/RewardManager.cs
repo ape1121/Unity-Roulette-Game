@@ -6,15 +6,40 @@ using UnityEngine;
 
 namespace Ape.Game
 {
-    public sealed class RewardManager
+    public sealed class RewardManager : IManager
     {
-        private int _caseOpenCounter;
-
+        private int caseOpenCounter;
         private GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
+        private Dictionary<RarityType, RarityData> rarityDataCache = new Dictionary<RarityType, RarityData>();
+
+        public void Initialize()
+        {
+            RebuildRarityCache();
+        }
+
+        private void RebuildRarityCache()
+        {
+            rarityDataCache.Clear();
+            if (Config == null)
+                return;
+            var rarities = Config.RarityCollection?.Rarities;
+            if (rarities == null)
+                return;
+            for (int i = 0; i < rarities.Length; i++)
+            {
+                RarityData rarityData = rarities[i];
+                rarityDataCache.Add(rarityData.Rarity, rarityData);
+            }
+        }
+
+        public RarityData GetRarityData(RarityType rarity)
+        {
+            return rarityDataCache.TryGetValue(rarity, out var data) ? data : default;
+        }
 
         public void ResetState()
         {
-            _caseOpenCounter = 0;
+            caseOpenCounter = 0;
         }
 
         public bool TryResolveReward(string rewardId, out RewardData rewardData)
@@ -32,11 +57,11 @@ namespace Ape.Game
 
             switch (reward.RewardKind)
             {
-                case RewardData.RewardKind.Cash:
+                case RewardType.Cash:
                     App.Profile.AddCash(reward.Amount, saveImmediately);
                     return;
 
-                case RewardData.RewardKind.Gold:
+                case RewardType.Gold:
                     App.Profile.AddGold(reward.Amount, saveImmediately);
                     return;
 
@@ -99,7 +124,7 @@ namespace Ape.Game
         {
             caseOpenResult = default;
 
-            if (caseReward == null || caseReward.Kind != RewardData.RewardKind.Case || Config == null)
+            if (caseReward == null || caseReward.Kind != RewardType.Case || Config == null)
                 return false;
 
             EnsureProfile();
@@ -123,7 +148,7 @@ namespace Ape.Game
             caseOpenResult = default;
 
             if (caseDefinition.CaseReward == null
-                || caseDefinition.CaseReward.Kind != RewardData.RewardKind.Case
+                || caseDefinition.CaseReward.Kind != RewardType.Case
                 || caseDefinition.PossibleRewards == null)
                 return false;
 
@@ -261,8 +286,8 @@ namespace Ape.Game
 
         private System.Random CreateCaseRandom(string rewardId)
         {
-            _caseOpenCounter++;
-            int seed = unchecked((Environment.TickCount * 397) ^ (_caseOpenCounter * 486187739) ^ rewardId.GetHashCode());
+            caseOpenCounter++;
+            int seed = unchecked((Environment.TickCount * 397) ^ (caseOpenCounter * 486187739) ^ rewardId.GetHashCode());
             return new System.Random(seed);
         }
 

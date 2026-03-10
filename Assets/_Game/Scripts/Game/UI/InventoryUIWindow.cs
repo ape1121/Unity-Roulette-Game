@@ -6,12 +6,10 @@ using Ape.Profile;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.UI;
 
 namespace Ape.Game
 {
-    [MovedFrom(false, sourceNamespace: "Ape.Game", sourceClassName: "RewardInventoryListUI")]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RectTransform))]
     public sealed class InventoryUIWindow : MonoBehaviour
@@ -428,7 +426,7 @@ namespace Ape.Game
                     continue;
                 }
 
-                if (rewardData.Kind != RewardData.RewardKind.ItemCard)
+                if (rewardData.Kind != RewardType.ItemCard)
                     continue;
 
                 _bankedRewards.Add(new ResolvedReward(rewardData, entry.Amount));

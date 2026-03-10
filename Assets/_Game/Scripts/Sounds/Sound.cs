@@ -1,9 +1,7 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Sounds
 {
-    [MovedFrom(false, sourceNamespace: "")]
     [CreateAssetMenu(fileName = "New Sound", menuName = "CriticalShot/Sounds/Sound")]
     public class Sound : ScriptableObject
     {

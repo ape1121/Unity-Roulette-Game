@@ -2,11 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using Ape.Core;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Sounds
 {
-    [MovedFrom(false, sourceNamespace: "")]
     public class SoundManager : MonoBehaviour, IManager
     {
         public AllSounds allSounds => App.Config.SoundsConfig;

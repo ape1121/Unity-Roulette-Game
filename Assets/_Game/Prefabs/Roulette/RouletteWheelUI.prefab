@@ -150,6 +150,12 @@ MonoBehaviour:
   _tickAngleOffsetDegrees: 0
   _tickPitchStep: 0.04
   _tickPitchCycle: 3
+  _spinButton: {fileID: 6292708179339406437}
+  _spinButtonPulseTarget: {fileID: 2626328259521625362}
+  _spinButtonIdleScaleMultiplier: 1.08
+  _spinButtonIdlePulseDuration: 0.8
+  _spinButtonIdlePulseEase: 4
+  _idleRotationSpeedDegreesPerSecond: 8
 --- !u!1 &1557323243026473409
 GameObject:
   m_ObjectHideFlags: 0
@@ -324,7 +330,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.9185909, b: 0.43867922, a: 1}
+  m_Color: {r: 1, g: 0.96832883, b: 0.7783019, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

@@ -15,9 +15,9 @@ namespace Ape.Game
 
         public string RewardId => RewardData != null ? RewardData.RewardId : string.Empty;
         public string RewardName => RewardData != null ? RewardData.RewardName : string.Empty;
-        public RewardData.RewardKind RewardKind => RewardData != null ? RewardData.Kind : RewardData.RewardKind.ItemCard;
-        public RewardData.RewardRarity Rarity => RewardData != null ? RewardData.Rarity : RewardData.RewardRarity.Common;
-        public bool IsCurrency => RewardKind == RewardData.RewardKind.Cash || RewardKind == RewardData.RewardKind.Gold;
+        public RewardType RewardKind => RewardData != null ? RewardData.Kind : RewardType.ItemCard;
+        public RarityType Rarity => RewardData != null ? RewardData.Rarity : RarityType.Common;
+        public bool IsCurrency => RewardKind == RewardType.Cash || RewardKind == RewardType.Gold;
         public bool IsInventoryReward => !IsCurrency;
 
         public ResolvedReward WithAmount(int amount)

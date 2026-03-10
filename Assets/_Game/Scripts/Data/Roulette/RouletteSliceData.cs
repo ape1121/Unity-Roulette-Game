@@ -1,17 +1,15 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace Ape.Data
 {
-    [MovedFrom(false, sourceNamespace: "")]
     [CreateAssetMenu(fileName = "RouletteSliceData", menuName = "CriticalShot/Roulette/Roulette Slice Data")]
     public sealed class RouletteSliceData : ScriptableObject
     {
         [Serializable]
         public struct RarityWeight
         {
-            public RewardData.RewardRarity rarity;
+            public RarityType rarity;
             [Min(0f)] public float weight;
         }
 
@@ -20,8 +18,8 @@ namespace Ape.Data
         [SerializeField] private bool allowGoldRewards = true;
         [SerializeField] private bool allowItemRewards = true;
         [SerializeField] private bool allowCaseRewards;
-        [SerializeField] private RewardData.RewardRarity minimumRarity = RewardData.RewardRarity.Common;
-        [SerializeField] private RewardData.RewardRarity maximumRarity = RewardData.RewardRarity.Legendary;
+        [SerializeField] private RarityType minimumRarity = RarityType.Common;
+        [SerializeField] private RarityType maximumRarity = RarityType.Legendary;
         [Min(1)] [SerializeField] private int amountMultiplier = 1;
         [Min(0)] [SerializeField] private int flatAmountBonus;
         [SerializeField] private RarityWeight[] rarityWeights;
@@ -40,15 +38,15 @@ namespace Ape.Data
 
             return rewardData.Kind switch
             {
-                RewardData.RewardKind.Cash => allowCashRewards,
-                RewardData.RewardKind.Gold => allowGoldRewards,
-                RewardData.RewardKind.ItemCard => allowItemRewards,
-                RewardData.RewardKind.Case => allowCaseRewards,
+                RewardType.Cash => allowCashRewards,
+                RewardType.Gold => allowGoldRewards,
+                RewardType.ItemCard => allowItemRewards,
+                RewardType.Case => allowCaseRewards,
                 _ => false
             };
         }
 
-        public float GetRarityWeight(RewardData.RewardRarity rarity)
+        public float GetRarityWeight(RarityType rarity)
         {
             if (rarityWeights == null || rarityWeights.Length == 0)
                 return 1f;
