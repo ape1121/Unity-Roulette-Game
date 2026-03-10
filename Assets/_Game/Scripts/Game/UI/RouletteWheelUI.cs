@@ -23,11 +23,19 @@ namespace Ape.Game
         [Range(0f, 0.5f)] [SerializeField] private float _sliceRadiusPaddingRatio = 0.1125f; // 72/640
         [Range(0.05f, 0.5f)] [SerializeField] private float _sliceSizeRatio = 0.15625f; // 100/640
 
+        [Header("Indicator Sway")]
+        [SerializeField] private float _indicatorSwayMaxAngle = 15f;
+        [SerializeField] private float _indicatorSwayFrequency = 12f;
+        [SerializeField] private float _indicatorSwayDamping = 4f;
+
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
         private Sequence _spinSequence;
         private float _currentRotationDegrees;
         private RouletteResolvedWheel _lastWheel;
+        private float _indicatorVelocity;
+        private float _indicatorAngle;
+        private float _prevAnimatedRotation;
 
         public void BuildWheel(RouletteResolvedWheel wheel, bool preserveRotation = true)
         {
@@ -66,6 +74,7 @@ namespace Ape.Game
                 _spinSequence.Kill();
 
             _spinSequence = null;
+            SetIndicatorRotation(0f);
         }
 
         public void ResetWheelRotation()
@@ -93,6 +102,9 @@ namespace Ape.Game
 
             float animatedRotation = _currentRotationDegrees;
             int lastTickStep = Mathf.FloorToInt(animatedRotation / sliceAngle);
+            _prevAnimatedRotation = animatedRotation;
+            _indicatorAngle = 0f;
+            _indicatorVelocity = 0f;
 
             Tween mainRotationTween = DOTween.To(
                     () => animatedRotation,
@@ -100,6 +112,7 @@ namespace Ape.Game
                     {
                         animatedRotation = value;
                         SetWheelRotation(value);
+                        UpdateIndicatorSway(value);
                         EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
                     },
                     overshootRotation,
@@ -112,6 +125,7 @@ namespace Ape.Game
                     {
                         animatedRotation = value;
                         SetWheelRotation(value);
+                        UpdateIndicatorSway(value);
                         EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
                     },
                     endRotation,
@@ -127,6 +141,7 @@ namespace Ape.Game
             {
                 _currentRotationDegrees = endRotation;
                 SetWheelRotation(_currentRotationDegrees);
+                SetIndicatorRotation(0f);
                 onComplete?.Invoke();
             });
             _spinSequence.OnKill(() => _spinSequence = null);
@@ -242,6 +257,35 @@ namespace Ape.Game
                 onSliceTick.Invoke(Mathf.Abs(step % sliceCount));
 
             lastTickStep = currentStep;
+        }
+
+        private void UpdateIndicatorSway(float currentAnimatedRotation)
+        {
+            if (_rouletteIndicatorImage == null)
+                return;
+
+            float dt = Time.deltaTime;
+            if (dt <= 0f)
+                return;
+
+            float angularVelocity = (currentAnimatedRotation - _prevAnimatedRotation) / dt;
+            _prevAnimatedRotation = currentAnimatedRotation;
+
+            float normalizedDrive = Mathf.Clamp01(Mathf.Abs(angularVelocity) / 1500f);
+            float targetAngle = Mathf.Sin(Time.time * _indicatorSwayFrequency) * _indicatorSwayMaxAngle * normalizedDrive;
+
+            float springForce = (targetAngle - _indicatorAngle) * _indicatorSwayFrequency;
+            _indicatorVelocity += springForce * dt;
+            _indicatorVelocity *= Mathf.Exp(-_indicatorSwayDamping * dt);
+            _indicatorAngle += _indicatorVelocity * dt;
+
+            SetIndicatorRotation(_indicatorAngle);
+        }
+
+        private void SetIndicatorRotation(float angle)
+        {
+            if (_rouletteIndicatorImage != null)
+                _rouletteIndicatorImage.rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle);
         }
 
         private void SetWheelRotation(float rotationDegrees)
