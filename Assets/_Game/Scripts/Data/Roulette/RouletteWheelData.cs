@@ -20,6 +20,7 @@ namespace Ape.Data
         [Min(0.01f)] [SerializeField] private float endScaleDuration = 0.12f;
         [SerializeField] private Ease scaleEase = Ease.OutCubic;
         [SerializeField] private Sprite wheelBackground;
+        [SerializeField] private Sprite rouletteIndicator;
 
         public bool AllowDuplicateRewards => allowDuplicateRewards;
         public RouletteSliceData[] SliceDefinitions => sliceDefinitions ?? System.Array.Empty<RouletteSliceData>();
@@ -35,5 +36,6 @@ namespace Ape.Data
         public Ease ScaleEase => scaleEase;
         public RouletteZoneType ZoneType => zoneType;
         public Sprite WheelBackground => wheelBackground;
+        public Sprite RouletteIndicator => rouletteIndicator;
     }
 }

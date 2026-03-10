@@ -34,3 +34,4 @@ MonoBehaviour:
   endScaleDuration: 0.12
   scaleEase: 9
   wheelBackground: {fileID: 21300000, guid: 29ffb835f757b405eac0817c31b7b268, type: 3}
+  rouletteIndicator: {fileID: 21300000, guid: b5f2598cab022452fa2842d15eb7c484, type: 3}

@@ -26,4 +26,12 @@ MonoBehaviour:
   spinDuration: 3.4
   fullRotations: 6
   settleOvershootDegrees: 6
+  settleDuration: 0.24
+  spinEase: 12
+  settleEase: 27
+  startScale: 1.05
+  startScaleDuration: 0.18
+  endScaleDuration: 0.12
+  scaleEase: 9
   wheelBackground: {fileID: 21300000, guid: f8ab9accc7f054060ba504b915d070df, type: 3}
+  rouletteIndicator: {fileID: 21300000, guid: d3b262bc8588c4ff695a2b78ec441d4e, type: 3}

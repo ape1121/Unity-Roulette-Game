@@ -15,6 +15,7 @@ namespace Ape.Game
         [SerializeField] private RectTransform _wheelRotatorRect;
         [SerializeField] private RectTransform _sliceRootRect;
         [SerializeField] private Image _wheelBackgroundImage;
+        [SerializeField] private Image _rouletteIndicatorImage;
         [SerializeField] private RouletteRewardSliceUI _rewardSlicePrefab;
         [SerializeField] private bool _useBackgroundShortestDimension = true;
         [FormerlySerializedAs("_diameter")]
@@ -177,6 +178,12 @@ namespace Ape.Game
             Sprite backgroundSprite = wheel != null ? wheel.WheelBackground : null;
             _wheelBackgroundImage.sprite = backgroundSprite;
             _wheelBackgroundImage.enabled = backgroundSprite != null;
+            if (_rouletteIndicatorImage != null)
+            {
+                Sprite indicatorSprite = wheel != null ? wheel.RouletteIndicator : null;
+                _rouletteIndicatorImage.sprite = indicatorSprite;
+                _rouletteIndicatorImage.enabled = indicatorSprite != null;
+            }
         }
 
         private float ResolveWheelDiameter()
