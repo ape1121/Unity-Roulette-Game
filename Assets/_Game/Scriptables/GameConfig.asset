@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a064141707ad4a29b853c0fdc747bbf, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: 
+  RarityCollection: {fileID: 11400000, guid: 32e88f2c85c2d47caaea3ee7257c3900, type: 2}
   RouletteConfig: {fileID: 11400000, guid: 9c2d1b130dd2545cf8cd83da7fd578af, type: 2}
   CaseRewardsConfig: {fileID: 0}
   cashOutOnSafeZoneOnly: 1
