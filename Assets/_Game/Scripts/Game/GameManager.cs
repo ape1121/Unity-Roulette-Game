@@ -8,9 +8,6 @@ namespace Ape.Game
 {
     public sealed class GameManager : IManager
     {
-        private const string SpinStartSoundName = "roulette_spin_start";
-        private const string SpinTickSoundName = "roulette_spin_tick";
-        private const string SpinStopSoundName = "roulette_spin_stop";
         private const string SpinRewardSoundName = "roulette_spin_reward";
         private const string SpinBombSoundName = "roulette_spin_bomb";
 
@@ -131,14 +128,11 @@ namespace Ape.Game
             _hasPendingSpinResult = true;
             Phase = GameRunPhase.Spinning;
 
-            PlaySound(SpinStartSoundName);
-
             if (SceneDependencies.RouletteWheel != null)
             {
                 SceneDependencies.RouletteWheel.PlaySpin(
                     ActiveWheel,
                     spinResult.SelectedSliceIndex,
-                    HandleWheelSliceTick,
                     FinalizePendingSpin);
             }
             else
@@ -236,7 +230,6 @@ namespace Ape.Game
                 return;
 
             _hasPendingSpinResult = false;
-            PlaySound(SpinStopSoundName);
             ApplySpinResult(_pendingSpinResult);
             SpinResolved?.Invoke(_pendingSpinResult);
             PublishStateChanged();
@@ -355,12 +348,6 @@ namespace Ape.Game
                 throw new MissingReferenceException("GameConfig.RouletteConfig must be assigned.");
 
             return RouletteConfig;
-        }
-
-        private void HandleWheelSliceTick(int sliceIndex)
-        {
-            float pitchMultiplier = 1f + ((sliceIndex % 3) * 0.04f);
-            PlaySound(SpinTickSoundName, pitchMultiplier);
         }
 
         private void SyncWheelToScene(bool preserveRotation = true)

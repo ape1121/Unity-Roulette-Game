@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ape.Core;
 using DG.Tweening;
 using DG.Tweening.Core;
 using UnityEngine;
@@ -11,6 +12,10 @@ namespace Ape.Game
     [RequireComponent(typeof(RectTransform))]
     public sealed class RouletteWheelUI : MonoBehaviour
     {
+        private const string SpinStartSoundName = "roulette_spin_start";
+        private const string SpinTickSoundName = "roulette_spin_tick";
+        private const string SpinStopSoundName = "roulette_spin_stop";
+
         [SerializeField] private RectTransform _rootRect;
         [SerializeField] private RectTransform _wheelRotatorRect;
         [SerializeField] private RectTransform _sliceRootRect;
@@ -38,6 +43,12 @@ namespace Ape.Game
         [Range(0f, 1f)] [SerializeField] private float _squeekerChance = 0.25f;
         [Range(0.01f, 0.95f)] [SerializeField] private float _squeekerEdgeOffset = 0.85f;
         [Min(0.2f)] [SerializeField] private float _squeekerCrawlDuration = 0.7f;
+
+        [Header("Tick Audio")]
+        [Range(0f, 1f)] [SerializeField] private float _tickSliceOffset = 0.5f;
+        [Range(-15f, 15f)] [SerializeField] private float _tickAngleOffsetDegrees;
+        [Min(0f)] [SerializeField] private float _tickPitchStep = 0.04f;
+        [Min(1)] [SerializeField] private int _tickPitchCycle = 3;
 
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
@@ -94,7 +105,7 @@ namespace Ape.Game
             SetWheelRotation(0f);
         }
 
-        public void PlaySpin(RouletteResolvedWheel wheel, int targetSliceIndex, System.Action<int> onSliceTick, System.Action onComplete)
+        public void PlaySpin(RouletteResolvedWheel wheel, int targetSliceIndex, System.Action onComplete)
         {
             if (wheel == null || wheel.Slices == null || wheel.Slices.Count == 0 || _wheelRotatorRect == null)
             {
@@ -112,17 +123,19 @@ namespace Ape.Game
             bool isSqueeker = Random.value < _squeekerChance;
 
             float animatedRotation = _currentRotationDegrees;
-            int lastTickStep = Mathf.FloorToInt(animatedRotation / sliceAngle);
+            int lastTickStep = CalculateTickStep(animatedRotation, sliceAngle);
             _prevAnimatedRotation = animatedRotation;
             _indicatorAngle = 0f;
             _indicatorVelocity = 0f;
+
+            PlayUISound(SpinStartSoundName);
 
             System.Action<float> onTweenUpdate = value =>
             {
                 animatedRotation = value;
                 SetWheelRotation(value);
                 UpdateIndicatorSway(value);
-                EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
+                EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count);
             };
 
             DOGetter<float> tweenGetter = () => animatedRotation;
@@ -163,6 +176,7 @@ namespace Ape.Game
                 _currentRotationDegrees = endRotation;
                 SetWheelRotation(_currentRotationDegrees);
                 SetIndicatorRotation(0f);
+                PlayUISound(SpinStopSoundName);
                 onComplete?.Invoke();
             });
             _spinSequence.OnKill(() => _spinSequence = null);
@@ -265,19 +279,34 @@ namespace Ape.Game
             sliceRect.localScale = Vector3.one;
         }
 
-        private void EmitSliceTicks(ref int lastTickStep, float sliceAngle, float rotationDegrees, int sliceCount, System.Action<int> onSliceTick)
+        private void EmitSliceTicks(ref int lastTickStep, float sliceAngle, float rotationDegrees, int sliceCount)
         {
-            if (onSliceTick == null)
+            int currentStep = CalculateTickStep(rotationDegrees, sliceAngle);
+            if (currentStep == lastTickStep)
                 return;
 
-            int currentStep = Mathf.FloorToInt(rotationDegrees / sliceAngle);
-            if (currentStep <= lastTickStep)
-                return;
-
-            for (int step = lastTickStep + 1; step <= currentStep; step++)
-                onSliceTick.Invoke(Mathf.Abs(step % sliceCount));
+            int stepDirection = currentStep > lastTickStep ? 1 : -1;
+            for (int step = lastTickStep + stepDirection; step != currentStep + stepDirection; step += stepDirection)
+                PlayTickSound(stepDirection > 0 ? step : step + 1, sliceCount);
 
             lastTickStep = currentStep;
+        }
+
+        private int CalculateTickStep(float rotationDegrees, float sliceAngle)
+        {
+            float tickOffsetDegrees = (sliceAngle * _tickSliceOffset) + _tickAngleOffsetDegrees;
+            return Mathf.FloorToInt((rotationDegrees + tickOffsetDegrees) / sliceAngle);
+        }
+
+        private void PlayTickSound(int step, int sliceCount)
+        {
+            if (sliceCount <= 0)
+                return;
+
+            int sliceIndex = ((step % sliceCount) + sliceCount) % sliceCount;
+            int pitchCycle = Mathf.Max(1, _tickPitchCycle);
+            float pitchMultiplier = 1f + ((sliceIndex % pitchCycle) * _tickPitchStep);
+            PlayUISound(SpinTickSoundName, pitchMultiplier);
         }
 
         private float ComputeRandomizedOvershoot()
@@ -345,6 +374,14 @@ namespace Ape.Game
 
             if (_wheelRotatorRect != null)
                 _wheelRotatorRect.localRotation = Quaternion.Euler(0f, 0f, rotationDegrees);
+        }
+
+        private static void PlayUISound(string soundName, float pitchMultiplier = 1f)
+        {
+            if (App.Sound == null)
+                return;
+
+            App.Sound.PlaySound(soundName, isUI: true, pitchMultiplier: pitchMultiplier);
         }
     }
 }

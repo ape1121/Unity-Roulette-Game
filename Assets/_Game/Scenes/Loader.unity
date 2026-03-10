@@ -250,7 +250,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 541ae757a60594fe8a0b416612cb3d45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  poolSize: 10
+  poolSize: 20
   uiVolume: 1
 --- !u!1001 &726641643
 PrefabInstance:

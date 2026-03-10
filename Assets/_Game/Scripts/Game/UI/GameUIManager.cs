@@ -222,11 +222,9 @@ namespace Ape.Game
 
         private void RefreshState(GameStateSnapshot state, bool instant)
         {
-            bool showZoneType = state.CurrentZone > 0 && state.CurrentZoneType != RouletteZoneType.Normal;
-
             SetText(_zoneValueText, state.CurrentZone > 0 ? "FLOOR " + state.CurrentZone.ToString() : "-");
-            SetText(_zoneTypeValueText, showZoneType ? FormatZoneType(state.CurrentZoneType) : string.Empty);
-            SetText(_phaseValueText, FormatPhase(state.Phase));
+            SetText(_zoneTypeValueText, string.Empty);
+            SetText(_phaseValueText, BuildPhaseLabel(state));
             SetText(_pendingCashValueText, state.PendingCash.ToString());
             SetText(_pendingGoldValueText, state.PendingGold.ToString());
             SetText(_pendingItemsValueText, FormatPendingItems(state));
@@ -236,7 +234,7 @@ namespace Ape.Game
             RefreshInventoryPendingUi(state.PendingInventoryRewardCount);
 
             if (_zoneTypeValueText != null)
-                _zoneTypeValueText.gameObject.SetActive(showZoneType);
+                _zoneTypeValueText.gameObject.SetActive(false);
 
             SetButtonInteractable(_spinButton, state.CanSpin);
             SetButtonInteractable(_cashOutButton, state.CanCashOut);
@@ -251,6 +249,9 @@ namespace Ape.Game
             bool isGameOver = state.Phase == GameRunPhase.Busted
                               || state.Phase == GameRunPhase.CashedOut
                               || state.Phase == GameRunPhase.Completed;
+
+            bool showContinueButton = !isGameOver || state.CanContinue;
+            SetButtonVisible(_continueButton, showContinueButton);
 
             if (isGameOver)
                 ShowGameOver(instant);
@@ -329,24 +330,23 @@ namespace Ape.Game
             return $"{spinResult.SelectedSlice.Reward.RewardName} {spinResult.SelectedSlice.Reward.FormatAmountLabel()}";
         }
 
-        private static string FormatZoneType(RouletteZoneType zoneType)
+        private static string BuildPhaseLabel(GameStateSnapshot state)
         {
-            return zoneType switch
+            if (state.Phase == GameRunPhase.AwaitingSpin)
             {
-                RouletteZoneType.Safe => "Safe",
-                RouletteZoneType.Super => "Super",
-                _ => "Normal"
-            };
-        }
+                return state.CurrentZoneType switch
+                {
+                    RouletteZoneType.Safe => "SAFE ZONE",
+                    RouletteZoneType.Super => "SUPER ZONE",
+                    _ => "Awaiting Spin"
+                };
+            }
 
-        private static string FormatPhase(GameRunPhase phase)
-        {
-            return phase switch
+            return state.Phase switch
             {
-                GameRunPhase.AwaitingSpin => "Awaiting Spin",
                 GameRunPhase.BlockedByBuyIn => "Buy-In Blocked",
                 GameRunPhase.CashedOut => "Cashed Out",
-                _ => phase.ToString()
+                _ => state.Phase.ToString()
             };
         }
 
@@ -414,6 +414,12 @@ namespace Ape.Game
         {
             if (button != null)
                 button.interactable = isInteractable;
+        }
+
+        private static void SetButtonVisible(Button button, bool isVisible)
+        {
+            if (button != null)
+                button.gameObject.SetActive(isVisible);
         }
 
         private static void SetText(TextMeshProUGUI text, string value)

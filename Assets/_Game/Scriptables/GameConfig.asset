@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: GameConfig
   m_EditorClassIdentifier: 
   RouletteConfig: {fileID: 11400000, guid: 9c2d1b130dd2545cf8cd83da7fd578af, type: 2}
+  CaseRewardsConfig: {fileID: 0}
   cashOutOnSafeZoneOnly: 1
-  continueEnabled: 0
+  continueEnabled: 1
   continueCost: 0
   buyInCost: 0
   startingZone: 1

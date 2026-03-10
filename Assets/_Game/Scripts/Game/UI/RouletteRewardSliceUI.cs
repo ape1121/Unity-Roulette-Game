@@ -14,6 +14,7 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _amountText;
         [SerializeField] private Color _bombBorderColor = new Color32(255, 89, 89, 255);
+        [SerializeField] private Sprite _bombIcon;
 
         public RectTransform RootRect => _rootRect;
 
@@ -23,15 +24,15 @@ namespace Ape.Game
             {
                 if (_iconImage != null)
                 {
-                    _iconImage.enabled = false;
-                    _iconImage.sprite = null;
+                    _iconImage.enabled = true;
+                    _iconImage.sprite = _bombIcon;
                 }
 
                 if (_rarityBorderImage != null)
                     _rarityBorderImage.color = _bombBorderColor;
 
                 if (_nameText != null)
-                    _nameText.text = "Bomb";
+                    _nameText.gameObject.SetActive(false);
 
                 if (_amountText != null)
                     _amountText.text = string.Empty;
