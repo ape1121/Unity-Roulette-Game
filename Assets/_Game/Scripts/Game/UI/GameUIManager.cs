@@ -21,13 +21,14 @@ namespace Ape.Game
             Hiding
         }
 
-        [Header("Action Buttons")]
+        [Header("Buttons")]
         [SerializeField] private Button _spinButton;
         [SerializeField] private Button _cashOutButton;
         [SerializeField] private Button _continueButton;
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _inventoryButton;
 
+        [Header("Overlays")]
         [SerializeField] private TextMeshProUGUI _continueButtonLabel;
         [SerializeField] private RectTransform _gameOverRoot;
         [SerializeField] private RectTransform _cashOutOverlayRoot;
@@ -43,7 +44,6 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _phaseValueText;
         [FormerlySerializedAs("_wheelThemeValueText")]
         [SerializeField] private TextMeshProUGUI _statusValueText;
-        [SerializeField] private TextMeshProUGUI _lastRewardValueText;
 
         [Header("Run Rewards")]
         [SerializeField] private TextMeshProUGUI _pendingCashValueText;
@@ -60,7 +60,6 @@ namespace Ape.Game
 
         [Header("Feedback")]
         [SerializeField] private GameUIEffects _effects;
-        [SerializeField] private GameObject _spinningBlockerRoot;
 
         private bool _gameSubscribed;
         private bool _profileSubscribed;
@@ -94,6 +93,16 @@ namespace Ape.Game
         {
             _effects ??= GetComponent<GameUIEffects>();
             _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
+            ResolveButtonReferences();
+        }
+
+        private void ResolveButtonReferences()
+        {
+            _spinButton ??= UIReferenceUtility.FindButtonByName(this, "Spin");
+            _cashOutButton ??= UIReferenceUtility.FindButtonByName(this, "CashOut");
+            _continueButton ??= UIReferenceUtility.FindButtonByName(this, "Continue");
+            _restartButton ??= UIReferenceUtility.FindButtonByName(this, "Restart");
+            _inventoryButton ??= UIReferenceUtility.FindButtonByName(this, "Inventory");
         }
 
         private void BindButtons()
@@ -214,7 +223,7 @@ namespace Ape.Game
 
         private void HandleSpinResolved(RouletteSpinResult spinResult)
         {
-            SetText(_lastRewardValueText, BuildSpinResultLabel(spinResult));
+            // spawn spin result effect prefab
         }
 
         private void HandleProfileDataChanged(SaveData _)
@@ -228,11 +237,6 @@ namespace Ape.Game
 
             if (_inventoryWindow != null)
                 _inventoryWindow.Refresh();
-
-            if (App.Game != null)
-                SetText(_lastRewardValueText, BuildSpinResultLabel(App.Game.LastSpinResult));
-            else
-                SetText(_lastRewardValueText, "-");
         }
 
         private void RefreshState(GameStateSnapshot state, bool instant)
@@ -258,9 +262,6 @@ namespace Ape.Game
             SetWheelIdlePresentationState(state.CanSpin, IsBeforeFirstSpinOfRun());
 
             SetText(_continueButtonLabel, BuildContinueButtonLabel());
-
-            if (_spinningBlockerRoot != null)
-                _spinningBlockerRoot.SetActive(state.Phase == GameRunPhase.Spinning);
 
             bool isGameOver = state.Phase == GameRunPhase.Busted
                               || state.Phase == GameRunPhase.CashedOut

@@ -14,16 +14,17 @@ namespace Ape.Game
     [RequireComponent(typeof(RectTransform))]
     public sealed class InventoryUIWindow : MonoBehaviour
     {
+        [Header("Buttons")]
+        [SerializeField] private Button _backdropButton;
+        [SerializeField] private Button _pendingTabButton;
+        [SerializeField] private Button _bankedTabButton;
+        
         [Header("Structure")]
         [SerializeField] private RectTransform _windowRoot;
         [SerializeField] private CanvasGroup _windowCanvasGroup;
-        [SerializeField] private Button _backdropButton;
         [SerializeField] private RectTransform _panelRoot;
-        [SerializeField] private Button _closeButton;
 
         [Header("Tabs")]
-        [SerializeField] private Button _pendingTabButton;
-        [SerializeField] private Button _bankedTabButton;
         [SerializeField] private GameObject _pendingTabBadgeRoot;
         [SerializeField] private TextMeshProUGUI _pendingTabBadgeText;
         [SerializeField] private TextMeshProUGUI _tabTitleText;
@@ -109,6 +110,14 @@ namespace Ape.Game
         {
             _windowRoot ??= GetComponent<RectTransform>();
             _windowCanvasGroup ??= GetComponent<CanvasGroup>();
+            ResolveButtonReferences();
+        }
+
+        private void ResolveButtonReferences()
+        {
+            _pendingTabButton ??= UIReferenceUtility.FindButtonByName(this, "Pending");
+            _bankedTabButton ??= UIReferenceUtility.FindButtonByName(this, "Banked");
+            _backdropButton ??= UIReferenceUtility.FindButtonByName(this, "BackgroundBlocker");
         }
 
         public void Refresh()
@@ -241,12 +250,6 @@ namespace Ape.Game
             {
                 _backdropButton.onClick.RemoveListener(HandleBackdropClicked);
                 _backdropButton.onClick.AddListener(HandleBackdropClicked);
-            }
-
-            if (_closeButton != null)
-            {
-                _closeButton.onClick.RemoveListener(HandleCloseClicked);
-                _closeButton.onClick.AddListener(HandleCloseClicked);
             }
 
             if (_pendingTabButton != null)
