@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using DG.Tweening;
+using DG.Tweening.Core;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -27,6 +27,17 @@ namespace Ape.Game
         [SerializeField] private float _indicatorSwayMaxAngle = 15f;
         [SerializeField] private float _indicatorSwayFrequency = 12f;
         [SerializeField] private float _indicatorSwayDamping = 4f;
+
+        [Header("Overshoot")]
+        [Min(0f)] [SerializeField] private float _overshootMin = 4f;
+        [Min(0f)] [SerializeField] private float _overshootMax = 25f;
+        [Range(0, 2)] [SerializeField] private int _maxExtraBounces = 1;
+        [Min(0.05f)] [SerializeField] private float _extraBounceDuration = 0.18f;
+
+        [Header("Squeaker")]
+        [Range(0f, 1f)] [SerializeField] private float _squeekerChance = 0.25f;
+        [Range(0.01f, 0.95f)] [SerializeField] private float _squeekerEdgeOffset = 0.85f;
+        [Min(0.2f)] [SerializeField] private float _squeekerCrawlDuration = 0.7f;
 
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
@@ -83,7 +94,7 @@ namespace Ape.Game
             SetWheelRotation(0f);
         }
 
-        public void PlaySpin(RouletteResolvedWheel wheel, int targetSliceIndex, Action<int> onSliceTick, Action onComplete)
+        public void PlaySpin(RouletteResolvedWheel wheel, int targetSliceIndex, System.Action<int> onSliceTick, System.Action onComplete)
         {
             if (wheel == null || wheel.Slices == null || wheel.Slices.Count == 0 || _wheelRotatorRect == null)
             {
@@ -98,7 +109,7 @@ namespace Ape.Game
             float targetNormalizedRotation = Mathf.Repeat(targetSliceIndex * sliceAngle, 360f);
             float deltaToTarget = Mathf.Repeat(targetNormalizedRotation - currentNormalizedRotation, 360f);
             float endRotation = _currentRotationDegrees + (wheel.FullRotations * 360f) + deltaToTarget;
-            float overshootRotation = endRotation + wheel.SettleOvershootDegrees;
+            bool isSqueeker = Random.value < _squeekerChance;
 
             float animatedRotation = _currentRotationDegrees;
             int lastTickStep = Mathf.FloorToInt(animatedRotation / sliceAngle);
@@ -106,36 +117,46 @@ namespace Ape.Game
             _indicatorAngle = 0f;
             _indicatorVelocity = 0f;
 
-            Tween mainRotationTween = DOTween.To(
-                    () => animatedRotation,
-                    value =>
-                    {
-                        animatedRotation = value;
-                        SetWheelRotation(value);
-                        UpdateIndicatorSway(value);
-                        EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
-                    },
-                    overshootRotation,
-                    wheel.SpinDuration)
-                .SetEase(wheel.SpinEase);
+            System.Action<float> onTweenUpdate = value =>
+            {
+                animatedRotation = value;
+                SetWheelRotation(value);
+                UpdateIndicatorSway(value);
+                EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
+            };
 
-            Tween settleTween = DOTween.To(
-                    () => animatedRotation,
-                    value =>
-                    {
-                        animatedRotation = value;
-                        SetWheelRotation(value);
-                        UpdateIndicatorSway(value);
-                        EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count, onSliceTick);
-                    },
-                    endRotation,
-                    wheel.SettleDuration)
-                .SetEase(wheel.SettleEase);
+            DOGetter<float> tweenGetter = () => animatedRotation;
+            DOSetter<float> tweenSetter = v => onTweenUpdate(v);
 
             _spinSequence = DOTween.Sequence();
             _spinSequence.Append(_wheelRotatorRect.DOScale(wheel.StartScale, wheel.StartScaleDuration).SetEase(wheel.ScaleEase));
-            _spinSequence.Join(mainRotationTween);
-            _spinSequence.Append(settleTween);
+
+            if (isSqueeker)
+            {
+                float edgeOffset = sliceAngle * _squeekerEdgeOffset;
+                float pauseRotation = endRotation - edgeOffset;
+
+                Tween spinTween = DOTween.To(tweenGetter, tweenSetter, pauseRotation, wheel.SpinDuration)
+                    .SetEase(wheel.SpinEase);
+                _spinSequence.Join(spinTween);
+
+                Tween crawlTween = DOTween.To(tweenGetter, tweenSetter, endRotation, _squeekerCrawlDuration)
+                    .SetEase(Ease.InOutSine);
+                _spinSequence.Append(crawlTween);
+            }
+            else
+            {
+                float overshootDegrees = ComputeRandomizedOvershoot();
+
+                Tween mainRotationTween = DOTween.To(tweenGetter, tweenSetter,
+                        endRotation + overshootDegrees, wheel.SpinDuration)
+                    .SetEase(wheel.SpinEase);
+                _spinSequence.Join(mainRotationTween);
+
+                AppendSettleBounces(_spinSequence, tweenGetter, tweenSetter,
+                    endRotation, overshootDegrees, wheel.SettleDuration, wheel.SettleEase);
+            }
+
             _spinSequence.Append(_wheelRotatorRect.DOScale(1f, wheel.EndScaleDuration).SetEase(wheel.ScaleEase));
             _spinSequence.OnComplete(() =>
             {
@@ -244,7 +265,7 @@ namespace Ape.Game
             sliceRect.localScale = Vector3.one;
         }
 
-        private void EmitSliceTicks(ref int lastTickStep, float sliceAngle, float rotationDegrees, int sliceCount, Action<int> onSliceTick)
+        private void EmitSliceTicks(ref int lastTickStep, float sliceAngle, float rotationDegrees, int sliceCount, System.Action<int> onSliceTick)
         {
             if (onSliceTick == null)
                 return;
@@ -257,6 +278,36 @@ namespace Ape.Game
                 onSliceTick.Invoke(Mathf.Abs(step % sliceCount));
 
             lastTickStep = currentStep;
+        }
+
+        private float ComputeRandomizedOvershoot()
+        {
+            return Random.Range(_overshootMin, Mathf.Max(_overshootMin, _overshootMax));
+        }
+
+        private void AppendSettleBounces(Sequence seq, DOGetter<float> getter, DOSetter<float> setter,
+            float endRotation, float overshootDegrees, float settleDuration, Ease settleEase)
+        {
+            float currentOvershoot = overshootDegrees;
+            float bounceTarget = endRotation;
+
+            seq.Append(DOTween.To(getter, setter, bounceTarget, settleDuration).SetEase(settleEase));
+
+            int extraBounces = _maxExtraBounces > 0 ? Random.Range(0, _maxExtraBounces + 1) : 0;
+            for (int i = 0; i < extraBounces; i++)
+            {
+                float bounceMagnitude = currentOvershoot * Random.Range(0.15f, 0.35f);
+                float sign = (i % 2 == 0) ? -1f : 1f;
+                float bounceOvershoot = bounceTarget + sign * bounceMagnitude;
+
+                float bounceDur = _extraBounceDuration * (1f - (i * 0.3f));
+                bounceDur = Mathf.Max(0.06f, bounceDur);
+
+                seq.Append(DOTween.To(getter, setter, bounceOvershoot, bounceDur).SetEase(Ease.OutQuad));
+                seq.Append(DOTween.To(getter, setter, bounceTarget, bounceDur * 0.7f).SetEase(Ease.InOutSine));
+
+                currentOvershoot = bounceMagnitude;
+            }
         }
 
         private void UpdateIndicatorSway(float currentAnimatedRotation)

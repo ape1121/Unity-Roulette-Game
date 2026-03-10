@@ -26,7 +26,7 @@ MonoBehaviour:
   spinDuration: 3
   fullRotations: 1
   settleOvershootDegrees: 6
-  settleDuration: 0.24
+  settleDuration: 0.4
   spinEase: 12
   settleEase: 27
   startScale: 1.05
