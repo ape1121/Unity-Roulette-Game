@@ -25,7 +25,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
   spinDuration: 3.4
   fullRotations: 6
-  settleOvershootDegrees: 6
   settleDuration: 0.24
   spinEase: 12
   settleEase: 27

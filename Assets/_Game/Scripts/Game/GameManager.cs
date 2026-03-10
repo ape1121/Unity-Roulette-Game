@@ -206,7 +206,7 @@ namespace Ape.Game
             RouletteConfig rouletteConfig = GetRouletteConfig();
             RouletteWheelData wheelData = rouletteConfig.GetWheelData(CurrentZoneType);
             ActiveWheel = RouletteWheelBuilder.BuildWheel(rouletteConfig, wheelData, CurrentZone, _runRandom);
-            CurrentZoneType = ActiveWheel.ZoneType;
+            CurrentZoneType = ActiveWheel.Definition.ZoneType;
             SyncWheelToScene(preserveRotation);
         }
 

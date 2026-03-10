@@ -32,7 +32,7 @@ namespace Ape.Game
 
                 if (sliceRule.IsBomb)
                 {
-                    slices.Add(new RouletteResolvedSlice(i, sliceRule, default));
+                    slices.Add(new RouletteResolvedSlice(sliceRule, default));
                     continue;
                 }
 
@@ -47,7 +47,7 @@ namespace Ape.Game
                     rewardData,
                     rewardData.ResolveAmount(zone, sliceRule.AmountMultiplier, sliceRule.FlatAmountBonus, random));
 
-                slices.Add(new RouletteResolvedSlice(i, sliceRule, resolvedReward));
+                slices.Add(new RouletteResolvedSlice(sliceRule, resolvedReward));
             }
 
             return new RouletteResolvedWheel(wheelData, slices);

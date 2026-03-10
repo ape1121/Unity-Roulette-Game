@@ -23,6 +23,6 @@ namespace Ape.Game
         }
 
         public RewardData CaseReward => CaseDefinition.CaseReward;
-        public bool IsValid => GrantedReward.RewardData != null && ReelRewards != null && ReelRewards.Count > 0;
+        public bool IsValid => GrantedReward.HasReward && ReelRewards != null && ReelRewards.Count > 0;
     }
 }

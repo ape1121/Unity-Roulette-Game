@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Ape.Core;
+using Ape.Data;
 using DG.Tweening;
 using DG.Tweening.Core;
 using UnityEngine;
@@ -136,6 +137,7 @@ namespace Ape.Game
                 return;
             }
 
+            var wheelDefinition = wheel.Definition;
             _wheelIdleRotationActive = false;
             StopSpinButtonIdleAnimation(resetScale: true);
             StopAnimation();
@@ -144,7 +146,7 @@ namespace Ape.Game
             float currentNormalizedRotation = Mathf.Repeat(_currentRotationDegrees, 360f);
             float targetNormalizedRotation = Mathf.Repeat(targetSliceIndex * sliceAngle, 360f);
             float deltaToTarget = Mathf.Repeat(targetNormalizedRotation - currentNormalizedRotation, 360f);
-            float endRotation = _currentRotationDegrees + (wheel.FullRotations * 360f) + deltaToTarget;
+            float endRotation = _currentRotationDegrees + (wheelDefinition.FullRotations * 360f) + deltaToTarget;
             bool isSqueeker = Random.value < _squeekerChance;
 
             float animatedRotation = _currentRotationDegrees;
@@ -167,15 +169,15 @@ namespace Ape.Game
             DOSetter<float> tweenSetter = v => onTweenUpdate(v);
 
             _spinSequence = DOTween.Sequence();
-            _spinSequence.Append(_wheelRotatorRect.DOScale(wheel.StartScale, wheel.StartScaleDuration).SetEase(wheel.ScaleEase));
+            _spinSequence.Append(_wheelRotatorRect.DOScale(wheelDefinition.StartScale, wheelDefinition.StartScaleDuration).SetEase(wheelDefinition.ScaleEase));
 
             if (isSqueeker)
             {
                 float edgeOffset = sliceAngle * _squeekerEdgeOffset;
                 float pauseRotation = endRotation - edgeOffset;
 
-                Tween spinTween = DOTween.To(tweenGetter, tweenSetter, pauseRotation, wheel.SpinDuration)
-                    .SetEase(wheel.SpinEase);
+                Tween spinTween = DOTween.To(tweenGetter, tweenSetter, pauseRotation, wheelDefinition.SpinDuration)
+                    .SetEase(wheelDefinition.SpinEase);
                 _spinSequence.Join(spinTween);
 
                 Tween crawlTween = DOTween.To(tweenGetter, tweenSetter, endRotation, _squeekerCrawlDuration)
@@ -187,15 +189,15 @@ namespace Ape.Game
                 float overshootDegrees = ComputeRandomizedOvershoot();
 
                 Tween mainRotationTween = DOTween.To(tweenGetter, tweenSetter,
-                        endRotation + overshootDegrees, wheel.SpinDuration)
-                    .SetEase(wheel.SpinEase);
+                        endRotation + overshootDegrees, wheelDefinition.SpinDuration)
+                    .SetEase(wheelDefinition.SpinEase);
                 _spinSequence.Join(mainRotationTween);
 
                 AppendSettleBounces(_spinSequence, tweenGetter, tweenSetter,
-                    endRotation, overshootDegrees, wheel.SettleDuration, wheel.SettleEase);
+                    endRotation, overshootDegrees, wheelDefinition.SettleDuration, wheelDefinition.SettleEase);
             }
 
-            _spinSequence.Append(_wheelRotatorRect.DOScale(1f, wheel.EndScaleDuration).SetEase(wheel.ScaleEase));
+            _spinSequence.Append(_wheelRotatorRect.DOScale(1f, wheelDefinition.EndScaleDuration).SetEase(wheelDefinition.ScaleEase));
             _spinSequence.OnComplete(() =>
             {
                 _currentRotationDegrees = endRotation;
@@ -279,12 +281,13 @@ namespace Ape.Game
             if (_wheelBackgroundImage == null)
                 return;
 
-            Sprite backgroundSprite = wheel != null ? wheel.WheelBackground : null;
+            RouletteWheelData wheelDefinition = wheel != null ? wheel.Definition : null;
+            Sprite backgroundSprite = wheelDefinition != null ? wheelDefinition.WheelBackground : null;
             _wheelBackgroundImage.sprite = backgroundSprite;
             _wheelBackgroundImage.enabled = backgroundSprite != null;
             if (_rouletteIndicatorImage != null)
             {
-                Sprite indicatorSprite = wheel != null ? wheel.RouletteIndicator : null;
+                Sprite indicatorSprite = wheelDefinition != null ? wheelDefinition.RouletteIndicator : null;
                 _rouletteIndicatorImage.sprite = indicatorSprite;
                 _rouletteIndicatorImage.enabled = indicatorSprite != null;
             }

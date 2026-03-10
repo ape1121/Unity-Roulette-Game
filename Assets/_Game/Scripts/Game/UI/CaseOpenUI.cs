@@ -204,7 +204,7 @@ namespace Ape.Game
             if (_winnerLabel == null)
                 return;
 
-            _winnerLabel.text = reward.RewardData == null
+            _winnerLabel.text = !reward.HasReward
                 ? string.Empty
                 : $"{reward.RewardName} {reward.FormatAmountLabel()}";
         }

@@ -345,7 +345,7 @@ namespace Ape.Game
             if (spinResult.WasBomb)
                 return "Bomb";
 
-            if (spinResult.SelectedSlice.Reward.RewardData == null)
+            if (!spinResult.SelectedSlice.Reward.HasReward)
                 return spinResult.SelectedSlice.DisplayName;
 
             return $"{spinResult.SelectedSlice.Reward.RewardName} {spinResult.SelectedSlice.Reward.FormatAmountLabel()}";

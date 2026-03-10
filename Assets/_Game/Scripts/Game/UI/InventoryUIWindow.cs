@@ -389,7 +389,7 @@ namespace Ape.Game
             for (int i = 0; i < rewards.Count; i++)
             {
                 ResolvedReward reward = rewards[i];
-                if (!reward.IsInventoryReward || reward.Amount <= 0 || reward.RewardData == null)
+                if (!reward.HasReward || !reward.IsInventoryReward || reward.Amount <= 0)
                     continue;
 
                 _pendingRewards.Add(reward);

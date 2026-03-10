@@ -37,6 +37,11 @@ namespace Ape.Game
             return rarityDataCache.TryGetValue(rarity, out var data) ? data : default;
         }
 
+        public Color GetRarityColor(RarityType rarity, Color fallback)
+        {
+            return rarityDataCache.TryGetValue(rarity, out var data) ? data.Color : fallback;
+        }
+
         public void ResetState()
         {
             caseOpenCounter = 0;
@@ -50,7 +55,7 @@ namespace Ape.Game
 
         public void GrantReward(ResolvedReward reward, bool saveImmediately = true)
         {
-            if (reward.RewardData == null || reward.Amount <= 0)
+            if (!reward.HasReward || reward.Amount <= 0)
                 return;
 
             EnsureProfile();
@@ -95,7 +100,7 @@ namespace Ape.Game
                 for (int i = 0; i < inventoryRewards.Count; i++)
                 {
                     ResolvedReward reward = inventoryRewards[i];
-                    if (reward.RewardData == null || !reward.IsInventoryReward || reward.Amount <= 0)
+                    if (!reward.HasReward || !reward.IsInventoryReward || reward.Amount <= 0)
                         continue;
 
                     App.Profile.AddInventoryReward(reward.RewardId, reward.Amount, saveImmediately: false);
@@ -158,7 +163,7 @@ namespace Ape.Game
 
             System.Random random = CreateCaseRandom(caseDefinition.CaseRewardId);
             ResolvedReward grantedReward = ResolveWeightedReward(weightedEntries, random);
-            if (grantedReward.RewardData == null || grantedReward.Amount <= 0)
+            if (!grantedReward.HasReward || grantedReward.Amount <= 0)
                 return false;
 
             int reelItemCount = caseDefinition.ResolveReelItemCount();

@@ -1,7 +1,9 @@
 using Ape.Data;
+using UnityEngine;
 
 namespace Ape.Game
 {
+    // Runtime snapshot of a concrete reward roll resolved from authoring data.
     public readonly struct ResolvedReward
     {
         public RewardData RewardData { get; }
@@ -13,12 +15,14 @@ namespace Ape.Game
             Amount = amount;
         }
 
-        public string RewardId => RewardData != null ? RewardData.RewardId : string.Empty;
-        public string RewardName => RewardData != null ? RewardData.RewardName : string.Empty;
-        public RewardType RewardKind => RewardData != null ? RewardData.Kind : RewardType.ItemCard;
-        public RarityType Rarity => RewardData != null ? RewardData.Rarity : RarityType.Common;
-        public bool IsCurrency => RewardKind == RewardType.Cash || RewardKind == RewardType.Gold;
-        public bool IsInventoryReward => !IsCurrency;
+        public bool HasReward => RewardData != null;
+        public string RewardId => HasReward ? RewardData.RewardId : string.Empty;
+        public string RewardName => HasReward ? RewardData.RewardName : string.Empty;
+        public Sprite Icon => HasReward ? RewardData.Icon : null;
+        public RewardType RewardKind => HasReward ? RewardData.Kind : RewardType.ItemCard;
+        public RarityType Rarity => HasReward ? RewardData.Rarity : RarityType.Common;
+        public bool IsCurrency => HasReward && (RewardKind == RewardType.Cash || RewardKind == RewardType.Gold);
+        public bool IsInventoryReward => HasReward && !IsCurrency;
 
         public ResolvedReward WithAmount(int amount)
         {

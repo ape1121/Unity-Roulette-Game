@@ -15,22 +15,25 @@ namespace Ape.Game
 
         public void Bind(ResolvedReward reward)
         {
-            bool hasReward = reward.RewardData != null;
+            bool hasReward = reward.HasReward;
+            Color rarityColor = hasReward && App.Game != null
+                ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
+                : Color.white;
 
             if (_iconImage != null)
             {
-                _iconImage.enabled = hasReward && reward.RewardData.Icon != null;
-                _iconImage.sprite = hasReward ? reward.RewardData.Icon : null;
+                _iconImage.enabled = hasReward && reward.Icon != null;
+                _iconImage.sprite = hasReward ? reward.Icon : null;
             }
 
             if (_rarityBorderImage != null)
-                _rarityBorderImage.color = hasReward ? App.Game.Rewards.GetRarityData(reward.Rarity).Color : Color.white;
+                _rarityBorderImage.color = rarityColor;
 
             if (_nameText != null)
                 _nameText.text = hasReward ? reward.RewardName : string.Empty;
 
             if (_amountText != null)
-                _amountText.text = hasReward ? $"x{reward.Amount}" : string.Empty;
+                _amountText.text = hasReward ? reward.FormatAmountLabel() : string.Empty;
         }
     }
 }

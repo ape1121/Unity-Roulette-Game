@@ -41,17 +41,24 @@ namespace Ape.Game
                 return;
             }
 
+            Color rarityColor = App.Game != null
+                ? App.Game.Rewards.GetRarityColor(slice.Reward.Rarity, Color.white)
+                : Color.white;
+
             if (_iconImage != null)
             {
-                _iconImage.enabled = slice.Reward.RewardData != null && slice.Reward.RewardData.Icon != null;
-                _iconImage.sprite = slice.Reward.RewardData != null ? slice.Reward.RewardData.Icon : null;
+                _iconImage.enabled = slice.Reward.HasReward && slice.Reward.Icon != null;
+                _iconImage.sprite = slice.Reward.HasReward ? slice.Reward.Icon : null;
             }
 
             if (_rarityBorderImage != null)
-                _rarityBorderImage.color = App.Game.Rewards.GetRarityData(slice.Reward.Rarity).Color;
+                _rarityBorderImage.color = rarityColor;
 
             if (_nameText != null)
+            {
+                _nameText.gameObject.SetActive(true);
                 _nameText.text = slice.DisplayName;
+            }
 
             if (_amountText != null)
                 _amountText.text = slice.Reward.FormatAmountLabel();

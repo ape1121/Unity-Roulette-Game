@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Ape.Data
 {
-    [CreateAssetMenu(fileName = "RewardData", menuName = "Critical Shot/Rewards/Reward Data")]
+    [CreateAssetMenu(fileName = "RewardData", menuName = "CriticalShot/Rewards/Reward Data")]
     public sealed class RewardData : ScriptableObject
     {
         [SerializeField] private string rewardId;
