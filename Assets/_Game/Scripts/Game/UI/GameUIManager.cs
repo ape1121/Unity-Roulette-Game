@@ -1,6 +1,7 @@
 using Ape.Core;
 using Ape.Data;
 using Ape.Profile;
+using Ape.Sounds;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -57,6 +58,7 @@ namespace Ape.Game
         private readonly GameUIOverlayController _overlayController = new GameUIOverlayController();
         private GameManager _gameManager;
         private ProfileManager _profileManager;
+        private SoundManager _soundManager;
         private GameUiTextConfig _uiTextConfig;
         private bool _gameSubscribed;
         private bool _profileSubscribed;
@@ -86,11 +88,12 @@ namespace Ape.Game
             ResolveButtonReferences();
         }
 
-        public void Bind(GameManager gameManager, ProfileManager profileManager, GameUiTextConfig textConfig)
+        public void Bind(GameManager gameManager, ProfileManager profileManager, GameUiTextConfig textConfig, SoundManager soundManager)
         {
             UnsubscribeFromManagers();
             _gameManager = gameManager;
             _profileManager = profileManager;
+            _soundManager = soundManager;
             _uiTextConfig = textConfig;
 
             ConfigureControllers();
@@ -108,6 +111,7 @@ namespace Ape.Game
             UnsubscribeFromManagers();
             _gameManager = null;
             _profileManager = null;
+            _soundManager = null;
             _uiTextConfig = null;
 
             if (_inventoryWindow != null)
@@ -154,7 +158,7 @@ namespace Ape.Game
         private void ApplyBindingContext()
         {
             if (_inventoryWindow != null)
-                _inventoryWindow.Bind(_gameManager, _profileManager, _uiTextConfig);
+                _inventoryWindow.Bind(_gameManager, _profileManager, _uiTextConfig, _soundManager);
         }
 
         private void ResolveButtonReferences()

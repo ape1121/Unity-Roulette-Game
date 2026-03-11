@@ -177,6 +177,11 @@ MonoBehaviour:
   _nameText: {fileID: 775116836267728366}
   _amountText: {fileID: 8098706016934647097}
   _actionButton: {fileID: 676707643573857708}
+  _highlightScaleMultiplier: 1.1
+  _highlightGrowDuration: 0.3
+  _highlightSettleDuration: 0.4
+  _highlightGrowEase: 9
+  _highlightSettleEase: 27
 --- !u!114 &6006109068339308360
 MonoBehaviour:
   m_ObjectHideFlags: 0

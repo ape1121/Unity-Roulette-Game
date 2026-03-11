@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Ape.Data;
+using Ape.Sounds;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace Ape.Game
 {
@@ -32,6 +30,8 @@ namespace Ape.Game
 
         private GameUiTextConfig _textConfig;
         private RewardManager _rewardManager;
+        private RoulettePresentationConfig _roulettePresentationConfig;
+        private SoundManager _soundManager;
         private bool _missingReferencesLogged;
         private Sequence _spinSequence;
         private Tween _previewLoopTween;
@@ -46,6 +46,7 @@ namespace Ape.Game
         private Vector2 _lastViewportSize = InvalidViewportSize;
         private float _resolvedCardWidth;
         private float _resolvedCardHeight;
+        private bool _isSlowSpinExcitementPlaying;
 #if UNITY_EDITOR
         private bool _editorRefreshQueued;
 #endif
@@ -98,12 +99,24 @@ namespace Ape.Game
         [Min(1f)] [SerializeField] private float _winnerScale = 1.08f;
         [Min(0.05f)] [SerializeField] private float _winnerPulseDuration = 0.18f;
 
+        [Header("Audio")]
+        [Min(0f)] [SerializeField] private float _tickCardOffset;
+        [Min(0f)] [SerializeField] private float _tickPitchStep = 0.04f;
+        [Min(1)] [SerializeField] private int _tickPitchCycle = 3;
+        [Min(0.5f)] [SerializeField] private float _slowSpinExcitementTriggerCards = 2.5f;
+
         public bool IsAnimating => _state == PresentationState.Rolling;
 
-        public void SetPresentationContext(RewardManager rewardManager, GameUiTextConfig textConfig)
+        public void SetPresentationContext(
+            RewardManager rewardManager,
+            GameUiTextConfig textConfig,
+            RoulettePresentationConfig roulettePresentationConfig,
+            SoundManager soundManager)
         {
             _rewardManager = rewardManager;
             _textConfig = textConfig;
+            _roulettePresentationConfig = roulettePresentationConfig;
+            _soundManager = soundManager;
         }
 
         public void ShowPreview(
@@ -168,17 +181,39 @@ namespace Ape.Game
             float rampUpX = targetX + (travelDistance * 0.72f);
             float cruiseX = targetX + (travelDistance * 0.24f);
             float overshootX = targetX - Mathf.Max(0f, _overshootDistance);
+            int lastTickStep = CalculateTickStep(startX);
+            float currentAnimatedX = startX;
+            float slowSpinExcitementTriggerDistance = Mathf.Max(ResolveCardStep() * _slowSpinExcitementTriggerCards, ResolveCardStep() * 0.5f);
 
             SetContentPosition(startX);
+            StopSlowSpinExcitement();
+            PlayUISound(_roulettePresentationConfig != null ? _roulettePresentationConfig.SpinStartSound : null);
+
+            Action<float> onSpinUpdate = x =>
+            {
+                currentAnimatedX = x;
+                SetContentPosition(x);
+                EmitCardTicks(ref lastTickStep, x);
+                TryPlaySlowSpinExcitement(targetX, x, slowSpinExcitementTriggerDistance);
+            };
 
             _spinSequence = DOTween.Sequence()
                 .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
-                .OnKill(() => _spinSequence = null);
-            _spinSequence.Append(_contentRect.DOAnchorPosX(rampUpX, _rampUpDuration).SetEase(_rampUpEase));
-            _spinSequence.Append(_contentRect.DOAnchorPosX(cruiseX, _cruiseDuration).SetEase(_cruiseEase));
-            _spinSequence.Append(_contentRect.DOAnchorPosX(overshootX, _slowDownDuration).SetEase(_slowDownEase));
-            _spinSequence.Append(_contentRect.DOAnchorPosX(targetX, _settleDuration).SetEase(_settleEase));
-            _spinSequence.AppendCallback(() => CompleteRoll(caseOpenResult, _currentWinningIndex));
+                .OnKill(() =>
+                {
+                    StopSlowSpinExcitement();
+                    _spinSequence = null;
+                });
+            _spinSequence.Append(DOTween.To(() => currentAnimatedX, value => onSpinUpdate(value), rampUpX, _rampUpDuration).SetEase(_rampUpEase));
+            _spinSequence.Append(DOTween.To(() => currentAnimatedX, value => onSpinUpdate(value), cruiseX, _cruiseDuration).SetEase(_cruiseEase));
+            _spinSequence.Append(DOTween.To(() => currentAnimatedX, value => onSpinUpdate(value), overshootX, _slowDownDuration).SetEase(_slowDownEase));
+            _spinSequence.Append(DOTween.To(() => currentAnimatedX, value => onSpinUpdate(value), targetX, _settleDuration).SetEase(_settleEase));
+            _spinSequence.AppendCallback(() =>
+            {
+                StopSlowSpinExcitement();
+                PlayUISound(_roulettePresentationConfig != null ? _roulettePresentationConfig.SpinStopSound : null);
+                CompleteRoll(caseOpenResult, _currentWinningIndex);
+            });
         }
 
         public void StopAnimation()
@@ -210,13 +245,6 @@ namespace Ape.Game
 
             if (_state == PresentationState.Hidden)
             {
-#if UNITY_EDITOR
-                if (!Application.isPlaying)
-                {
-                    QueueEditorRefresh();
-                    return;
-                }
-#endif
                 ResetHiddenLayout();
                 _panelAnimationController.ApplyClosedState();
             }
@@ -225,9 +253,6 @@ namespace Ape.Game
         private void OnDisable()
         {
             StopAnimation();
-#if UNITY_EDITOR
-            CancelEditorRefresh();
-#endif
         }
 
         private void OnDestroy()
@@ -243,15 +268,6 @@ namespace Ape.Game
                 return;
 
             HandleViewportSizeChanged();
-        }
-
-        private void OnValidate()
-        {
-            CacheAnimationReferences();
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-                QueueEditorRefresh();
-#endif
         }
 
         private void CacheAnimationReferences()
@@ -408,6 +424,7 @@ namespace Ape.Game
             PulseWinner(winningIndex);
             ApplyResultTexts(caseOpenResult);
             ApplyResultButtons();
+            PlayUISound(_roulettePresentationConfig != null ? _roulettePresentationConfig.SpinRewardSound : null);
         }
 
         private void PulseWinner(int winningIndex)
@@ -441,6 +458,7 @@ namespace Ape.Game
             _spinSequence = null;
             _previewLoopTween = null;
             _winnerPulseTween = null;
+            StopSlowSpinExcitement();
             ResetCardScales();
         }
 
@@ -489,6 +507,7 @@ namespace Ape.Game
             _state = PresentationState.Hidden;
             _canRoll = false;
             _lastViewportSize = InvalidViewportSize;
+            StopSlowSpinExcitement();
 
             if (_titleLabel != null)
                 _titleLabel.text = string.Empty;
@@ -753,6 +772,65 @@ namespace Ape.Game
             return _viewportRect != null ? _viewportRect.rect.width : 0f;
         }
 
+        private int CalculateTickStep(float contentPositionX)
+        {
+            float cardStep = ResolveCardStep();
+            if (cardStep <= 0.01f)
+                return 0;
+
+            float viewportCenter = ResolveViewportWidth() * 0.5f;
+            float centeredCardIndex = (viewportCenter - contentPositionX - (_resolvedCardWidth * 0.5f)) / cardStep;
+            return Mathf.FloorToInt(centeredCardIndex + _tickCardOffset);
+        }
+
+        private void EmitCardTicks(ref int lastTickStep, float contentPositionX)
+        {
+            int currentStep = CalculateTickStep(contentPositionX);
+            if (currentStep == lastTickStep || _activeRewards.Count <= 0)
+                return;
+
+            int stepDirection = currentStep > lastTickStep ? 1 : -1;
+            for (int step = lastTickStep + stepDirection; step != currentStep + stepDirection; step += stepDirection)
+                PlayTickSound(stepDirection > 0 ? step : step + 1);
+
+            lastTickStep = currentStep;
+        }
+
+        private void PlayTickSound(int step)
+        {
+            if (_activeRewards.Count <= 0)
+                return;
+
+            int pitchCycle = Mathf.Max(1, _tickPitchCycle);
+            int rewardIndex = ((step % _activeRewards.Count) + _activeRewards.Count) % _activeRewards.Count;
+            float pitchMultiplier = 1f + ((rewardIndex % pitchCycle) * _tickPitchStep);
+            PlayUISound(_roulettePresentationConfig != null ? _roulettePresentationConfig.SpinTickSound : null, pitchMultiplier);
+        }
+
+        private void TryPlaySlowSpinExcitement(float targetX, float currentX, float triggerDistance)
+        {
+            Sound slowSpinSound = _roulettePresentationConfig != null ? _roulettePresentationConfig.SpinSlowExcitementSound : null;
+            if (_isSlowSpinExcitementPlaying || triggerDistance <= 0f || _soundManager == null || slowSpinSound == null)
+                return;
+
+            if (Mathf.Abs(currentX - targetX) > triggerDistance)
+                return;
+
+            _isSlowSpinExcitementPlaying = true;
+            PlayUISound(slowSpinSound);
+        }
+
+        private void StopSlowSpinExcitement()
+        {
+            if (!_isSlowSpinExcitementPlaying)
+                return;
+
+            _isSlowSpinExcitementPlaying = false;
+
+            if (_soundManager != null && _roulettePresentationConfig != null && _roulettePresentationConfig.SpinSlowExcitementSound != null)
+                _soundManager.StopSound(_roulettePresentationConfig.SpinSlowExcitementSound);
+        }
+
         private void SetContentPosition(float x)
         {
             if (_contentRect == null)
@@ -818,50 +896,12 @@ namespace Ape.Game
             return Mathf.Abs(a.x - b.x) < 0.01f && Mathf.Abs(a.y - b.y) < 0.01f;
         }
 
-#if UNITY_EDITOR
-        private void QueueEditorRefresh()
+        private void PlayUISound(Sound sound, float pitchMultiplier = 1f)
         {
-            if (_editorRefreshQueued)
+            if (_soundManager == null || sound == null)
                 return;
 
-            _editorRefreshQueued = true;
-            EditorApplication.delayCall -= HandleEditorRefresh;
-            EditorApplication.delayCall += HandleEditorRefresh;
-            EditorApplication.QueuePlayerLoopUpdate();
-            SceneView.RepaintAll();
+            _soundManager.PlaySound(sound, isUI: true, pitchMultiplier: pitchMultiplier);
         }
-
-        private void CancelEditorRefresh()
-        {
-            if (!_editorRefreshQueued)
-                return;
-
-            EditorApplication.delayCall -= HandleEditorRefresh;
-            _editorRefreshQueued = false;
-        }
-
-        private void HandleEditorRefresh()
-        {
-            EditorApplication.delayCall -= HandleEditorRefresh;
-            _editorRefreshQueued = false;
-
-            if (this == null)
-                return;
-
-            CacheAnimationReferences();
-
-            if (_viewportRect != null && _contentRect != null && _rewardCardPrefab != null)
-                RefreshResponsiveLayout(force: true);
-
-            if (_state == PresentationState.Hidden)
-            {
-                ResetHiddenLayout();
-                _panelAnimationController.ApplyClosedState();
-            }
-
-            EditorApplication.QueuePlayerLoopUpdate();
-            SceneView.RepaintAll();
-        }
-#endif
     }
 }

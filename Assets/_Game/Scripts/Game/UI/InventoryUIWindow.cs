@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Ape.Core;
 using Ape.Data;
 using Ape.Profile;
+using Ape.Sounds;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -52,6 +53,7 @@ namespace Ape.Game
         private readonly InventoryRewardSectionController _bankedSectionController = new InventoryRewardSectionController();
         private GameManager _gameManager;
         private ProfileManager _profileManager;
+        private SoundManager _soundManager;
         private GameUiTextConfig _uiTextConfig;
         private bool _isProfileSubscribed;
         private bool _isGameSubscribed;
@@ -64,6 +66,8 @@ namespace Ape.Game
         private CaseOpenSession _activeCaseSession;
         private bool _hasActiveCaseSession;
         private bool _caseRollCommitted;
+        private string _pendingBankedRewardFocusId;
+        private bool _shouldOpenBankedTabAfterCaseClose;
 
         public bool IsOpen => _isOpen;
 
@@ -108,12 +112,13 @@ namespace Ape.Game
             ResolveButtonReferences();
         }
 
-        public void Bind(GameManager gameManager, ProfileManager profileManager, GameUiTextConfig textConfig)
+        public void Bind(GameManager gameManager, ProfileManager profileManager, GameUiTextConfig textConfig, SoundManager soundManager)
         {
             UnsubscribeFromSources();
             _gameManager = gameManager;
             _profileManager = profileManager;
             _uiTextConfig = textConfig;
+            _soundManager = soundManager;
             ConfigureCaseOpenUi();
 
             if (!isActiveAndEnabled)
@@ -128,6 +133,7 @@ namespace Ape.Game
             UnsubscribeFromSources();
             _gameManager = null;
             _profileManager = null;
+            _soundManager = null;
             _uiTextConfig = null;
             ConfigureCaseOpenUi();
         }
@@ -416,6 +422,8 @@ namespace Ape.Game
             _activeCaseSession = caseOpenSession;
             _hasActiveCaseSession = true;
             _caseRollCommitted = false;
+            _pendingBankedRewardFocusId = null;
+            _shouldOpenBankedTabAfterCaseClose = false;
             SetCaseOpenUiVisible(true);
             _caseOpenUI.ShowPreview(
                 caseOpenSession,
@@ -442,9 +450,16 @@ namespace Ape.Game
             if (!_gameManager.Inventory.Cases.TryStartCaseRoll(caseOpenSession, out CaseOpenResult caseOpenResult))
             {
                 _caseRollCommitted = false;
+                _pendingBankedRewardFocusId = null;
+                _shouldOpenBankedTabAfterCaseClose = false;
                 Refresh();
                 return;
             }
+
+            _shouldOpenBankedTabAfterCaseClose = true;
+            _pendingBankedRewardFocusId = caseOpenResult.GrantedReward.IsInventoryReward
+                ? caseOpenResult.GrantedReward.RewardId
+                : null;
 
             Refresh();
             _caseOpenUI.ShowRollResult(caseOpenResult);
@@ -469,15 +484,23 @@ namespace Ape.Game
 
         private void CompleteCasePresentation(bool refresh)
         {
+            string bankedRewardFocusId = _pendingBankedRewardFocusId;
+            bool shouldOpenBankedTab = _shouldOpenBankedTabAfterCaseClose;
+
             if (_gameManager != null && _gameManager.Inventory != null)
                 _gameManager.Inventory.Cases.CompletePresentation();
 
             _activeCaseSession = default;
             _hasActiveCaseSession = false;
             _caseRollCommitted = false;
+            _pendingBankedRewardFocusId = null;
+            _shouldOpenBankedTabAfterCaseClose = false;
 
             if (refresh && isActiveAndEnabled)
+            {
                 Refresh();
+                RevealPostCaseRewards(shouldOpenBankedTab, bankedRewardFocusId);
+            }
         }
 
         private void SetCaseOpenUiVisible(bool isVisible)
@@ -489,7 +512,13 @@ namespace Ape.Game
         private void ConfigureCaseOpenUi()
         {
             if (_caseOpenUI != null)
-                _caseOpenUI.SetPresentationContext(_gameManager != null ? _gameManager.Rewards : null, _uiTextConfig);
+            {
+                _caseOpenUI.SetPresentationContext(
+                    _gameManager != null ? _gameManager.Rewards : null,
+                    _uiTextConfig,
+                    _gameManager != null && _gameManager.Roulette != null ? _gameManager.Roulette.PresentationConfig : null,
+                    _soundManager);
+            }
         }
 
         private void RefreshCaseOpenUi()
@@ -498,6 +527,17 @@ namespace Ape.Game
                 return;
 
             _caseOpenUI.SetRollInteractable(_gameManager.Inventory.Cases.CanRollPreparedCase(_activeCaseSession));
+        }
+
+        private void RevealPostCaseRewards(bool shouldOpenBankedTab, string rewardId)
+        {
+            if (shouldOpenBankedTab)
+                SetActiveTab(InventoryTab.Banked);
+
+            if (string.IsNullOrWhiteSpace(rewardId))
+                return;
+
+            _bankedSectionController.ScrollToReward(rewardId);
         }
 
         private static int GetRewardAmountTotal(List<InventoryRewardEntry> rewards)

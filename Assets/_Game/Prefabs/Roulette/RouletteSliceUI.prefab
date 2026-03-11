@@ -484,7 +484,7 @@ MonoBehaviour:
   _replaceSmokePlayer: {fileID: 5323536602041252064}
   _bombBorderColor: {r: 1, g: 0.34901962, b: 0.34901962, a: 1}
   _bombIcon: {fileID: 21300000, guid: 209cbd518dfd844e18d3420e9ac5787c, type: 3}
-  showDisplayNames: 0
+  _showDisplayNames: 0
 --- !u!1 &5620477277163317097
 GameObject:
   m_ObjectHideFlags: 0
@@ -625,5 +625,5 @@ MonoBehaviour:
   - {fileID: 302441867, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
   - {fileID: 1996895578, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
   - {fileID: 2054145838, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  _framesPerSecond: 32
+  _framesPerSecond: 22
   _hideWhenStopped: 1

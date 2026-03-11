@@ -1,4 +1,5 @@
 using TMPro;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -13,11 +14,35 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _amountText;
         [SerializeField] private Button _actionButton;
+        [Header("Highlight")]
+        [SerializeField] private float _highlightScaleMultiplier = 1.06f;
+        [SerializeField] private float _highlightGrowDuration = 0.16f;
+        [SerializeField] private float _highlightSettleDuration = 0.2f;
+        [SerializeField] private Ease _highlightGrowEase = Ease.OutCubic;
+        [SerializeField] private Ease _highlightSettleEase = Ease.OutBack;
 
         private UnityAction _boundAction;
+        private Tween _highlightTween;
+        private Vector3 _baseScale = Vector3.one;
+
+        private void Awake()
+        {
+            _baseScale = transform.localScale;
+        }
+
+        private void OnEnable()
+        {
+            _baseScale = transform.localScale;
+        }
 
         private void OnDisable()
         {
+            StopHighlight(resetScale: true);
+        }
+
+        private void OnDestroy()
+        {
+            StopHighlight(resetScale: false);
             ClearAction();
         }
 
@@ -86,6 +111,37 @@ namespace Ape.Game
 
             _actionButton.interactable = false;
             _actionButton.gameObject.SetActive(false);
+        }
+
+        public void PlayHighlightPulse()
+        {
+            Transform targetTransform = transform;
+            StopHighlight(resetScale: true);
+            _baseScale = targetTransform.localScale;
+
+            _highlightTween = DOTween.Sequence()
+                .Append(targetTransform.DOScale(_baseScale * _highlightScaleMultiplier, _highlightGrowDuration).SetEase(_highlightGrowEase))
+                .Append(targetTransform.DOScale(_baseScale, _highlightSettleDuration).SetEase(_highlightSettleEase))
+                .OnKill(() =>
+                {
+                    if (targetTransform != null)
+                        targetTransform.localScale = _baseScale;
+
+                    _highlightTween = null;
+                });
+        }
+
+        private void StopHighlight(bool resetScale)
+        {
+            if (_highlightTween != null && _highlightTween.IsActive())
+                _highlightTween.Kill();
+
+            _highlightTween = null;
+
+            if (resetScale != true)
+                return;
+
+            transform.localScale = _baseScale;
         }
     }
 }

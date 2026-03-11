@@ -50,7 +50,7 @@ namespace Ape.Game
             _gameManager.WheelRotationResetRequested += HandleWheelRotationResetRequested;
 
             if (_uiManager != null)
-                _uiManager.Bind(_gameManager, _profileManager, _uiTextConfig);
+                _uiManager.Bind(_gameManager, _profileManager, _uiTextConfig, _soundManager);
 
             if (_rouletteWheel != null)
             {
