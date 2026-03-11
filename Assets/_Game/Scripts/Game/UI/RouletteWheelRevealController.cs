@@ -1,6 +1,6 @@
 using System;
-using Ape.Core;
 using Ape.Data;
+using Ape.Sounds;
 using DG.Tweening;
 using UnityEngine;
 
@@ -8,11 +8,11 @@ namespace Ape.Game
 {
     public sealed class RouletteWheelRevealController
     {
-        private const string SmokeSoundName = "poof";
-
         private RouletteWheelLayoutController _layoutController;
         private RectTransform _ghostEffectsRoot;
         private RouletteRewardSliceUI _rewardGhostPrefab;
+        private SoundManager _soundManager;
+        private Sound _replaceSmokeSound;
         private float _replaceSmokeChainInterval = 0.08f;
         private float _replaceSwapDelay = 0.1f;
         private float _replaceChainStartAngle = 90f;
@@ -44,11 +44,15 @@ namespace Ape.Game
             float rewardGhostEndScale,
             Ease rewardGhostMoveEase,
             Ease rewardGhostScaleEase,
-            Ease rewardGhostFadeEase)
+            Ease rewardGhostFadeEase,
+            Sound replaceSmokeSound,
+            SoundManager soundManager)
         {
             _layoutController = layoutController;
             _ghostEffectsRoot = ghostEffectsRoot;
             _rewardGhostPrefab = rewardGhostPrefab;
+            _soundManager = soundManager;
+            _replaceSmokeSound = replaceSmokeSound;
             _replaceSmokeChainInterval = replaceSmokeChainInterval;
             _replaceSwapDelay = replaceSwapDelay;
             _replaceChainStartAngle = replaceChainStartAngle;
@@ -202,7 +206,7 @@ namespace Ape.Game
                 return;
 
             sliceView.PlayReplaceSmoke();
-            PlayUISound(SmokeSoundName);
+            PlayUISound(_replaceSmokeSound);
         }
 
         private void PlayRewardGhost(RouletteRewardSliceUI sourceSliceView, RouletteResolvedSlice slice, Color rarityColor)
@@ -290,12 +294,12 @@ namespace Ape.Game
             return localPoint;
         }
 
-        private static void PlayUISound(string soundName, float pitchMultiplier = 1f)
+        private void PlayUISound(Sound sound, float pitchMultiplier = 1f)
         {
-            if (App.Sound == null)
+            if (_soundManager == null || sound == null)
                 return;
 
-            App.Sound.PlaySound(soundName, isUI: true, pitchMultiplier: pitchMultiplier);
+            _soundManager.PlaySound(sound, isUI: true, pitchMultiplier: pitchMultiplier);
         }
     }
 }

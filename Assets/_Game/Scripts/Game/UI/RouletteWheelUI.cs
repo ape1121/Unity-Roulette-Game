@@ -1,5 +1,6 @@
 using Ape.Core;
 using Ape.Data;
+using Ape.Sounds;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,6 +11,11 @@ namespace Ape.Game
     [RequireComponent(typeof(RectTransform))]
     public sealed class RouletteWheelUI : MonoBehaviour
     {
+        private RewardManager _rewardManager;
+        private RoulettePresentationConfig _presentationConfig;
+        private SoundManager _soundManager;
+        private float _postSpinRevealDelay;
+
         [SerializeField] private RectTransform _rootRect;
         [SerializeField] private RectTransform _wheelRotatorRect;
         [SerializeField] private RectTransform _sliceRootRect;
@@ -76,6 +82,19 @@ namespace Ape.Game
         private RouletteResolvedWheel _lastWheel;
 
         public bool IsPostSpinRevealPending => _revealController.IsRevealPending;
+
+        public void SetPresentationContext(
+            RoulettePresentationConfig presentationConfig,
+            float postSpinRevealDelay,
+            RewardManager rewardManager,
+            SoundManager soundManager)
+        {
+            _presentationConfig = presentationConfig;
+            _postSpinRevealDelay = Mathf.Max(0f, postSpinRevealDelay);
+            _rewardManager = rewardManager;
+            _soundManager = soundManager;
+            ConfigureControllers();
+        }
 
         private void OnEnable()
         {
@@ -171,10 +190,7 @@ namespace Ape.Game
 
         private float ResolvePostSpinRevealDelay()
         {
-            if (App.Game == null || App.Game.Config == null || App.Game.Config.RouletteConfig == null)
-                return 0f;
-
-            return App.Game.Config.RouletteConfig.PostSpinRevealDelay;
+            return _postSpinRevealDelay;
         }
 
         private void ResolveReferences()
@@ -221,7 +237,11 @@ namespace Ape.Game
                 _spinButtonIdleScaleMultiplier,
                 _spinButtonIdlePulseDuration,
                 _spinButtonIdlePulseEase,
-                _idleRotationSpeedDegreesPerSecond);
+                _idleRotationSpeedDegreesPerSecond,
+                _presentationConfig != null ? _presentationConfig.SpinStartSound : null,
+                _presentationConfig != null ? _presentationConfig.SpinTickSound : null,
+                _presentationConfig != null ? _presentationConfig.SpinStopSound : null,
+                _soundManager);
 
             _revealController.Configure(
                 _layoutController,
@@ -236,13 +256,15 @@ namespace Ape.Game
                 _rewardGhostEndScale,
                 _rewardGhostMoveEase,
                 _rewardGhostScaleEase,
-                _rewardGhostFadeEase);
+                _rewardGhostFadeEase,
+                _presentationConfig != null ? _presentationConfig.ReplaceSmokeSound : null,
+                _soundManager);
         }
 
-        private static Color ResolveRarityColor(RouletteResolvedSlice slice)
+        private Color ResolveRarityColor(RouletteResolvedSlice slice)
         {
-            return slice.Reward.HasReward && App.Game != null
-                ? App.Game.Rewards.GetRarityColor(slice.Reward.Rarity, Color.white)
+            return slice.Reward.HasReward && _rewardManager != null
+                ? _rewardManager.GetRarityColor(slice.Reward.Rarity, Color.white)
                 : Color.white;
         }
     }

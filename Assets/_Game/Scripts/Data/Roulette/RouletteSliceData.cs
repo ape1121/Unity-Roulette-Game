@@ -6,13 +6,6 @@ namespace Ape.Data
     [CreateAssetMenu(fileName = "RouletteSliceData", menuName = "CriticalShot/Roulette/Roulette Slice Data")]
     public sealed class RouletteSliceData : ScriptableObject
     {
-        [Serializable]
-        public struct RarityWeight
-        {
-            public RarityType rarity;
-            [Min(0f)] public float weight;
-        }
-
         [SerializeField] private bool isBomb;
         [SerializeField] private bool allowCashRewards = true;
         [SerializeField] private bool allowGoldRewards = true;

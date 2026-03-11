@@ -55,6 +55,9 @@ namespace Ape.Game
         private readonly GameUIActionButtonsController _actionButtonsController = new GameUIActionButtonsController();
         private readonly GameUIHudPresenter _hudPresenter = new GameUIHudPresenter();
         private readonly GameUIOverlayController _overlayController = new GameUIOverlayController();
+        private GameManager _gameManager;
+        private ProfileManager _profileManager;
+        private GameUiTextConfig _uiTextConfig;
         private bool _gameSubscribed;
         private bool _profileSubscribed;
 
@@ -83,6 +86,34 @@ namespace Ape.Game
             ResolveButtonReferences();
         }
 
+        public void Bind(GameManager gameManager, ProfileManager profileManager, GameUiTextConfig textConfig)
+        {
+            UnsubscribeFromManagers();
+            _gameManager = gameManager;
+            _profileManager = profileManager;
+            _uiTextConfig = textConfig;
+
+            ConfigureControllers();
+            ApplyBindingContext();
+
+            if (!isActiveAndEnabled)
+                return;
+
+            SubscribeToManagers();
+            RefreshAll();
+        }
+
+        public void Unbind()
+        {
+            UnsubscribeFromManagers();
+            _gameManager = null;
+            _profileManager = null;
+            _uiTextConfig = null;
+
+            if (_inventoryWindow != null)
+                _inventoryWindow.Unbind();
+        }
+
         private void ConfigureControllers()
         {
             _actionButtonsController.Configure(
@@ -104,7 +135,8 @@ namespace Ape.Game
                 _savedCashValueText,
                 _savedGoldValueText,
                 _inventoryPendingBadgeRoot,
-                _inventoryPendingCountText);
+                _inventoryPendingCountText,
+                _uiTextConfig);
 
             _overlayController.Configure(
                 _gameOverRoot,
@@ -116,6 +148,13 @@ namespace Ape.Game
                 _gameOverHideEase);
 
             _overlayController.Initialize();
+            ApplyBindingContext();
+        }
+
+        private void ApplyBindingContext()
+        {
+            if (_inventoryWindow != null)
+                _inventoryWindow.Bind(_gameManager, _profileManager, _uiTextConfig);
         }
 
         private void ResolveButtonReferences()
@@ -149,30 +188,30 @@ namespace Ape.Game
 
         private void SubscribeToManagers()
         {
-            if (!_gameSubscribed && App.Game != null)
+            if (!_gameSubscribed && _gameManager != null)
             {
-                App.Game.StateChanged += HandleGameStateChanged;
-                App.Game.SpinResolved += HandleSpinResolved;
+                _gameManager.StateChanged += HandleGameStateChanged;
+                _gameManager.SpinResolved += HandleSpinResolved;
                 _gameSubscribed = true;
             }
 
-            if (!_profileSubscribed && App.Profile != null)
+            if (!_profileSubscribed && _profileManager != null)
             {
-                App.Profile.DataChanged += HandleProfileDataChanged;
+                _profileManager.DataChanged += HandleProfileDataChanged;
                 _profileSubscribed = true;
             }
         }
 
         private void UnsubscribeFromManagers()
         {
-            if (_gameSubscribed && App.Game != null)
+            if (_gameSubscribed && _gameManager != null)
             {
-                App.Game.StateChanged -= HandleGameStateChanged;
-                App.Game.SpinResolved -= HandleSpinResolved;
+                _gameManager.StateChanged -= HandleGameStateChanged;
+                _gameManager.SpinResolved -= HandleSpinResolved;
             }
 
-            if (_profileSubscribed && App.Profile != null)
-                App.Profile.DataChanged -= HandleProfileDataChanged;
+            if (_profileSubscribed && _profileManager != null)
+                _profileManager.DataChanged -= HandleProfileDataChanged;
 
             _gameSubscribed = false;
             _profileSubscribed = false;
@@ -180,39 +219,40 @@ namespace Ape.Game
 
         private void HandleSpinClicked()
         {
-            if (App.Game == null)
+            if (_gameManager == null)
                 return;
 
-            App.Game.TrySpin(out _);
+            _gameManager.TrySpin(out _);
         }
 
         private void HandleCashOutClicked()
         {
-            if (App.Game == null)
+            if (_gameManager == null)
                 return;
 
-            App.Game.TryCashOut();
+            _gameManager.TryCashOut();
         }
 
         private void HandleContinueClicked()
         {
-            if (App.Game == null)
+            if (_gameManager == null)
                 return;
 
-            App.Game.TryContinue();
+            _gameManager.TryContinue();
         }
 
         private void HandleRestartClicked()
         {
-            if (App.Game == null)
+            if (_gameManager == null)
                 return;
 
-            App.Game.TryRestartRun();
+            _gameManager.TryRestartRun();
         }
 
         private void HandleInventoryClicked()
         {
             _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
+            ApplyBindingContext();
 
             if (_inventoryWindow == null)
                 return;
@@ -237,7 +277,7 @@ namespace Ape.Game
 
         private void RefreshAll()
         {
-            RefreshState(App.Game != null ? App.Game.CurrentState : default, instant: true);
+            RefreshState(_gameManager != null ? _gameManager.CurrentState : default, instant: true);
 
             if (_inventoryWindow != null)
                 _inventoryWindow.Refresh();
@@ -281,18 +321,18 @@ namespace Ape.Game
 
         private string BuildContinueButtonLabel()
         {
-            if (App.Game == null || App.Game.Config == null)
-                return "CONTINUE";
+            if (_gameManager == null || _gameManager.Config == null || _uiTextConfig == null)
+                return string.Empty;
 
-            int continueCost = Mathf.Max(0, App.Game.Config.continueCost);
-            return continueCost > 0 ? $"CONTINUE ({continueCost} CASH)" : "CONTINUE";
+            int continueCost = Mathf.Max(0, _gameManager.Config.continueCost);
+            return _uiTextConfig.FormatContinueLabel(continueCost);
         }
 
         private bool IsCashOutAnytimeEnabled()
         {
-            return App.Game != null
-                   && App.Game.Config != null
-                   && !App.Game.Config.cashOutOnSafeZoneOnly;
+            return _gameManager != null
+                   && _gameManager.Config != null
+                   && !_gameManager.Config.cashOutOnSafeZoneOnly;
         }
 
         private RectTransform ResolveDesiredOverlayRoot(bool showGameOverOverlay, bool showCashOutOverlay)
@@ -306,15 +346,15 @@ namespace Ape.Game
             return null;
         }
 
-        private static bool IsBeforeFirstSpinOfRun()
+        private bool IsBeforeFirstSpinOfRun()
         {
-            return App.Game != null && App.Game.LastSpinResult.SelectedSlice.SliceRule == null;
+            return _gameManager != null && _gameManager.Roulette.LastSpinResult.SelectedSlice.SliceRule == null;
         }
 
         private bool IsSpinRevealPending()
         {
-            return App.Game != null
-                && App.Game.IsSceneBound
+            return _gameManager != null
+                && _gameManager.IsSceneBound
                 && _rouletteWheel != null
                 && _rouletteWheel.IsPostSpinRevealPending;
         }

@@ -15,6 +15,7 @@ MonoBehaviour:
   RarityCollection: {fileID: 11400000, guid: 32e88f2c85c2d47caaea3ee7257c3900, type: 2}
   RouletteConfig: {fileID: 11400000, guid: 9c2d1b130dd2545cf8cd83da7fd578af, type: 2}
   CaseRewardsConfig: {fileID: 11400000, guid: 02300b2aba8aa4028b8ba53c17086449, type: 2}
+  UiTextConfig: {fileID: 11400000, guid: b567708dfc1fd41f792a5277ec200826, type: 2}
   cashOutOnSafeZoneOnly: 1
   continueEnabled: 1
   continueCost: 0

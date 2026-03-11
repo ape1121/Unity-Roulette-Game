@@ -423,7 +423,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03fc6cd6054134ea5aa3c535f4b96645, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  appConfig: {fileID: 11400000, guid: 75d9d8c1332054724a75a90f3940adf3, type: 2}
-  appDependencies:
+  _appConfig: {fileID: 11400000, guid: 75d9d8c1332054724a75a90f3940adf3, type: 2}
+  _appDependencies:
     LoadingScreen: {fileID: 726641644}
     SoundManager: {fileID: 624619485}

@@ -18,10 +18,10 @@ namespace Ape.Core
         public static ProfileManager    Profile { get; private set; }
         public static SoundManager      Sound { get; private set; }
 
-        [SerializeField] private AppConfig appConfig;
-        [SerializeField] private AppDependencies appDependencies;
+        [SerializeField] private AppConfig _appConfig;
+        [SerializeField] private AppDependencies _appDependencies;
 
-        private List<IManager> _managers = new List<IManager>();
+        private readonly List<IManager> _managers = new List<IManager>();
 
         private void Awake()
         {
@@ -31,8 +31,8 @@ namespace Ape.Core
                 return;
             }
             Instance = this;
-            Config = appConfig;
-            Dependencies = appDependencies;
+            Config = _appConfig;
+            Dependencies = _appDependencies;
             DontDestroyOnLoad(gameObject);
             CreateManagers();
         }
@@ -49,6 +49,7 @@ namespace Ape.Core
             Scenes = new AppSceneManager();
             Sound = Dependencies.SoundManager;
             Game = new GameManager();
+            Game.Configure(Config != null ? Config.GameConfig : null, Profile);
 
             _managers.Clear();
             _managers.Add(Profile);

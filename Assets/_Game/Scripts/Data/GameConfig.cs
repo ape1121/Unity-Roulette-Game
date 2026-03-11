@@ -8,6 +8,7 @@ namespace Ape.Data
         public RarityCollection RarityCollection;
         public RouletteConfig RouletteConfig;
         public CaseRewardsConfig CaseRewardsConfig;
+        public GameUiTextConfig UiTextConfig;
 
         [Header("Run Rules")]
         public bool cashOutOnSafeZoneOnly = true;

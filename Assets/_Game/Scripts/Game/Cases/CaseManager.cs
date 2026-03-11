@@ -1,23 +1,31 @@
 using System;
 using System.Collections.Generic;
-using Ape.Core;
 using Ape.Data;
+using Ape.Profile;
 using UnityEngine;
 
 namespace Ape.Game
 {
     public sealed class CaseManager
     {
+        private GameConfig _config;
+        private ProfileManager _profile;
         private RewardManager _rewardManager;
         private int _caseOpenCounter;
 
-        private GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
+        private GameConfig Config => _config;
 
         public bool IsPresentationActive { get; private set; }
 
-        public void Initialize(RewardManager rewardManager)
+        public void Configure(GameConfig config, ProfileManager profile, RewardManager rewardManager)
         {
+            _config = config;
+            _profile = profile;
             _rewardManager = rewardManager;
+        }
+
+        public void Initialize()
+        {
             ResetState();
         }
 
@@ -31,6 +39,8 @@ namespace Ape.Game
         {
             ResetState();
             _rewardManager = null;
+            _profile = null;
+            _config = null;
         }
 
         public bool CanOpenCase(string caseRewardId)
@@ -38,7 +48,7 @@ namespace Ape.Game
             if (IsPresentationActive
                 || string.IsNullOrWhiteSpace(caseRewardId)
                 || Config == null
-                || App.Profile == null)
+                || _profile == null)
                 return false;
 
             if (!Config.TryGetCaseDefinition(caseRewardId, out CaseRewardsConfig.CaseDefinition caseDefinition))
@@ -47,7 +57,7 @@ namespace Ape.Game
             if (caseDefinition.CaseReward == null || caseDefinition.CaseReward.Kind != RewardType.Case)
                 return false;
 
-            return App.Profile.GetInventoryRewardCount(caseDefinition.CaseRewardId) > 0;
+            return _profile.GetInventoryRewardCount(caseDefinition.CaseRewardId) > 0;
         }
 
         public bool TryOpenCase(string caseRewardId, out CaseOpenResult caseOpenResult)
@@ -79,11 +89,11 @@ namespace Ape.Game
             if (!TryBuildCaseOpenResult(caseDefinition, out caseOpenResult))
                 return false;
 
-            if (!App.Profile.TrySpendInventoryReward(caseReward.RewardId, 1, saveImmediately: false))
+            if (!_profile.TrySpendInventoryReward(caseReward.RewardId, 1, saveImmediately: false))
                 return false;
 
             _rewardManager.GrantReward(caseOpenResult.GrantedReward, saveImmediately: false);
-            App.Profile.Save();
+            _profile.Save();
             IsPresentationActive = true;
             return true;
         }
@@ -247,9 +257,9 @@ namespace Ape.Game
                 throw new InvalidOperationException("CaseManager requires RewardManager before cases can be opened.");
         }
 
-        private static void EnsureProfile()
+        private void EnsureProfile()
         {
-            if (App.Profile == null)
+            if (_profile == null)
                 throw new InvalidOperationException("CaseManager requires ProfileManager before cases can be opened.");
         }
     }

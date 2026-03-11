@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 894eafa1db4894c6fb3c820c3c3467bc, type: 3}
+  m_Name: RoulettePresentationConfig
+  m_EditorClassIdentifier: 
+  _spinRewardSound: {fileID: 11400000, guid: d92de40f4e8814f5c8998b83a25b2b5c, type: 2}
+  _spinBombSound: {fileID: 11400000, guid: cbccf80cfb646445f930cd755bfd52cb, type: 2}
+  _spinStartSound: {fileID: 11400000, guid: 647427761808046edba33aab54ec6835, type: 2}
+  _spinTickSound: {fileID: 11400000, guid: 644857e9f107a470dad3f086872bd039, type: 2}
+  _spinStopSound: {fileID: 11400000, guid: 6be5161d8083d43ffb6611d2b6fe7159, type: 2}
+  _replaceSmokeSound: {fileID: 11400000, guid: 443411883ade745138a2b73ea48efbd1, type: 2}
+  _bombDisplayName: Bomb

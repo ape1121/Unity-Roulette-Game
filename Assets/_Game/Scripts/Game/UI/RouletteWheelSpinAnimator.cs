@@ -1,6 +1,6 @@
 using System;
-using Ape.Core;
 using Ape.Data;
+using Ape.Sounds;
 using DG.Tweening;
 using DG.Tweening.Core;
 using UnityEngine;
@@ -10,14 +10,14 @@ namespace Ape.Game
 {
     public sealed class RouletteWheelSpinAnimator
     {
-        private const string SpinStartSoundName = "roulette_spin_start";
-        private const string SpinTickSoundName = "roulette_spin_tick";
-        private const string SpinStopSoundName = "roulette_spin_stop";
-
         private RectTransform _wheelRotatorRect;
         private Image _rouletteIndicatorImage;
         private Button _spinButton;
         private RectTransform _spinButtonPulseTarget;
+        private SoundManager _soundManager;
+        private Sound _spinStartSound;
+        private Sound _spinTickSound;
+        private Sound _spinStopSound;
         private float _indicatorSwayMaxAngle = 15f;
         private float _indicatorSwayFrequency = 12f;
         private float _indicatorSwayDamping = 4f;
@@ -72,12 +72,20 @@ namespace Ape.Game
             float spinButtonIdleScaleMultiplier,
             float spinButtonIdlePulseDuration,
             Ease spinButtonIdlePulseEase,
-            float idleRotationSpeedDegreesPerSecond)
+            float idleRotationSpeedDegreesPerSecond,
+            Sound spinStartSound,
+            Sound spinTickSound,
+            Sound spinStopSound,
+            SoundManager soundManager)
         {
             _wheelRotatorRect = wheelRotatorRect;
             _rouletteIndicatorImage = rouletteIndicatorImage;
             _spinButton = spinButton;
             _spinButtonPulseTarget = spinButtonPulseTarget;
+            _soundManager = soundManager;
+            _spinStartSound = spinStartSound;
+            _spinTickSound = spinTickSound;
+            _spinStopSound = spinStopSound;
             _indicatorSwayMaxAngle = indicatorSwayMaxAngle;
             _indicatorSwayFrequency = indicatorSwayFrequency;
             _indicatorSwayDamping = indicatorSwayDamping;
@@ -163,7 +171,7 @@ namespace Ape.Game
             _indicatorAngle = 0f;
             _indicatorVelocity = 0f;
 
-            PlayUISound(SpinStartSoundName);
+            PlayUISound(_spinStartSound);
 
             Action<float> onTweenUpdate = value =>
             {
@@ -215,7 +223,7 @@ namespace Ape.Game
                 _currentRotationDegrees = endRotation;
                 SetRotation(_currentRotationDegrees);
                 SetIndicatorRotation(0f);
-                PlayUISound(SpinStopSoundName);
+                PlayUISound(_spinStopSound);
                 onComplete?.Invoke();
             });
             _spinSequence.OnKill(() => _spinSequence = null);
@@ -269,7 +277,7 @@ namespace Ape.Game
             int sliceIndex = ((step % sliceCount) + sliceCount) % sliceCount;
             int pitchCycle = Mathf.Max(1, _tickPitchCycle);
             float pitchMultiplier = 1f + ((sliceIndex % pitchCycle) * _tickPitchStep);
-            PlayUISound(SpinTickSoundName, pitchMultiplier);
+            PlayUISound(_spinTickSound, pitchMultiplier);
         }
 
         private float ComputeRandomizedOvershoot()
@@ -382,12 +390,12 @@ namespace Ape.Game
             return _spinButton != null ? _spinButton.transform as RectTransform : null;
         }
 
-        private static void PlayUISound(string soundName, float pitchMultiplier = 1f)
+        private void PlayUISound(Sound sound, float pitchMultiplier = 1f)
         {
-            if (App.Sound == null)
+            if (_soundManager == null || sound == null)
                 return;
 
-            App.Sound.PlaySound(soundName, isUI: true, pitchMultiplier: pitchMultiplier);
+            _soundManager.PlaySound(sound, isUI: true, pitchMultiplier: pitchMultiplier);
         }
     }
 }

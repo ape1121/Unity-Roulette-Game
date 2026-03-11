@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Ape.Core;
+using Ape.Data;
 using Ape.Profile;
 using DG.Tweening;
 using TMPro;
@@ -26,8 +27,6 @@ namespace Ape.Game
         [SerializeField] private GameObject _pendingTabBadgeRoot;
         [SerializeField] private TextMeshProUGUI _pendingTabBadgeText;
         [SerializeField] private TextMeshProUGUI _tabTitleText;
-        [SerializeField] private string _pendingTabTitle = "PENDING";
-        [SerializeField] private string _bankedTabTitle = "BANKED";
 
         [Header("Sections")]
         [SerializeField] private Transform _pendingContentRoot;
@@ -51,6 +50,9 @@ namespace Ape.Game
         private readonly InventoryWindowAnimationController _animationController = new InventoryWindowAnimationController();
         private readonly InventoryRewardSectionController _pendingSectionController = new InventoryRewardSectionController();
         private readonly InventoryRewardSectionController _bankedSectionController = new InventoryRewardSectionController();
+        private GameManager _gameManager;
+        private ProfileManager _profileManager;
+        private GameUiTextConfig _uiTextConfig;
         private bool _isProfileSubscribed;
         private bool _isGameSubscribed;
         private bool _isOpen;
@@ -101,6 +103,30 @@ namespace Ape.Game
             _windowCanvasGroup ??= GetComponent<CanvasGroup>();
             _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
             ResolveButtonReferences();
+        }
+
+        public void Bind(GameManager gameManager, ProfileManager profileManager, GameUiTextConfig textConfig)
+        {
+            UnsubscribeFromSources();
+            _gameManager = gameManager;
+            _profileManager = profileManager;
+            _uiTextConfig = textConfig;
+            ConfigureCaseOpenUi();
+
+            if (!isActiveAndEnabled)
+                return;
+
+            SubscribeToSources();
+            Refresh();
+        }
+
+        public void Unbind()
+        {
+            UnsubscribeFromSources();
+            _gameManager = null;
+            _profileManager = null;
+            _uiTextConfig = null;
+            ConfigureCaseOpenUi();
         }
 
         public void Refresh()
@@ -154,6 +180,7 @@ namespace Ape.Game
             _windowRoot ??= GetComponent<RectTransform>();
             _windowCanvasGroup ??= GetComponent<CanvasGroup>();
             _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
+            ConfigureCaseOpenUi();
 
             _animationController.Configure(
                 _windowCanvasGroup,
@@ -200,26 +227,26 @@ namespace Ape.Game
 
         private void SubscribeToSources()
         {
-            if (!_isProfileSubscribed && App.Profile != null)
+            if (!_isProfileSubscribed && _profileManager != null)
             {
-                App.Profile.DataChanged += HandleProfileDataChanged;
+                _profileManager.DataChanged += HandleProfileDataChanged;
                 _isProfileSubscribed = true;
             }
 
-            if (!_isGameSubscribed && App.Game != null)
+            if (!_isGameSubscribed && _gameManager != null)
             {
-                App.Game.StateChanged += HandleGameStateChanged;
+                _gameManager.StateChanged += HandleGameStateChanged;
                 _isGameSubscribed = true;
             }
         }
 
         private void UnsubscribeFromSources()
         {
-            if (_isProfileSubscribed && App.Profile != null)
-                App.Profile.DataChanged -= HandleProfileDataChanged;
+            if (_isProfileSubscribed && _profileManager != null)
+                _profileManager.DataChanged -= HandleProfileDataChanged;
 
-            if (_isGameSubscribed && App.Game != null)
-                App.Game.StateChanged -= HandleGameStateChanged;
+            if (_isGameSubscribed && _gameManager != null)
+                _gameManager.StateChanged -= HandleGameStateChanged;
 
             _isProfileSubscribed = false;
             _isGameSubscribed = false;
@@ -254,20 +281,20 @@ namespace Ape.Game
         {
             _pendingRewards.Clear();
 
-            if (App.Game == null || App.Game.Inventory == null)
+            if (_gameManager == null || _gameManager.Inventory == null)
                 return;
 
-            App.Game.Inventory.GetPendingRewards(_pendingRewards);
+            _gameManager.Inventory.GetPendingRewards(_pendingRewards);
         }
 
         private void BuildBankedRewards()
         {
             _bankedRewards.Clear();
 
-            if (App.Game == null || App.Game.Inventory == null)
+            if (_gameManager == null || _gameManager.Inventory == null)
                 return;
 
-            App.Game.Inventory.GetBankedRewards(_bankedRewards);
+            _gameManager.Inventory.GetBankedRewards(_bankedRewards);
         }
 
         private void SyncSections()
@@ -281,8 +308,8 @@ namespace Ape.Game
 
         private Color ResolveRarityColor(InventoryRewardEntry rewardEntry)
         {
-            return rewardEntry.HasReward && App.Game != null
-                ? App.Game.Rewards.GetRarityColor(rewardEntry.Rarity, Color.white)
+            return rewardEntry.HasReward && _gameManager != null
+                ? _gameManager.Rewards.GetRarityColor(rewardEntry.Rarity, Color.white)
                 : Color.white;
         }
 
@@ -345,7 +372,11 @@ namespace Ape.Game
         private void RefreshTabTexts(bool showPending)
         {
             if (_tabTitleText != null)
-                _tabTitleText.text = showPending ? _pendingTabTitle : _bankedTabTitle;
+                _tabTitleText.text = _uiTextConfig == null
+                    ? string.Empty
+                    : showPending
+                        ? _uiTextConfig.PendingInventoryTabTitle
+                        : _uiTextConfig.BankedInventoryTabTitle;
         }
 
         private void SetEmptyStateVisible(bool isVisible)
@@ -359,7 +390,7 @@ namespace Ape.Game
             if (card == null)
                 return;
 
-            if (!rewardEntry.CanOpenCase || _caseOpenUI == null || App.Game == null || App.Game.Inventory == null)
+            if (!rewardEntry.CanOpenCase || _caseOpenUI == null || _gameManager == null || _gameManager.Inventory == null)
             {
                 card.ClearAction();
                 return;
@@ -373,9 +404,9 @@ namespace Ape.Game
         {
             if (string.IsNullOrWhiteSpace(rewardId)
                 || _caseOpenUI == null
-                || App.Game == null
-                || App.Game.Inventory == null
-                || !App.Game.Inventory.Cases.TryOpenCase(rewardId, out CaseOpenResult caseOpenResult))
+                || _gameManager == null
+                || _gameManager.Inventory == null
+                || !_gameManager.Inventory.Cases.TryOpenCase(rewardId, out CaseOpenResult caseOpenResult))
                 return;
 
             SetCaseOpenUiVisible(true);
@@ -401,8 +432,8 @@ namespace Ape.Game
 
         private void CompleteCasePresentation(bool refresh)
         {
-            if (App.Game != null && App.Game.Inventory != null)
-                App.Game.Inventory.Cases.CompletePresentation();
+            if (_gameManager != null && _gameManager.Inventory != null)
+                _gameManager.Inventory.Cases.CompletePresentation();
 
             if (refresh && isActiveAndEnabled)
                 Refresh();
@@ -412,6 +443,12 @@ namespace Ape.Game
         {
             if (_caseOpenUI != null)
                 _caseOpenUI.gameObject.SetActive(isVisible);
+        }
+
+        private void ConfigureCaseOpenUi()
+        {
+            if (_caseOpenUI != null)
+                _caseOpenUI.SetPresentationContext(_gameManager != null ? _gameManager.Rewards : null, _uiTextConfig);
         }
 
         private static int GetRewardAmountTotal(List<InventoryRewardEntry> rewards)

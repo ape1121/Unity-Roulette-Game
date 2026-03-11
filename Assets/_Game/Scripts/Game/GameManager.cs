@@ -2,27 +2,16 @@ using System;
 using System.Collections.Generic;
 using Ape.Core;
 using Ape.Data;
+using Ape.Profile;
 using UnityEngine;
 
 namespace Ape.Game
 {
     public sealed class GameManager : IManager
     {
-        private const string SpinRewardSoundName = "roulette_spin_reward";
-        private const string SpinBombSoundName = "boom";
-
-        private readonly RouletteRewardLedger _rewardLedger = new RouletteRewardLedger();
-        private readonly List<ResolvedReward> _pendingContinueInventoryRewards = new List<ResolvedReward>();
-
-        private System.Random _runRandom;
+        private GameConfig _config;
         private RouletteSpinResult _pendingSpinResult;
-        private int _pendingContinueZone;
-        private int _pendingContinueCash;
-        private int _pendingContinueGold;
-        private int _runCounter;
         private bool _hasPendingSpinResult;
-        private RouletteConfig RouletteConfig => Config != null ? Config.RouletteConfig : null;
-
 
         public event Action<GameStateSnapshot> StateChanged;
         public event Action<RouletteSpinResult> SpinResolved;
@@ -33,42 +22,42 @@ namespace Ape.Game
         public event Action WheelAnimationStopRequested;
         public event Action WheelRotationResetRequested;
 
-        public GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
+        public GameConfig Config => _config;
         public RewardManager Rewards { get; } = new RewardManager();
         public InventoryManager Inventory { get; } = new InventoryManager();
+        public RouletteManager Roulette { get; } = new RouletteManager();
         public bool IsInitialized { get; private set; }
         public bool IsSceneBound { get; private set; }
         public bool IsGameStarted { get; private set; }
         public GameRunPhase Phase { get; private set; }
-        public int CurrentZone { get; private set; }
-        public RouletteZoneType CurrentZoneType { get; private set; }
-        public RouletteResolvedWheel ActiveWheel { get; private set; }
         public bool HasUsedContinue { get; private set; }
-        public RouletteSpinResult LastSpinResult { get; private set; }
-        public IReadOnlyList<ResolvedReward> PendingInventoryRewards => _rewardLedger.InventoryRewards;
+        public IReadOnlyList<ResolvedReward> PendingInventoryRewards => Inventory.PendingInventoryRewards;
         public GameStateSnapshot CurrentState => BuildStateSnapshot();
-        public int PendingCash => _rewardLedger.PendingCash;
-        public int PendingGold => _rewardLedger.PendingGold;
-        public int SavedCash => App.Profile != null ? App.Profile.CurrentData.Cash : 0;
-        public int SavedGold => App.Profile != null ? App.Profile.CurrentData.Gold : 0;
-        public bool CanSpin => IsGameStarted && Phase == GameRunPhase.AwaitingSpin && ActiveWheel != null && ActiveWheel.Slices.Count > 0;
-        public bool CanCashOut => IsGameStarted && Config != null && Phase == GameRunPhase.AwaitingSpin && Config.CanCashOutAtZone(CurrentZone);
+        public bool CanSpin => IsGameStarted && Phase == GameRunPhase.AwaitingSpin && Roulette.HasActiveWheel;
+        public bool CanCashOut => IsGameStarted && Config != null && Phase == GameRunPhase.AwaitingSpin && Config.CanCashOutAtZone(Roulette.CurrentZone);
         public bool CanContinue => IsGameStarted
             && Config != null
             && Config.continueEnabled
             && Phase == GameRunPhase.Busted
             && !HasUsedContinue
-            && _pendingContinueZone > 0
-            && App.Profile != null
-            && App.Profile.CanAffordCash(Config.continueCost);
+            && Inventory.CanContinue(Config.continueCost);
         public bool CanRestart => IsGameStarted && (Phase == GameRunPhase.Busted || Phase == GameRunPhase.CashedOut || Phase == GameRunPhase.Completed || Phase == GameRunPhase.BlockedByBuyIn);
+
+        public void Configure(GameConfig config, ProfileManager profileManager)
+        {
+            _config = config;
+            Rewards.Configure(config, profileManager);
+            Inventory.Configure(config, profileManager, Rewards);
+            Roulette.Configure(config);
+        }
 
         public void Initialize()
         {
             ResetManagerState();
-            IsInitialized = true;
             Rewards.Initialize();
-            Inventory.Initialize(Rewards);
+            Inventory.Initialize();
+            Roulette.Initialize();
+            IsInitialized = true;
         }
 
         public void PrepareForSceneLoad()
@@ -89,7 +78,7 @@ namespace Ape.Game
 
             IsSceneBound = true;
 
-            if (ActiveWheel != null)
+            if (Roulette.ActiveWheel != null)
                 RequestWheelBuild(preserveRotation: true);
         }
 
@@ -127,11 +116,10 @@ namespace Ape.Game
 
             RequestFeedback(GameFeedbackRequest.CreateSpinStartShake());
             spinResult = ResolveSpin();
-            LastSpinResult = spinResult;
             _pendingSpinResult = spinResult;
             _hasPendingSpinResult = true;
             Phase = GameRunPhase.Spinning;
-            RequestSpinPresentation(ActiveWheel, spinResult.SelectedSliceIndex, FinalizePendingSpin);
+            RequestSpinPresentation(Roulette.ActiveWheel, spinResult.SelectedSliceIndex, FinalizePendingSpin);
 
             PublishStateChanged();
             return true;
@@ -142,9 +130,9 @@ namespace Ape.Game
             if (!CanCashOut)
                 return false;
 
-            BankPendingRewards();
+            Inventory.BankPendingRewards();
             Phase = GameRunPhase.CashedOut;
-            ClearPendingContinueState();
+            Inventory.ClearContinueSnapshot();
             PublishStateChanged();
             return true;
         }
@@ -154,14 +142,13 @@ namespace Ape.Game
             if (!CanContinue)
                 return false;
 
-            if (!App.Profile.TrySpendCash(Config.continueCost))
+            if (!Inventory.TrySpendContinueCost(Config.continueCost))
                 return false;
 
             HasUsedContinue = true;
-            CurrentZone = _pendingContinueZone;
-            CurrentZoneType = Config.GetZoneType(CurrentZone);
-            _rewardLedger.Restore(_pendingContinueCash, _pendingContinueGold, _pendingContinueInventoryRewards);
-            ClearPendingContinueState();
+            Roulette.RestoreZone(Inventory.ContinueZone);
+            Inventory.RestoreContinueSnapshot();
+            Inventory.ClearContinueSnapshot();
             BuildWheelForCurrentZone(preserveRotation: true);
             Phase = GameRunPhase.AwaitingSpin;
             PublishStateChanged();
@@ -170,17 +157,12 @@ namespace Ape.Game
 
         private void StartRunInternal()
         {
-            _runCounter++;
-            _runRandom = new System.Random(GetRouletteConfig().ResolveRunSeed(_runCounter));
-
             ResetRunState();
-            CurrentZone = Config.GetStartingZone();
-            CurrentZoneType = Config.GetZoneType(CurrentZone);
+            Roulette.StartRun();
 
-            if (!TryPayBuyIn())
+            if (!Inventory.TryPayBuyIn(Config.buyInCost))
             {
                 Phase = GameRunPhase.BlockedByBuyIn;
-                ActiveWheel = null;
                 RequestWheelBuild(preserveRotation: true);
                 PublishStateChanged();
                 return;
@@ -193,11 +175,7 @@ namespace Ape.Game
 
         private void BuildWheelForCurrentZone(bool preserveRotation = true, bool syncToScene = true)
         {
-            CurrentZoneType = Config.GetZoneType(CurrentZone);
-            RouletteConfig rouletteConfig = GetRouletteConfig();
-            RouletteWheelData wheelData = rouletteConfig.GetWheelData(CurrentZoneType);
-            ActiveWheel = RouletteWheelBuilder.BuildWheel(rouletteConfig, wheelData, CurrentZone, _runRandom);
-            CurrentZoneType = ActiveWheel.Definition.ZoneType;
+            Roulette.BuildWheelForCurrentZone();
 
             if (syncToScene)
                 RequestWheelBuild(preserveRotation);
@@ -205,18 +183,7 @@ namespace Ape.Game
 
         private RouletteSpinResult ResolveSpin()
         {
-            int selectedSliceIndex = _runRandom.Next(ActiveWheel.Slices.Count);
-            RouletteResolvedSlice selectedSlice = ActiveWheel.Slices[selectedSliceIndex];
-            bool completedRun = !selectedSlice.IsBomb && Config.IsFinalZone(CurrentZone);
-            int nextZone = completedRun ? CurrentZone : CurrentZone + 1;
-
-            return new RouletteSpinResult(
-                CurrentZone,
-                CurrentZoneType,
-                selectedSliceIndex,
-                selectedSlice,
-                completedRun,
-                nextZone);
+            return Roulette.ResolveSpin();
         }
 
         private void FinalizePendingSpin()
@@ -235,66 +202,28 @@ namespace Ape.Game
             if (spinResult.WasBomb)
             {
                 RequestFeedback(GameFeedbackRequest.CreateBombShake());
-                CaptureContinueState();
-                _rewardLedger.Clear();
+                Inventory.CaptureContinueSnapshot(Roulette.CurrentZone);
+                Inventory.ClearPendingRewards();
                 Phase = GameRunPhase.Busted;
-                RequestFeedback(GameFeedbackRequest.CreateSound(SpinBombSoundName));
+                RequestFeedback(GameFeedbackRequest.CreateSound(Roulette.PresentationConfig != null ? Roulette.PresentationConfig.SpinBombSound : null));
                 return;
             }
 
-            ClearPendingContinueState();
-            _rewardLedger.AddReward(spinResult.SelectedSlice.Reward);
-            RequestFeedback(GameFeedbackRequest.CreateSound(SpinRewardSoundName));
+            Inventory.ClearContinueSnapshot();
+            Inventory.AddPendingReward(spinResult.SelectedSlice.Reward);
+            RequestFeedback(GameFeedbackRequest.CreateSound(Roulette.PresentationConfig != null ? Roulette.PresentationConfig.SpinRewardSound : null));
 
             if (spinResult.CompletedRun)
             {
-                BankPendingRewards();
+                Inventory.BankPendingRewards();
                 Phase = GameRunPhase.Completed;
                 return;
             }
 
-            CurrentZone = spinResult.NextZone;
-            CurrentZoneType = Config.GetZoneType(CurrentZone);
+            Roulette.AdvanceToZone(spinResult.NextZone);
             BuildWheelForCurrentZone(preserveRotation: true, syncToScene: false);
             Phase = GameRunPhase.AwaitingSpin;
             PlayPendingWheelReveal(spinResult);
-        }
-
-        private void CaptureContinueState()
-        {
-            _pendingContinueZone = CurrentZone;
-            _pendingContinueCash = _rewardLedger.PendingCash;
-            _pendingContinueGold = _rewardLedger.PendingGold;
-            _pendingContinueInventoryRewards.Clear();
-
-            for (int i = 0; i < _rewardLedger.InventoryRewards.Count; i++)
-                _pendingContinueInventoryRewards.Add(_rewardLedger.InventoryRewards[i]);
-        }
-
-        private void ClearPendingContinueState()
-        {
-            _pendingContinueZone = 0;
-            _pendingContinueCash = 0;
-            _pendingContinueGold = 0;
-            _pendingContinueInventoryRewards.Clear();
-        }
-
-        private void BankPendingRewards()
-        {
-            Rewards.GrantRewards(PendingCash, PendingGold, _rewardLedger.InventoryRewards);
-            _rewardLedger.Clear();
-        }
-
-        private bool TryPayBuyIn()
-        {
-            int resolvedBuyInCost = Mathf.Max(0, Config.buyInCost);
-            if (resolvedBuyInCost == 0)
-                return true;
-
-            if (App.Profile == null)
-                throw new InvalidOperationException("GameManager requires ProfileManager before a buy-in can be charged.");
-
-            return App.Profile.TrySpendCash(resolvedBuyInCost);
         }
 
         private void ValidateConfig()
@@ -302,54 +231,12 @@ namespace Ape.Game
             if (Config == null)
                 throw new MissingReferenceException("GameManager requires AppConfig.GameConfig to be assigned.");
 
-            RouletteConfig rouletteConfig = GetRouletteConfig();
-            if (rouletteConfig.GetRewardCatalog().Length == 0)
-                throw new InvalidOperationException("RouletteConfig must contain at least one RewardData asset in its reward catalog.");
-
-            ValidateWheelAsset(rouletteConfig, RouletteZoneType.Normal, mustIncludeBomb: true, mustExcludeBomb: false);
-            ValidateWheelAsset(rouletteConfig, RouletteZoneType.Safe, mustIncludeBomb: false, mustExcludeBomb: true);
-            ValidateWheelAsset(rouletteConfig, RouletteZoneType.Super, mustIncludeBomb: false, mustExcludeBomb: true);
-        }
-
-        private static void ValidateWheelAsset(RouletteConfig rouletteConfig, RouletteZoneType zoneType, bool mustIncludeBomb, bool mustExcludeBomb)
-        {
-            RouletteWheelData wheelData = rouletteConfig.GetWheelData(zoneType);
-            if (wheelData == null)
-                throw new MissingReferenceException($"RouletteConfig is missing the wheel asset for zone type {zoneType}.");
-
-            RouletteSliceData[] sliceDefinitions = wheelData.SliceDefinitions;
-            if (sliceDefinitions.Length == 0)
-                throw new InvalidOperationException($"Wheel asset '{wheelData.name}' has no slice rules.");
-
-            bool hasBomb = false;
-
-            for (int i = 0; i < sliceDefinitions.Length; i++)
-            {
-                if (sliceDefinitions[i] == null)
-                    throw new InvalidOperationException($"Wheel asset '{wheelData.name}' contains a null slice rule.");
-
-                if (sliceDefinitions[i].IsBomb)
-                    hasBomb = true;
-            }
-
-            if (mustIncludeBomb && !hasBomb)
-                throw new InvalidOperationException($"Wheel asset '{wheelData.name}' must contain at least one bomb slice for {zoneType} zones.");
-
-            if (mustExcludeBomb && hasBomb)
-                throw new InvalidOperationException($"Wheel asset '{wheelData.name}' must not contain bomb slices for {zoneType} zones.");
-        }
-
-        private RouletteConfig GetRouletteConfig()
-        {
-            if (RouletteConfig == null)
-                throw new MissingReferenceException("GameConfig.RouletteConfig must be assigned.");
-
-            return RouletteConfig;
+            Roulette.ValidateConfig();
         }
 
         private void RequestWheelBuild(bool preserveRotation = true)
         {
-            WheelBuildRequested?.Invoke(new GameWheelBuildRequest(ActiveWheel, preserveRotation));
+            WheelBuildRequested?.Invoke(new GameWheelBuildRequest(Roulette.ActiveWheel, preserveRotation));
         }
 
         private void RequestWheelAnimationStop()
@@ -388,7 +275,7 @@ namespace Ape.Game
             }
 
             SpinRevealPresentationRequested.Invoke(new GameSpinRevealPresentationRequest(
-                ActiveWheel,
+                Roulette.ActiveWheel,
                 spinResult.SelectedSliceIndex,
                 spinResult.SelectedSlice,
                 PublishStateChanged));
@@ -403,20 +290,20 @@ namespace Ape.Game
         {
             return new GameStateSnapshot(
                 Phase,
-                CurrentZone,
-                CurrentZoneType,
-                PendingCash,
-                PendingGold,
-                _rewardLedger.PendingInventoryRewardCount,
-                _rewardLedger.InventoryRewards.Count,
-                SavedCash,
-                SavedGold,
+                Roulette.CurrentZone,
+                Roulette.CurrentZoneType,
+                Inventory.PendingCash,
+                Inventory.PendingGold,
+                Inventory.PendingInventoryRewardCount,
+                Inventory.PendingInventoryRewardKinds,
+                Inventory.SavedCash,
+                Inventory.SavedGold,
                 HasUsedContinue,
                 CanSpin,
                 CanCashOut,
                 CanContinue,
                 CanRestart,
-                ActiveWheel != null ? ActiveWheel.Slices.Count : 0);
+                Roulette.ActiveWheel != null ? Roulette.ActiveWheel.Slices.Count : 0);
         }
 
         private void ResetManagerState()
@@ -424,26 +311,26 @@ namespace Ape.Game
             IsInitialized = false;
             IsSceneBound = false;
             IsGameStarted = false;
-            _runCounter = 0;
-            _runRandom = null;
             Rewards.ResetState();
             Inventory.ResetState();
-            ResetRunState();
+            Roulette.ResetManagerState();
+            ResetTransientState();
         }
 
         private void ResetRunState()
         {
             RequestWheelAnimationStop();
+            Inventory.ResetRunState();
+            Roulette.ResetRunState();
+            ResetTransientState();
+        }
+
+        private void ResetTransientState()
+        {
             Phase = GameRunPhase.None;
-            CurrentZone = 0;
-            CurrentZoneType = RouletteZoneType.Normal;
-            ActiveWheel = null;
             HasUsedContinue = false;
-            LastSpinResult = default;
             _pendingSpinResult = default;
             _hasPendingSpinResult = false;
-            _rewardLedger.Clear();
-            ClearPendingContinueState();
         }
     }
 }

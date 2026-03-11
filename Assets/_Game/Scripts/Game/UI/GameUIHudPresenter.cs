@@ -6,6 +6,7 @@ namespace Ape.Game
 {
     public sealed class GameUIHudPresenter
     {
+        private GameUiTextConfig _textConfig;
         private TextMeshProUGUI _zoneValueText;
         private TextMeshProUGUI _zoneTypeValueText;
         private TextMeshProUGUI _phaseValueText;
@@ -29,8 +30,10 @@ namespace Ape.Game
             TextMeshProUGUI savedCashValueText,
             TextMeshProUGUI savedGoldValueText,
             GameObject inventoryPendingBadgeRoot,
-            TextMeshProUGUI inventoryPendingCountText)
+            TextMeshProUGUI inventoryPendingCountText,
+            GameUiTextConfig textConfig)
         {
+            _textConfig = textConfig;
             _zoneValueText = zoneValueText;
             _zoneTypeValueText = zoneTypeValueText;
             _phaseValueText = phaseValueText;
@@ -46,7 +49,7 @@ namespace Ape.Game
 
         public void Refresh(GameStateSnapshot state)
         {
-            SetText(_zoneValueText, state.CurrentZone > 0 ? "FLOOR " + state.CurrentZone.ToString() : "-");
+            SetText(_zoneValueText, _textConfig != null ? _textConfig.FormatZoneLabel(state.CurrentZone) : state.CurrentZone.ToString());
             SetText(_zoneTypeValueText, string.Empty);
             SetText(_phaseValueText, BuildPhaseLabel(state));
             SetText(_pendingCashValueText, state.PendingCash.ToString());
@@ -71,62 +74,21 @@ namespace Ape.Game
             SetText(_inventoryPendingCountText, clampedPendingItemCount.ToString());
         }
 
-        private static string FormatPendingItems(GameStateSnapshot state)
+        private string FormatPendingItems(GameStateSnapshot state)
         {
-            return state.PendingInventoryRewardKinds > 0
-                ? $"{state.PendingInventoryRewardCount} ({state.PendingInventoryRewardKinds} kinds)"
-                : "0";
+            return _textConfig != null
+                ? _textConfig.FormatPendingItems(state.PendingInventoryRewardCount, state.PendingInventoryRewardKinds)
+                : state.PendingInventoryRewardCount.ToString();
         }
 
-        private static string BuildStatusLabel(GameStateSnapshot state)
+        private string BuildStatusLabel(GameStateSnapshot state)
         {
-            switch (state.Phase)
-            {
-                case GameRunPhase.AwaitingSpin:
-                    return state.CanCashOut
-                        ? "Spin again or cash out."
-                        : "Spin to continue the run.";
-
-                case GameRunPhase.Spinning:
-                    return "Wheel spinning...";
-
-                case GameRunPhase.Busted:
-                    return state.CanContinue
-                        ? "Bomb hit. Continue or restart."
-                        : "Bomb hit. Restart to begin a new run.";
-
-                case GameRunPhase.CashedOut:
-                    return "Rewards banked. Restart for a new run.";
-
-                case GameRunPhase.Completed:
-                    return "Run complete. Rewards banked.";
-
-                case GameRunPhase.BlockedByBuyIn:
-                    return "Not enough cash for the buy-in.";
-
-                default:
-                    return "Waiting for scene bootstrap.";
-            }
+            return _textConfig != null ? _textConfig.GetStatusLabel(state) : state.Phase.ToString();
         }
 
-        private static string BuildPhaseLabel(GameStateSnapshot state)
+        private string BuildPhaseLabel(GameStateSnapshot state)
         {
-            if (state.Phase == GameRunPhase.AwaitingSpin)
-            {
-                return state.CurrentZoneType switch
-                {
-                    RouletteZoneType.Safe => "SAFE ZONE",
-                    RouletteZoneType.Super => "SUPER ZONE",
-                    _ => "Awaiting Spin"
-                };
-            }
-
-            return state.Phase switch
-            {
-                GameRunPhase.BlockedByBuyIn => "Buy-In Blocked",
-                GameRunPhase.CashedOut => "Cashed Out",
-                _ => state.Phase.ToString()
-            };
+            return _textConfig != null ? _textConfig.GetPhaseLabel(state) : state.Phase.ToString();
         }
 
         private static void SetText(TextMeshProUGUI text, string value)

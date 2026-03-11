@@ -1,4 +1,7 @@
 using Ape.Core;
+using Ape.Data;
+using Ape.Profile;
+using Ape.Sounds;
 using UnityEngine;
 
 namespace Ape.Game
@@ -11,6 +14,9 @@ namespace Ape.Game
         [SerializeField] private GameUIEffects _effects;
 
         private GameManager _gameManager;
+        private ProfileManager _profileManager;
+        private SoundManager _soundManager;
+        private GameUiTextConfig _uiTextConfig;
 
         private void OnDisable()
         {
@@ -26,28 +32,48 @@ namespace Ape.Game
                 _effects = _uiManager != null ? _uiManager.Effects : GetComponentInChildren<GameUIEffects>(true);
         }
 
-        public void Bind(GameManager gameManager)
+        public void Bind(GameManager gameManager, ProfileManager profileManager, SoundManager soundManager, GameUiTextConfig uiTextConfig)
         {
             if (gameManager == null)
                 return;
 
-            if (_gameManager == gameManager)
-                return;
-
             Unbind();
             _gameManager = gameManager;
+            _profileManager = profileManager;
+            _soundManager = soundManager;
+            _uiTextConfig = uiTextConfig;
             _gameManager.WheelBuildRequested += HandleWheelBuildRequested;
             _gameManager.SpinPresentationRequested += HandleSpinPresentationRequested;
             _gameManager.SpinRevealPresentationRequested += HandleSpinRevealPresentationRequested;
             _gameManager.FeedbackRequested += HandleFeedbackRequested;
             _gameManager.WheelAnimationStopRequested += HandleWheelAnimationStopRequested;
             _gameManager.WheelRotationResetRequested += HandleWheelRotationResetRequested;
+
+            if (_uiManager != null)
+                _uiManager.Bind(_gameManager, _profileManager, _uiTextConfig);
+
+            if (_rouletteWheel != null)
+            {
+                _rouletteWheel.SetPresentationContext(
+                    _gameManager.Roulette.PresentationConfig,
+                    _gameManager.Roulette.PostSpinRevealDelay,
+                    _gameManager.Rewards,
+                    _soundManager);
+            }
         }
 
         public void Unbind()
         {
+            if (_uiManager != null)
+                _uiManager.Unbind();
+
             if (_gameManager == null)
+            {
+                _profileManager = null;
+                _soundManager = null;
+                _uiTextConfig = null;
                 return;
+            }
 
             _gameManager.WheelBuildRequested -= HandleWheelBuildRequested;
             _gameManager.SpinPresentationRequested -= HandleSpinPresentationRequested;
@@ -56,6 +82,9 @@ namespace Ape.Game
             _gameManager.WheelAnimationStopRequested -= HandleWheelAnimationStopRequested;
             _gameManager.WheelRotationResetRequested -= HandleWheelRotationResetRequested;
             _gameManager = null;
+            _profileManager = null;
+            _soundManager = null;
+            _uiTextConfig = null;
         }
 
         private void HandleWheelBuildRequested(GameWheelBuildRequest request)
@@ -103,8 +132,8 @@ namespace Ape.Game
                     return;
 
                 case GameFeedbackType.PlaySound:
-                    if (App.Sound != null && !string.IsNullOrWhiteSpace(request.SoundName))
-                        App.Sound.PlaySound(request.SoundName, isUI: true, pitchMultiplier: request.PitchMultiplier);
+                    if (_soundManager != null && request.Sound != null)
+                        _soundManager.PlaySound(request.Sound, isUI: true, pitchMultiplier: request.PitchMultiplier);
                     return;
             }
         }

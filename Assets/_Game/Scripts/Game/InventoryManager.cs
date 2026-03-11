@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Ape.Core;
 using Ape.Data;
 using Ape.Profile;
 using UnityEngine;
@@ -8,31 +7,124 @@ namespace Ape.Game
 {
     public sealed class InventoryManager
     {
-        public CaseManager Cases { get; } = new CaseManager();
+        private readonly RunRewardLedger _pendingLedger = new RunRewardLedger();
+        private readonly ContinueRewardSnapshot _continueSnapshot = new ContinueRewardSnapshot();
 
-        public void Initialize(RewardManager rewardManager)
+        private GameConfig _config;
+        private ProfileManager _profile;
+        private RewardManager _rewardManager;
+
+        public CaseManager Cases { get; } = new CaseManager();
+        public IReadOnlyList<ResolvedReward> PendingInventoryRewards => _pendingLedger.InventoryRewards;
+        public int PendingCash => _pendingLedger.PendingCash;
+        public int PendingGold => _pendingLedger.PendingGold;
+        public int PendingInventoryRewardCount => _pendingLedger.PendingInventoryRewardCount;
+        public int PendingInventoryRewardKinds => _pendingLedger.PendingInventoryRewardKinds;
+        public int SavedCash => _profile != null ? _profile.CurrentData.Cash : 0;
+        public int SavedGold => _profile != null ? _profile.CurrentData.Gold : 0;
+        public int ContinueZone => _continueSnapshot.Zone;
+        public bool HasContinueSnapshot => _continueSnapshot.HasValue;
+
+        public void Configure(GameConfig config, ProfileManager profile, RewardManager rewardManager)
         {
-            Cases.Initialize(rewardManager);
+            _config = config;
+            _profile = profile;
+            _rewardManager = rewardManager;
+            Cases.Configure(config, profile, rewardManager);
+        }
+
+        public void Initialize()
+        {
+            ResetState();
+            Cases.Initialize();
         }
 
         public void ResetState()
         {
+            ResetRunState();
             Cases.ResetState();
+        }
+
+        public void ResetRunState()
+        {
+            _pendingLedger.Clear();
+            _continueSnapshot.Clear();
         }
 
         public void Shutdown()
         {
             Cases.Shutdown();
+            _rewardManager = null;
+            _profile = null;
+            _config = null;
+            ResetRunState();
+        }
+
+        public bool CanContinue(int continueCost)
+        {
+            return _continueSnapshot.HasValue
+                && _profile != null
+                && _profile.CanAffordCash(Mathf.Max(0, continueCost));
+        }
+
+        public bool TrySpendContinueCost(int continueCost)
+        {
+            return _profile != null && _profile.TrySpendCash(Mathf.Max(0, continueCost));
+        }
+
+        public bool TryPayBuyIn(int buyInCost)
+        {
+            int resolvedBuyInCost = Mathf.Max(0, buyInCost);
+            if (resolvedBuyInCost == 0)
+                return true;
+
+            EnsureProfile();
+            return _profile.TrySpendCash(resolvedBuyInCost);
+        }
+
+        public void AddPendingReward(ResolvedReward reward)
+        {
+            if (!reward.HasReward || reward.Amount <= 0)
+                return;
+
+            _pendingLedger.AddReward(reward);
+        }
+
+        public void ClearPendingRewards()
+        {
+            _pendingLedger.Clear();
+        }
+
+        public void BankPendingRewards()
+        {
+            EnsureRewardManager();
+            _rewardManager.GrantRewards(PendingCash, PendingGold, _pendingLedger.InventoryRewards);
+            _pendingLedger.Clear();
+        }
+
+        public void CaptureContinueSnapshot(int zone)
+        {
+            _continueSnapshot.Capture(zone, _pendingLedger);
+        }
+
+        public void RestoreContinueSnapshot()
+        {
+            _pendingLedger.Restore(_continueSnapshot.PendingCash, _continueSnapshot.PendingGold, _continueSnapshot.InventoryRewards);
+        }
+
+        public void ClearContinueSnapshot()
+        {
+            _continueSnapshot.Clear();
         }
 
         public void GetPendingRewards(List<InventoryRewardEntry> destination)
         {
             destination?.Clear();
 
-            if (destination == null || App.Game == null)
+            if (destination == null)
                 return;
 
-            IReadOnlyList<ResolvedReward> rewards = App.Game.PendingInventoryRewards;
+            IReadOnlyList<ResolvedReward> rewards = _pendingLedger.InventoryRewards;
             if (rewards == null)
                 return;
 
@@ -52,13 +144,12 @@ namespace Ape.Game
         {
             destination?.Clear();
 
-            if (destination == null || App.Profile == null)
+            if (destination == null || _profile == null)
                 return;
 
-            GameConfig gameConfig = App.Config != null ? App.Config.GameConfig : null;
-            IReadOnlyList<RewardInventoryEntry> inventory = App.Profile.Inventory;
+            IReadOnlyList<RewardInventoryEntry> inventory = _profile.Inventory;
 
-            if (gameConfig == null || inventory == null)
+            if (_config == null || inventory == null)
                 return;
 
             bool casePresentationActive = Cases.IsPresentationActive;
@@ -69,7 +160,7 @@ namespace Ape.Game
                 if (entry.Amount <= 0)
                     continue;
 
-                if (!gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
+                if (!_config.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
                 {
                     Debug.LogWarning($"Reward inventory entry '{entry.RewardId}' could not be resolved from the reward catalog.");
                     continue;
@@ -99,6 +190,18 @@ namespace Ape.Game
                 return nameComparison;
 
             return right.Amount.CompareTo(left.Amount);
+        }
+
+        private void EnsureProfile()
+        {
+            if (_profile == null)
+                throw new System.InvalidOperationException("InventoryManager requires ProfileManager before currency or inventory operations can be resolved.");
+        }
+
+        private void EnsureRewardManager()
+        {
+            if (_rewardManager == null)
+                throw new System.InvalidOperationException("InventoryManager requires RewardManager before pending rewards can be banked.");
         }
     }
 }

@@ -24,6 +24,10 @@ namespace Ape.Game
             List<RouletteResolvedSlice> slices = new List<RouletteResolvedSlice>(sliceDefinitions.Length);
             HashSet<string> usedRewardIds = wheelData.AllowDuplicateRewards ? null : new HashSet<string>();
 
+            string bombDisplayName = rouletteConfig.PresentationConfig != null
+                ? rouletteConfig.PresentationConfig.BombDisplayName
+                : string.Empty;
+
             for (int i = 0; i < sliceDefinitions.Length; i++)
             {
                 RouletteSliceData sliceRule = sliceDefinitions[i];
@@ -32,7 +36,7 @@ namespace Ape.Game
 
                 if (sliceRule.IsBomb)
                 {
-                    slices.Add(new RouletteResolvedSlice(sliceRule, default));
+                    slices.Add(new RouletteResolvedSlice(sliceRule, default, bombDisplayName));
                     continue;
                 }
 
@@ -47,7 +51,7 @@ namespace Ape.Game
                     rewardData,
                     rewardData.ResolveAmount(zone, sliceRule.AmountMultiplier, sliceRule.FlatAmountBonus, random));
 
-                slices.Add(new RouletteResolvedSlice(sliceRule, resolvedReward));
+                slices.Add(new RouletteResolvedSlice(sliceRule, resolvedReward, resolvedReward.RewardName));
             }
 
             return new RouletteResolvedWheel(wheelData, slices);

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Ape.Core;
+using Ape.Data;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -10,6 +11,9 @@ namespace Ape.Game
     [RequireComponent(typeof(RectTransform))]
     public sealed class CaseOpenUI : MonoBehaviour
     {
+        private GameUiTextConfig _textConfig;
+        private RewardManager _rewardManager;
+
         [SerializeField] private RectTransform _viewportRect;
         [SerializeField] private RectTransform _contentRect;
         [SerializeField] private RewardCardUI _rewardCardPrefab;
@@ -36,6 +40,12 @@ namespace Ape.Game
         private Tween _winnerPulseTween;
 
         public bool IsAnimating => _openSequence != null && _openSequence.IsActive();
+
+        public void SetPresentationContext(RewardManager rewardManager, GameUiTextConfig textConfig)
+        {
+            _rewardManager = rewardManager;
+            _textConfig = textConfig;
+        }
 
         public void Play(CaseOpenResult caseOpenResult, System.Action<CaseOpenResult> onCompleted = null)
         {
@@ -121,8 +131,8 @@ namespace Ape.Game
                 }
 
                 ResolvedReward reward = rewards[i];
-                Color rarityColor = reward.HasReward && App.Game != null
-                    ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
+                Color rarityColor = reward.HasReward && _rewardManager != null
+                    ? _rewardManager.GetRarityColor(reward.Rarity, Color.white)
                     : Color.white;
 
                 card.Bind(reward, rarityColor);
@@ -212,7 +222,9 @@ namespace Ape.Game
 
             _winnerLabel.text = !reward.HasReward
                 ? string.Empty
-                : $"{reward.RewardName} {reward.FormatAmountLabel()}";
+                : _textConfig != null
+                    ? _textConfig.FormatCaseWinnerLabel(reward)
+                    : reward.RewardName;
         }
     }
 }

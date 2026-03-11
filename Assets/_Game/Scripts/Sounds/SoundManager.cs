@@ -74,15 +74,23 @@ namespace Ape.Sounds
         if (!soundDictionary.TryGetValue(soundName, out Sound sound))
             return;
 
-        if (soundCooldowns.TryGetValue(soundName, out float lastPlayTime))
-            if (Time.time - lastPlayTime < DEFAULT_COOLDOWN)
-                return;
+        PlaySound(sound, isUI, pitchMultiplier);
+    }
+
+    public void PlaySound(Sound sound, bool isUI = false, float pitchMultiplier = 1f)
+    {
+        if (sound == null || sound.Clip == null)
+            return;
+
+        string soundKey = ResolveSoundKey(sound);
+        if (soundCooldowns.TryGetValue(soundKey, out float lastPlayTime) && Time.time - lastPlayTime < DEFAULT_COOLDOWN)
+            return;
 
         AudioSource audioSource = GetAudioSource();
-        if (audioSource == null) return;
+        if (audioSource == null)
+            return;
 
-        soundCooldowns[soundName] = Time.time;
-
+        soundCooldowns[soundKey] = Time.time;
         audioSource.clip = sound.Clip;
         audioSource.volume = sound.Volume * (isUI ? uiVolume : sfxVolume) * masterVolume;
         audioSource.pitch = sound.Pitch * pitchMultiplier;
@@ -354,6 +362,16 @@ namespace Ape.Sounds
         {
             ReleaseAudioSource(audioSource);
         }
+    }
+
+    private static string ResolveSoundKey(Sound sound)
+    {
+        if (sound == null)
+            return string.Empty;
+
+        return !string.IsNullOrWhiteSpace(sound.Name)
+            ? sound.Name
+            : sound.GetInstanceID().ToString();
     }
     }
 }

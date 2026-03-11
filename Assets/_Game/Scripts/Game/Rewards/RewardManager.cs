@@ -2,14 +2,24 @@ using System;
 using System.Collections.Generic;
 using Ape.Core;
 using Ape.Data;
+using Ape.Profile;
 using UnityEngine;
 
 namespace Ape.Game
 {
     public sealed class RewardManager : IManager
     {
-        private GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
-        private Dictionary<RarityType, RarityData> rarityDataCache = new Dictionary<RarityType, RarityData>();
+        private readonly Dictionary<RarityType, RarityData> _rarityDataCache = new Dictionary<RarityType, RarityData>();
+        private GameConfig _config;
+        private ProfileManager _profile;
+
+        private GameConfig Config => _config;
+
+        public void Configure(GameConfig config, ProfileManager profile)
+        {
+            _config = config;
+            _profile = profile;
+        }
 
         public void Initialize()
         {
@@ -18,7 +28,7 @@ namespace Ape.Game
 
         private void RebuildRarityCache()
         {
-            rarityDataCache.Clear();
+            _rarityDataCache.Clear();
             if (Config == null)
                 return;
             var rarities = Config.RarityCollection?.Rarities;
@@ -27,18 +37,18 @@ namespace Ape.Game
             for (int i = 0; i < rarities.Length; i++)
             {
                 RarityData rarityData = rarities[i];
-                rarityDataCache.Add(rarityData.Rarity, rarityData);
+                _rarityDataCache[rarityData.Rarity] = rarityData;
             }
         }
 
         public RarityData GetRarityData(RarityType rarity)
         {
-            return rarityDataCache.TryGetValue(rarity, out var data) ? data : default;
+            return _rarityDataCache.TryGetValue(rarity, out var data) ? data : default;
         }
 
         public Color GetRarityColor(RarityType rarity, Color fallback)
         {
-            return rarityDataCache.TryGetValue(rarity, out var data) ? data.Color : fallback;
+            return _rarityDataCache.TryGetValue(rarity, out var data) ? data.Color : fallback;
         }
 
         public void ResetState()
@@ -61,15 +71,15 @@ namespace Ape.Game
             switch (reward.RewardKind)
             {
                 case RewardType.Cash:
-                    App.Profile.AddCash(reward.Amount, saveImmediately);
+                    _profile.AddCash(reward.Amount, saveImmediately);
                     return;
 
                 case RewardType.Gold:
-                    App.Profile.AddGold(reward.Amount, saveImmediately);
+                    _profile.AddGold(reward.Amount, saveImmediately);
                     return;
 
                 default:
-                    App.Profile.AddInventoryReward(reward.RewardId, reward.Amount, saveImmediately);
+                    _profile.AddInventoryReward(reward.RewardId, reward.Amount, saveImmediately);
                     return;
             }
         }
@@ -82,14 +92,14 @@ namespace Ape.Game
             int resolvedCash = Mathf.Max(0, cash);
             if (resolvedCash > 0)
             {
-                App.Profile.AddCash(resolvedCash, saveImmediately: false);
+                _profile.AddCash(resolvedCash, saveImmediately: false);
                 hasChanges = true;
             }
 
             int resolvedGold = Mathf.Max(0, gold);
             if (resolvedGold > 0)
             {
-                App.Profile.AddGold(resolvedGold, saveImmediately: false);
+                _profile.AddGold(resolvedGold, saveImmediately: false);
                 hasChanges = true;
             }
 
@@ -101,18 +111,18 @@ namespace Ape.Game
                     if (!reward.HasReward || !reward.IsInventoryReward || reward.Amount <= 0)
                         continue;
 
-                    App.Profile.AddInventoryReward(reward.RewardId, reward.Amount, saveImmediately: false);
+                    _profile.AddInventoryReward(reward.RewardId, reward.Amount, saveImmediately: false);
                     hasChanges = true;
                 }
             }
 
             if (hasChanges && saveImmediately)
-                App.Profile.Save();
+                _profile.Save();
         }
 
-        private static void EnsureProfile()
+        private void EnsureProfile()
         {
-            if (App.Profile == null)
+            if (_profile == null)
                 throw new InvalidOperationException("RewardManager requires ProfileManager before rewards can be granted.");
         }
     }
