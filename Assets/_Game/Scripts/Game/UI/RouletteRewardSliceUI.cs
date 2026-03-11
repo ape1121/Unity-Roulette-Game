@@ -19,6 +19,7 @@ namespace Ape.Game
         [SerializeField] private bool showDisplayNames = false;
 
         public RectTransform RootRect => _rootRect;
+        public float ReplaceSmokeDuration => _replaceSmokePlayer != null ? _replaceSmokePlayer.Duration : 0f;
 
         public void PlayReplaceSmoke()
         {

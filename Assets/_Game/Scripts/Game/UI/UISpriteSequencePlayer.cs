@@ -14,6 +14,10 @@ namespace Ape.Game
 
         private Coroutine _playRoutine;
 
+        public float Duration => _frames == null || _frames.Length == 0
+            ? 0f
+            : _frames.Length / Mathf.Max(1f, _framesPerSecond);
+
         private void OnDisable()
         {
             Stop();

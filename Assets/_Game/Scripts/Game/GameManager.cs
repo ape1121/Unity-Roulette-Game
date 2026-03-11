@@ -9,7 +9,7 @@ namespace Ape.Game
     public sealed class GameManager : IManager
     {
         private const string SpinRewardSoundName = "roulette_spin_reward";
-        private const string SpinBombSoundName = "roulette_spin_bomb";
+        private const string SpinBombSoundName = "boom";
 
         private readonly RouletteRewardLedger _rewardLedger = new RouletteRewardLedger();
         private readonly List<ResolvedReward> _pendingContinueInventoryRewards = new List<ResolvedReward>();
