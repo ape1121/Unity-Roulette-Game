@@ -186,6 +186,13 @@ namespace Ape.Sounds
     {
         if (!soundDictionary.TryGetValue(soundName, out Sound sound)) return;
 
+        StopSound(sound);
+    }
+
+    public void StopSound(Sound sound)
+    {
+        if (sound == null || sound.Clip == null) return;
+
         for (int i = activeAudioSources.Count - 1; i >= 0; i--)
         {
             AudioSource source = activeAudioSources[i];

@@ -49,6 +49,9 @@ namespace Ape.Game
         [Min(0f)] [SerializeField] private float _tickPitchStep = 0.04f;
         [Min(1)] [SerializeField] private int _tickPitchCycle = 3;
 
+        [Header("Slow Spin Audio")]
+        [Min(0.25f)] [SerializeField] private float _slowSpinExcitementTriggerSlices = 2.5f;
+
         [Header("Spin Button Idle")]
         [SerializeField] private Button _spinButton;
         [SerializeField] private RectTransform _spinButtonPulseTarget;
@@ -238,8 +241,10 @@ namespace Ape.Game
                 _spinButtonIdlePulseDuration,
                 _spinButtonIdlePulseEase,
                 _idleRotationSpeedDegreesPerSecond,
+                _slowSpinExcitementTriggerSlices,
                 _presentationConfig != null ? _presentationConfig.SpinStartSound : null,
                 _presentationConfig != null ? _presentationConfig.SpinTickSound : null,
+                _presentationConfig != null ? _presentationConfig.SpinSlowExcitementSound : null,
                 _presentationConfig != null ? _presentationConfig.SpinStopSound : null,
                 _soundManager);
 

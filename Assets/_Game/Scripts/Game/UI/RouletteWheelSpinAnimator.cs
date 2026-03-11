@@ -17,6 +17,7 @@ namespace Ape.Game
         private SoundManager _soundManager;
         private Sound _spinStartSound;
         private Sound _spinTickSound;
+        private Sound _spinSlowExcitementSound;
         private Sound _spinStopSound;
         private float _indicatorSwayMaxAngle = 15f;
         private float _indicatorSwayFrequency = 12f;
@@ -36,6 +37,7 @@ namespace Ape.Game
         private float _spinButtonIdlePulseDuration = 0.8f;
         private Ease _spinButtonIdlePulseEase = Ease.InOutSine;
         private float _idleRotationSpeedDegreesPerSecond = 8f;
+        private float _slowSpinExcitementTriggerSlices = 2.5f;
 
         private Sequence _spinSequence;
         private Tween _spinButtonIdleTween;
@@ -45,6 +47,7 @@ namespace Ape.Game
         private float _prevAnimatedRotation;
         private Vector3 _spinButtonIdleBaseScale = Vector3.one;
         private bool _hasSpinButtonIdleBaseScale;
+        private bool _isSlowSpinExcitementPlaying;
         private bool _wheelIdleRotationActive;
 
         public float CurrentRotationDegrees => _currentRotationDegrees;
@@ -73,8 +76,10 @@ namespace Ape.Game
             float spinButtonIdlePulseDuration,
             Ease spinButtonIdlePulseEase,
             float idleRotationSpeedDegreesPerSecond,
+            float slowSpinExcitementTriggerSlices,
             Sound spinStartSound,
             Sound spinTickSound,
+            Sound spinSlowExcitementSound,
             Sound spinStopSound,
             SoundManager soundManager)
         {
@@ -85,6 +90,7 @@ namespace Ape.Game
             _soundManager = soundManager;
             _spinStartSound = spinStartSound;
             _spinTickSound = spinTickSound;
+            _spinSlowExcitementSound = spinSlowExcitementSound;
             _spinStopSound = spinStopSound;
             _indicatorSwayMaxAngle = indicatorSwayMaxAngle;
             _indicatorSwayFrequency = indicatorSwayFrequency;
@@ -104,6 +110,7 @@ namespace Ape.Game
             _spinButtonIdlePulseDuration = spinButtonIdlePulseDuration;
             _spinButtonIdlePulseEase = spinButtonIdlePulseEase;
             _idleRotationSpeedDegreesPerSecond = idleRotationSpeedDegreesPerSecond;
+            _slowSpinExcitementTriggerSlices = slowSpinExcitementTriggerSlices;
         }
 
         public void Initialize()
@@ -135,6 +142,7 @@ namespace Ape.Game
                 _spinSequence.Kill();
 
             _spinSequence = null;
+            StopSlowSpinExcitement();
             SetIndicatorRotation(0f);
         }
 
@@ -167,9 +175,11 @@ namespace Ape.Game
 
             float animatedRotation = _currentRotationDegrees;
             int lastTickStep = CalculateTickStep(animatedRotation, sliceAngle);
+            float slowSpinExcitementTriggerDegrees = Mathf.Max(sliceAngle * _slowSpinExcitementTriggerSlices, sliceAngle * 0.5f);
             _prevAnimatedRotation = animatedRotation;
             _indicatorAngle = 0f;
             _indicatorVelocity = 0f;
+            StopSlowSpinExcitement();
 
             PlayUISound(_spinStartSound);
 
@@ -179,6 +189,7 @@ namespace Ape.Game
                 SetRotation(value);
                 UpdateIndicatorSway(value);
                 EmitSliceTicks(ref lastTickStep, sliceAngle, value, wheel.Slices.Count);
+                TryPlaySlowSpinExcitement(endRotation, value, slowSpinExcitementTriggerDegrees);
             };
 
             DOGetter<float> tweenGetter = () => animatedRotation;
@@ -223,10 +234,15 @@ namespace Ape.Game
                 _currentRotationDegrees = endRotation;
                 SetRotation(_currentRotationDegrees);
                 SetIndicatorRotation(0f);
+                StopSlowSpinExcitement();
                 PlayUISound(_spinStopSound);
                 onComplete?.Invoke();
             });
-            _spinSequence.OnKill(() => _spinSequence = null);
+            _spinSequence.OnKill(() =>
+            {
+                StopSlowSpinExcitement();
+                _spinSequence = null;
+            });
         }
 
         public void SetIdlePresentationActive(bool isButtonIdleActive, bool isWheelIdleRotationActive)
@@ -283,6 +299,27 @@ namespace Ape.Game
         private float ComputeRandomizedOvershoot()
         {
             return UnityEngine.Random.Range(_overshootMin, Mathf.Max(_overshootMin, _overshootMax));
+        }
+
+        private void TryPlaySlowSpinExcitement(float endRotation, float currentRotation, float triggerDegrees)
+        {
+            if (_isSlowSpinExcitementPlaying || triggerDegrees <= 0f || _spinSlowExcitementSound == null || _soundManager == null)
+                return;
+
+            if (Mathf.Abs(endRotation - currentRotation) > triggerDegrees)
+                return;
+
+            _isSlowSpinExcitementPlaying = true;
+            PlayUISound(_spinSlowExcitementSound);
+        }
+
+        private void StopSlowSpinExcitement()
+        {
+            if (!_isSlowSpinExcitementPlaying)
+                return;
+
+            _isSlowSpinExcitementPlaying = false;
+            StopUISound(_spinSlowExcitementSound);
         }
 
         private void AppendSettleBounces(
@@ -396,6 +433,14 @@ namespace Ape.Game
                 return;
 
             _soundManager.PlaySound(sound, isUI: true, pitchMultiplier: pitchMultiplier);
+        }
+
+        private void StopUISound(Sound sound)
+        {
+            if (_soundManager == null || sound == null)
+                return;
+
+            _soundManager.StopSound(sound);
         }
     }
 }

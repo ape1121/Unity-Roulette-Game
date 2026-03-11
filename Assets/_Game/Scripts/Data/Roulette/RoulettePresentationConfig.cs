@@ -11,6 +11,7 @@ namespace Ape.Data
         [SerializeField] private Sound _spinBombSound;
         [SerializeField] private Sound _spinStartSound;
         [SerializeField] private Sound _spinTickSound;
+        [SerializeField] private Sound _spinSlowExcitementSound;
         [SerializeField] private Sound _spinStopSound;
         [SerializeField] private Sound _replaceSmokeSound;
 
@@ -21,6 +22,7 @@ namespace Ape.Data
         public Sound SpinBombSound => _spinBombSound;
         public Sound SpinStartSound => _spinStartSound;
         public Sound SpinTickSound => _spinTickSound;
+        public Sound SpinSlowExcitementSound => _spinSlowExcitementSound;
         public Sound SpinStopSound => _spinStopSound;
         public Sound ReplaceSmokeSound => _replaceSmokeSound;
         public string BombDisplayName => _bombDisplayName;
