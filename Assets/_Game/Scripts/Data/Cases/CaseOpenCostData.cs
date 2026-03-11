@@ -15,12 +15,12 @@ namespace Ape.Data
 
         public void Normalize()
         {
-            amount = Mathf.Max(0, amount);
+            amount = Mathf.Max(1, amount);
 
             if (reward == null || amount == 0)
             {
                 reward = null;
-                amount = 0;
+                amount = 1;
                 return;
             }
         }

@@ -15,8 +15,8 @@ MonoBehaviour:
   _caseReward: {fileID: 11400000, guid: 313935c2da39c40c9a4ee02c8c3dd8cc, type: 2}
   _possibleRewards: {fileID: 11400000, guid: 391eec29214eb41ed85233a6fe222601, type: 2}
   _openCost:
-    reward: {fileID: 0}
-    amount: 0
+    reward: {fileID: 11400000, guid: c76ffff7099414095a8d8011b1abe484, type: 2}
+    amount: 1000
   _reelItemCount: 24
   _minimumLandingIndex: 0
   _landingTailCount: 4

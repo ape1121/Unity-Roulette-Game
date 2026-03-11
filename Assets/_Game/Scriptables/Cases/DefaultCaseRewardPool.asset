@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2af693471d54982b5a8bbce3e9b31aa, type: 3}
-  m_Name: CaseRewardPool
+  m_Name: DefaultCaseRewardPool
   m_EditorClassIdentifier: 
   rewards:
   - rewardData: {fileID: 11400000, guid: 839ecad4e484842b8866d8ed1c290cc0, type: 2}
@@ -25,3 +25,7 @@ MonoBehaviour:
     weight: 1
     minAmountOverride: 0
     maxAmountOverride: 0
+  - rewardData: {fileID: 11400000, guid: 2a114cd80501e4fc19fb0c64802ee872, type: 2}
+    weight: 3
+    minAmountOverride: 2000
+    maxAmountOverride: 10000
