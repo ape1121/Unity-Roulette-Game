@@ -18,5 +18,7 @@ MonoBehaviour:
   _spinTickSound: {fileID: 11400000, guid: 644857e9f107a470dad3f086872bd039, type: 2}
   _spinSlowExcitementSound: {fileID: 11400000, guid: 1593d822e22c5482a815de38f92a94fd, type: 2}
   _spinStopSound: {fileID: 11400000, guid: 6be5161d8083d43ffb6611d2b6fe7159, type: 2}
+  _cashOutSound: {fileID: 11400000, guid: 3d2ffff9e0ae945bab4bd22e760c187d, type: 2}
+  _yeetItemSound: {fileID: 11400000, guid: 1f4471a0a893a46d38421936711d9ea2, type: 2}
   _replaceSmokeSound: {fileID: 11400000, guid: 443411883ade745138a2b73ea48efbd1, type: 2}
   _bombDisplayName: Bomb

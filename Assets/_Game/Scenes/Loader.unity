@@ -355,6 +355,30 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3590753503916618788, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590753503916618788, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590753503916618788, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6651775038100001005, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
+      propertyPath: m_Color.b
+      value: 0.16540584
+      objectReference: {fileID: 0}
+    - target: {fileID: 6651775038100001005, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
+      propertyPath: m_Color.g
+      value: 0.5566038
+      objectReference: {fileID: 0}
+    - target: {fileID: 6651775038100001005, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
+      propertyPath: m_Color.r
+      value: 0.3790664
+      objectReference: {fileID: 0}
     - target: {fileID: 8695662127286744182, guid: d266dd8f2bda45c1921b462f790bac23, type: 3}
       propertyPath: m_Name
       value: LoadingScreen

@@ -177,12 +177,15 @@ MonoBehaviour:
   _backglowImage: {fileID: 5915067100646491139}
   _nameText: {fileID: 775116836267728366}
   _amountText: {fileID: 8098706016934647097}
+  _cardButton: {fileID: 6006109068339308360}
   _actionButton: {fileID: 676707643573857708}
   _highlightScaleMultiplier: 1.1
   _highlightGrowDuration: 0.3
   _highlightSettleDuration: 0.4
   _highlightGrowEase: 9
   _highlightSettleEase: 27
+  _yeetClickCountRequired: 3
+  _yeetClickResetDelay: 0.2
 --- !u!114 &6006109068339308360
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,13 +232,13 @@ MonoBehaviour:
       m_Calls: []
   extraImages: []
   pressTarget: {fileID: 0}
-  pressOffset: 2
+  pressOffset: 0
   pressDownDuration: 0.04
   pressUpDuration: 0.08
   pressDownEase: 6
   pressUpEase: 9
   clickSound: 
-  enableHoverScale: 1
+  enableHoverScale: 0
   hoverScaleTarget: {fileID: 0}
   hoverScaleMultiplier: 1.03
   hoverScaleDuration: 0.12

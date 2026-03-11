@@ -1,3 +1,4 @@
+
 using Ape.Sounds;
 using UnityEngine;
 
@@ -13,6 +14,8 @@ namespace Ape.Data
         [SerializeField] private Sound _spinTickSound;
         [SerializeField] private Sound _spinSlowExcitementSound;
         [SerializeField] private Sound _spinStopSound;
+        [SerializeField] private Sound _cashOutSound;
+        [SerializeField] private Sound _yeetItemSound;
         [SerializeField] private Sound _replaceSmokeSound;
 
         [Header("Text")]
@@ -24,6 +27,8 @@ namespace Ape.Data
         public Sound SpinTickSound => _spinTickSound;
         public Sound SpinSlowExcitementSound => _spinSlowExcitementSound;
         public Sound SpinStopSound => _spinStopSound;
+        public Sound CashOutSound => _cashOutSound;
+        public Sound YeetItemSound => _yeetItemSound;
         public Sound ReplaceSmokeSound => _replaceSmokeSound;
         public string BombDisplayName => _bombDisplayName;
     }

@@ -232,7 +232,11 @@ namespace Ape.Game
             if (_gameManager == null)
                 return;
 
-            _gameManager.TryCashOut();
+            if (!_gameManager.TryCashOut())
+                return;
+
+            if (App.Sound != null && _gameManager.Roulette != null && _gameManager.Roulette.PresentationConfig != null)
+                App.Sound.PlaySound(_gameManager.Roulette.PresentationConfig.CashOutSound, isUI: true);
         }
 
         private void HandleContinueClicked()

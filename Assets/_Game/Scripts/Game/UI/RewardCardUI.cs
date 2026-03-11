@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using System;
+using Ape.Core;
+using Ape.Data;
+using Ape.Sounds;
 
 namespace Ape.Game
 {
@@ -15,6 +18,7 @@ namespace Ape.Game
         [SerializeField] private Image _backglowImage;
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _amountText;
+        [SerializeField] private Button _cardButton;
         [SerializeField] private Button _actionButton;
         [Header("Highlight")]
         [SerializeField] private float _highlightScaleMultiplier = 1.06f;
@@ -22,10 +26,19 @@ namespace Ape.Game
         [SerializeField] private float _highlightSettleDuration = 0.2f;
         [SerializeField] private Ease _highlightGrowEase = Ease.OutCubic;
         [SerializeField] private Ease _highlightSettleEase = Ease.OutBack;
+        [Header("Yeet")]
+        [Min(1)] [SerializeField] private int _yeetClickCountRequired = 3;
+        [Min(0.1f)] [SerializeField] private float _yeetClickResetDelay = 0.2f;
 
         private UnityAction _boundAction;
+        private UnityAction _boundCardAction;
+        private Func<bool> _boundYeetAction;
         private Tween _highlightTween;
+        private Tween _yeetResetTween;
         private Vector3 _baseScale = Vector3.one;
+        private ResolvedReward _boundReward;
+        private int _currentYeetClickCount;
+        private float _lastYeetClickTime = float.NegativeInfinity;
 
         private void Awake()
         {
@@ -40,24 +53,42 @@ namespace Ape.Game
         private void OnDisable()
         {
             StopHighlight(resetScale: true);
+            ResetYeetProgress();
         }
 
         private void OnDestroy()
         {
             StopHighlight(resetScale: false);
             ClearAction();
+            ClearCardAction();
         }
 
         private void OnValidate()
         {
-            _actionButton ??= UIReferenceUtility.FindButtonByName(this, "CardAction");
+            _cardButton = UIReferenceUtility.FindButtonByName(this, "CardItem");
+            _actionButton = UIReferenceUtility.FindButtonByName(this, "CardAction");
+        }
+
+        public void YeetItem()
+        {
+            bool wasYeeted = _boundYeetAction != null && _boundYeetAction.Invoke();
+            ResetYeetProgress();
+
+            if (!wasYeeted || App.Sound == null || App.Game == null || App.Game.Roulette == null || App.Game.Roulette.PresentationConfig == null)
+                return;
+
+            Sound yeetItemSound = App.Game.Roulette.PresentationConfig.YeetItemSound;
+            if (yeetItemSound != null)
+                App.Sound.PlaySound(yeetItemSound, isUI: true);
         }
 
         public void Bind(ResolvedReward reward, Color rarityColor)
         {
             bool hasReward = reward.HasReward;
+            _boundReward = reward;
 
             ClearAction();
+            ClearCardAction();
 
             if (_iconImage != null)
             {
@@ -118,6 +149,38 @@ namespace Ape.Game
             _actionButton.gameObject.SetActive(false);
         }
 
+        public void BindYeetAction(Func<bool> onYeet)
+        {
+            ClearCardAction();
+
+            if (_cardButton == null || onYeet == null || !_boundReward.HasReward || _boundReward.RewardKind != RewardType.ItemCard)
+                return;
+
+            _boundYeetAction = onYeet;
+            _boundCardAction = HandleCardClicked;
+            _cardButton.onClick.AddListener(_boundCardAction);
+            _cardButton.gameObject.SetActive(true);
+            _cardButton.interactable = true;
+        }
+
+        public void ClearCardAction()
+        {
+            ResetYeetProgress();
+
+            if (_cardButton == null)
+                return;
+
+            if (_boundCardAction != null)
+            {
+                _cardButton.onClick.RemoveListener(_boundCardAction);
+                _boundCardAction = null;
+            }
+
+            _boundYeetAction = null;
+            _cardButton.interactable = false;
+            _cardButton.gameObject.SetActive(false);
+        }
+
         public void PlayHighlightPulse()
         {
             Transform targetTransform = transform;
@@ -146,6 +209,42 @@ namespace Ape.Game
                 return;
 
             transform.localScale = _baseScale;
+        }
+
+        private void HandleCardClicked()
+        {
+            float currentTime = Time.unscaledTime;
+            if (currentTime - _lastYeetClickTime > _yeetClickResetDelay)
+                _currentYeetClickCount = 0;
+
+            _lastYeetClickTime = currentTime;
+            _currentYeetClickCount++;
+            RestartYeetResetTimer();
+
+            if (_currentYeetClickCount < Mathf.Max(1, _yeetClickCountRequired))
+                return;
+
+            YeetItem();
+        }
+
+        private void RestartYeetResetTimer()
+        {
+            if (_yeetResetTween != null && _yeetResetTween.IsActive())
+                _yeetResetTween.Kill();
+
+            _yeetResetTween = DOVirtual.DelayedCall(_yeetClickResetDelay, ResetYeetProgress)
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
+                .OnKill(() => _yeetResetTween = null);
+        }
+
+        private void ResetYeetProgress()
+        {
+            if (_yeetResetTween != null && _yeetResetTween.IsActive())
+                _yeetResetTween.Kill();
+
+            _yeetResetTween = null;
+            _currentYeetClickCount = 0;
+            _lastYeetClickTime = float.NegativeInfinity;
         }
     }
 }

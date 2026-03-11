@@ -312,8 +312,8 @@ namespace Ape.Game
             if (_rewardCardPrefab == null)
                 return;
 
-            _pendingSectionController.Sync(_pendingRewards, ResolveRarityColor, ConfigureCardAction);
-            _bankedSectionController.Sync(_bankedRewards, ResolveRarityColor, ConfigureCardAction);
+            _pendingSectionController.Sync(_pendingRewards, ResolveRarityColor, ConfigurePendingCard);
+            _bankedSectionController.Sync(_bankedRewards, ResolveRarityColor, ConfigureBankedCard);
         }
 
         private Color ResolveRarityColor(InventoryRewardEntry rewardEntry)
@@ -395,10 +395,12 @@ namespace Ape.Game
                 _emptyStateRoot.SetActive(isVisible);
         }
 
-        private void ConfigureCardAction(RewardCardUI card, InventoryRewardEntry rewardEntry)
+        private void ConfigurePendingCard(RewardCardUI card, InventoryRewardEntry rewardEntry)
         {
             if (card == null)
                 return;
+
+            card.ClearCardAction();
 
             if (!rewardEntry.CanOpenCase || _caseOpenUI == null || _gameManager == null || _gameManager.Inventory == null)
             {
@@ -408,6 +410,38 @@ namespace Ape.Game
 
             string rewardId = rewardEntry.RewardId;
             card.BindAction(() => HandleCaseActionClicked(rewardId));
+        }
+
+        private void ConfigureBankedCard(RewardCardUI card, InventoryRewardEntry rewardEntry)
+        {
+            if (card == null)
+                return;
+
+            if (rewardEntry.RewardKind == RewardType.ItemCard && _gameManager != null && _gameManager.Inventory != null)
+            {
+                string rewardId = rewardEntry.RewardId;
+                card.BindYeetAction(() => HandleYeetItemRequested(rewardId));
+            }
+            else
+            {
+                card.ClearCardAction();
+            }
+
+            if (!rewardEntry.CanOpenCase || _caseOpenUI == null || _gameManager == null || _gameManager.Inventory == null)
+            {
+                card.ClearAction();
+                return;
+            }
+
+            string caseRewardId = rewardEntry.RewardId;
+            card.BindAction(() => HandleCaseActionClicked(caseRewardId));
+        }
+
+        private bool HandleYeetItemRequested(string rewardId)
+        {
+            return _gameManager != null
+                && _gameManager.Inventory != null
+                && _gameManager.Inventory.TryYeetBankedItem(rewardId, 1);
         }
 
         private void HandleCaseActionClicked(string rewardId)

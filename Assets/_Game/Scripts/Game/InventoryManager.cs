@@ -179,6 +179,26 @@ namespace Ape.Game
             destination.Sort(CompareRewards);
         }
 
+        public bool TryYeetBankedItem(string rewardId, int amount)
+        {
+            EnsureProfile();
+
+            if (string.IsNullOrWhiteSpace(rewardId))
+                return false;
+
+            int resolvedAmount = Mathf.Max(0, amount);
+            if (resolvedAmount <= 0)
+                return false;
+
+            if (_config == null || !_config.TryGetReward(rewardId, out RewardData rewardData) || rewardData == null)
+                return false;
+
+            if (rewardData.Kind != RewardType.ItemCard)
+                return false;
+
+            return _profile.TrySpendInventoryReward(rewardId, resolvedAmount);
+        }
+
         private static int CompareRewards(InventoryRewardEntry left, InventoryRewardEntry right)
         {
             int rarityComparison = right.Rarity.CompareTo(left.Rarity);
