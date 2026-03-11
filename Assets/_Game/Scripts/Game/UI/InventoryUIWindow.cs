@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Ape.Core;
-using Ape.Data;
 using Ape.Game.UI;
 using Ape.Profile;
 using DG.Tweening;
@@ -38,6 +37,7 @@ namespace Ape.Game
         [SerializeField] private Transform _bankedCardsContentRoot;
         [SerializeField] private GameObject _emptyStateRoot;
         [SerializeField] private RewardCardUI _rewardCardPrefab;
+        [SerializeField] private CaseOpenUI _caseOpenUI;
 
         [Header("Animation")]
         [SerializeField] private float _fadeDuration = 0.18f;
@@ -49,8 +49,8 @@ namespace Ape.Game
 
         private readonly List<RewardCardUI> _pendingCards = new List<RewardCardUI>();
         private readonly List<RewardCardUI> _bankedCards = new List<RewardCardUI>();
-        private readonly List<ResolvedReward> _pendingRewards = new List<ResolvedReward>();
-        private readonly List<ResolvedReward> _bankedRewards = new List<ResolvedReward>();
+        private readonly List<InventoryRewardEntry> _pendingRewards = new List<InventoryRewardEntry>();
+        private readonly List<InventoryRewardEntry> _bankedRewards = new List<InventoryRewardEntry>();
 
         private Sequence _transitionSequence;
         private bool _isProfileSubscribed;
@@ -103,6 +103,7 @@ namespace Ape.Game
         private void OnDisable()
         {
             KillTransition();
+            StopCaseOpenPresentation(refresh: false);
             UnsubscribeFromSources();
         }
 
@@ -110,6 +111,7 @@ namespace Ape.Game
         {
             _windowRoot ??= GetComponent<RectTransform>();
             _windowCanvasGroup ??= GetComponent<CanvasGroup>();
+            _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
             ResolveButtonReferences();
         }
 
@@ -156,6 +158,7 @@ namespace Ape.Game
 
             _isOpen = true;
             SetInteractionState(true);
+            SetCaseOpenUiVisible(false);
             PlayTransition(show: true, instant);
         }
 
@@ -165,6 +168,7 @@ namespace Ape.Game
                 return;
 
             CacheReferences();
+            StopCaseOpenPresentation(refresh: false);
 
             _isOpen = false;
             SetInteractionState(false);
@@ -240,6 +244,7 @@ namespace Ape.Game
         {
             _windowRoot ??= GetComponent<RectTransform>();
             _windowCanvasGroup ??= GetComponent<CanvasGroup>();
+            _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
             _resolvedPendingCardsContentRoot = ResolveCardsContentRoot(_pendingCardsContentRoot, _pendingContentRoot, _resolvedPendingCardsContentRoot);
             _resolvedBankedCardsContentRoot = ResolveCardsContentRoot(_bankedCardsContentRoot, _bankedContentRoot, _resolvedBankedCardsContentRoot);
         }
@@ -382,23 +387,10 @@ namespace Ape.Game
         {
             _pendingRewards.Clear();
 
-            if (App.Game == null)
+            if (App.Game == null || App.Game.Inventory == null)
                 return CalculateRewardsSignature(_pendingRewards);
 
-            IReadOnlyList<ResolvedReward> rewards = App.Game.PendingInventoryRewards;
-            if (rewards == null)
-                return CalculateRewardsSignature(_pendingRewards);
-
-            for (int i = 0; i < rewards.Count; i++)
-            {
-                ResolvedReward reward = rewards[i];
-                if (!reward.HasReward || !reward.IsInventoryReward || reward.Amount <= 0)
-                    continue;
-
-                _pendingRewards.Add(reward);
-            }
-
-            _pendingRewards.Sort(CompareRewards);
+            App.Game.Inventory.GetPendingRewards(_pendingRewards);
             return CalculateRewardsSignature(_pendingRewards);
         }
 
@@ -406,39 +398,15 @@ namespace Ape.Game
         {
             _bankedRewards.Clear();
 
-            if (App.Profile == null)
+            if (App.Game == null || App.Game.Inventory == null)
                 return CalculateRewardsSignature(_bankedRewards);
 
-            GameConfig gameConfig = App.Config != null ? App.Config.GameConfig : null;
-            IReadOnlyList<RewardInventoryEntry> inventory = App.Profile.Inventory;
-
-            if (gameConfig == null || inventory == null)
-                return CalculateRewardsSignature(_bankedRewards);
-
-            for (int i = 0; i < inventory.Count; i++)
-            {
-                RewardInventoryEntry entry = inventory[i];
-                if (entry.Amount <= 0)
-                    continue;
-
-                if (!gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
-                {
-                    Debug.LogWarning($"Reward inventory entry '{entry.RewardId}' could not be resolved from the reward catalog.", this);
-                    continue;
-                }
-
-                if (rewardData.Kind == RewardType.Cash || rewardData.Kind == RewardType.Gold)
-                    continue;
-
-                _bankedRewards.Add(new ResolvedReward(rewardData, entry.Amount));
-            }
-
-            _bankedRewards.Sort(CompareRewards);
+            App.Game.Inventory.GetBankedRewards(_bankedRewards);
             return CalculateRewardsSignature(_bankedRewards);
         }
 
         private bool SyncSection(
-            List<ResolvedReward> rewards,
+            List<InventoryRewardEntry> rewards,
             List<RewardCardUI> cards,
             Transform contentRoot)
         {
@@ -451,19 +419,24 @@ namespace Ape.Game
                 if (card == null)
                     continue;
 
-                ResolvedReward reward = rewards[i];
+                InventoryRewardEntry rewardEntry = rewards[i];
+                ResolvedReward reward = rewardEntry.Reward;
                 Color rarityColor = reward.HasReward && App.Game != null
                     ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
                     : Color.white;
 
                 card.Bind(reward, rarityColor);
+                ConfigureCardAction(card, rewardEntry);
                 card.gameObject.SetActive(true);
             }
 
             for (int i = rewards.Count; i < cards.Count; i++)
             {
                 if (cards[i] != null)
+                {
+                    cards[i].ClearAction();
                     cards[i].gameObject.SetActive(false);
+                }
             }
 
             return true;
@@ -600,7 +573,7 @@ namespace Ape.Game
                 _tabTitleText.text = showPending ? _pendingTabTitle : _bankedTabTitle;
         }
 
-        private static int GetRewardAmountTotal(List<ResolvedReward> rewards)
+        private static int GetRewardAmountTotal(List<InventoryRewardEntry> rewards)
         {
             int total = 0;
 
@@ -616,7 +589,67 @@ namespace Ape.Game
                 button.interactable = isInteractable;
         }
 
-        private static int CalculateRewardsSignature(List<ResolvedReward> rewards)
+        private void ConfigureCardAction(RewardCardUI card, InventoryRewardEntry rewardEntry)
+        {
+            if (card == null)
+                return;
+
+            if (!rewardEntry.CanOpenCase || _caseOpenUI == null || App.Game == null || App.Game.Inventory == null)
+            {
+                card.ClearAction();
+                return;
+            }
+
+            string rewardId = rewardEntry.RewardId;
+            card.BindAction(() => HandleCaseActionClicked(rewardId));
+        }
+
+        private void HandleCaseActionClicked(string rewardId)
+        {
+            if (string.IsNullOrWhiteSpace(rewardId)
+                || _caseOpenUI == null
+                || App.Game == null
+                || App.Game.Inventory == null
+                || !App.Game.Inventory.Cases.TryOpenCase(rewardId, out CaseOpenResult caseOpenResult))
+                return;
+
+            SetCaseOpenUiVisible(true);
+            Refresh();
+            _caseOpenUI.Play(caseOpenResult, HandleCaseOpenCompleted);
+        }
+
+        private void HandleCaseOpenCompleted(CaseOpenResult _)
+        {
+            CompleteCasePresentation(refresh: true);
+        }
+
+        private void StopCaseOpenPresentation(bool refresh)
+        {
+            if (_caseOpenUI != null)
+            {
+                _caseOpenUI.StopAnimation();
+                SetCaseOpenUiVisible(false);
+            }
+
+            CompleteCasePresentation(refresh);
+        }
+
+        private void CompleteCasePresentation(bool refresh)
+        {
+            if (App.Game != null && App.Game.Inventory != null)
+                App.Game.Inventory.Cases.CompletePresentation();
+
+            if (refresh && isActiveAndEnabled)
+                Refresh();
+        }
+
+        private void SetCaseOpenUiVisible(bool isVisible)
+        {
+            if (_caseOpenUI != null)
+                _caseOpenUI.gameObject.SetActive(isVisible);
+        }
+
+        private static int CalculateRewardsSignature(List<InventoryRewardEntry> rewards)
         {
             unchecked
             {
@@ -624,9 +657,10 @@ namespace Ape.Game
 
                 for (int i = 0; i < rewards.Count; i++)
                 {
-                    ResolvedReward reward = rewards[i];
+                    InventoryRewardEntry reward = rewards[i];
                     hash = (hash * 31) + reward.Amount;
                     hash = (hash * 31) + (int)reward.Rarity;
+                    hash = (hash * 31) + (int)reward.Action;
                     hash = (hash * 31) + (reward.RewardId != null ? reward.RewardId.GetHashCode() : 0);
                 }
 
@@ -650,19 +684,6 @@ namespace Ape.Game
                 return scrollRect.content;
 
             return sectionRoot;
-        }
-
-        private static int CompareRewards(ResolvedReward left, ResolvedReward right)
-        {
-            int rarityComparison = right.Rarity.CompareTo(left.Rarity);
-            if (rarityComparison != 0)
-                return rarityComparison;
-
-            int nameComparison = string.Compare(left.RewardName, right.RewardName, System.StringComparison.OrdinalIgnoreCase);
-            if (nameComparison != 0)
-                return nameComparison;
-
-            return right.Amount.CompareTo(left.Amount);
         }
     }
 }

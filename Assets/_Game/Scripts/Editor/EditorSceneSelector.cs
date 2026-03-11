@@ -39,7 +39,7 @@ namespace Ape.Editor
     private int hierarchyRestoreAttemptsRemaining;
     private int selectionRestoreAttemptsRemaining;
 
-    [MenuItem("Tools/VoxelSim/Scenes/Scene Selector")]
+    [MenuItem("Tools/Critical Shot/Scenes/Scene Selector")]
     private static void OpenWindow()
     {
         EditorSceneSelector window = GetWindow<EditorSceneSelector>("Scene Selector");

@@ -757,7 +757,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1685122154259678947, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_Name
-      value: CaseOpenButton
+      value: CardActionButton
       objectReference: {fileID: 0}
     - target: {fileID: 1685122154259678947, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_IsActive

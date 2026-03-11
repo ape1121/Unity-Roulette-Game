@@ -27,6 +27,7 @@ namespace Ape.Game
 
         public GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
         public RewardManager Rewards { get; } = new RewardManager();
+        public InventoryManager Inventory { get; } = new InventoryManager();
         public GameSceneDependencies SceneDependencies { get; private set; }
         public bool IsInitialized { get; private set; }
         public bool IsSceneBound { get; private set; }
@@ -61,6 +62,7 @@ namespace Ape.Game
             ResetManagerState();
             IsInitialized = true;
             Rewards.Initialize();
+            Inventory.Initialize(Rewards);
         }
 
         public void PrepareForSceneLoad()
@@ -441,6 +443,7 @@ namespace Ape.Game
             _runCounter = 0;
             _runRandom = null;
             Rewards.ResetState();
+            Inventory.ResetState();
             ResetRunState();
         }
 
