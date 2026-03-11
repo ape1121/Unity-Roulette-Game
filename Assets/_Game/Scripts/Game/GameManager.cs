@@ -21,14 +21,21 @@ namespace Ape.Game
         private int _pendingContinueGold;
         private int _runCounter;
         private bool _hasPendingSpinResult;
+        private RouletteConfig RouletteConfig => Config != null ? Config.RouletteConfig : null;
+
 
         public event Action<GameStateSnapshot> StateChanged;
         public event Action<RouletteSpinResult> SpinResolved;
+        public event Action<GameWheelBuildRequest> WheelBuildRequested;
+        public event Action<GameSpinPresentationRequest> SpinPresentationRequested;
+        public event Action<GameSpinRevealPresentationRequest> SpinRevealPresentationRequested;
+        public event Action<GameFeedbackRequest> FeedbackRequested;
+        public event Action WheelAnimationStopRequested;
+        public event Action WheelRotationResetRequested;
 
         public GameConfig Config => App.Config != null ? App.Config.GameConfig : null;
         public RewardManager Rewards { get; } = new RewardManager();
         public InventoryManager Inventory { get; } = new InventoryManager();
-        public GameSceneDependencies SceneDependencies { get; private set; }
         public bool IsInitialized { get; private set; }
         public bool IsSceneBound { get; private set; }
         public bool IsGameStarted { get; private set; }
@@ -44,7 +51,6 @@ namespace Ape.Game
         public int PendingGold => _rewardLedger.PendingGold;
         public int SavedCash => App.Profile != null ? App.Profile.CurrentData.Cash : 0;
         public int SavedGold => App.Profile != null ? App.Profile.CurrentData.Gold : 0;
-        private RouletteConfig RouletteConfig => Config != null ? Config.RouletteConfig : null;
         public bool CanSpin => IsGameStarted && Phase == GameRunPhase.AwaitingSpin && ActiveWheel != null && ActiveWheel.Slices.Count > 0;
         public bool CanCashOut => IsGameStarted && Config != null && Phase == GameRunPhase.AwaitingSpin && Config.CanCashOutAtZone(CurrentZone);
         public bool CanContinue => IsGameStarted
@@ -70,27 +76,21 @@ namespace Ape.Game
             if (!IsInitialized)
                 throw new InvalidOperationException("GameManager must be initialized before preparing for scene load.");
 
-            StopWheelAnimation();
             ResetWheelRotation();
-            SceneDependencies = default;
             IsSceneBound = false;
             IsGameStarted = false;
             ResetRunState();
         }
 
-        public void BindScene(GameSceneDependencies sceneDependencies)
+        public void BindScene()
         {
             if (!IsInitialized)
-                throw new InvalidOperationException("GameManager must be initialized before scene dependencies are bound.");
+                throw new InvalidOperationException("GameManager must be initialized before the scene can be bound.");
 
-            if (sceneDependencies.MainCamera == null)
-                throw new MissingReferenceException("Game scene dependencies require a main camera reference.");
-
-            SceneDependencies = sceneDependencies;
             IsSceneBound = true;
 
-            if (ActiveWheel != null && SceneDependencies.RouletteWheel != null)
-                SceneDependencies.RouletteWheel.BuildWheel(ActiveWheel, preserveRotation: true);
+            if (ActiveWheel != null)
+                RequestWheelBuild(preserveRotation: true);
         }
 
         public void StartGame()
@@ -125,24 +125,13 @@ namespace Ape.Game
             if (!CanSpin)
                 return false;
 
-            PlaySpinStartUiShake();
+            RequestFeedback(GameFeedbackRequest.CreateSpinStartShake());
             spinResult = ResolveSpin();
             LastSpinResult = spinResult;
             _pendingSpinResult = spinResult;
             _hasPendingSpinResult = true;
             Phase = GameRunPhase.Spinning;
-
-            if (SceneDependencies.RouletteWheel != null)
-            {
-                SceneDependencies.RouletteWheel.PlaySpin(
-                    ActiveWheel,
-                    spinResult.SelectedSliceIndex,
-                    FinalizePendingSpin);
-            }
-            else
-            {
-                FinalizePendingSpin();
-            }
+            RequestSpinPresentation(ActiveWheel, spinResult.SelectedSliceIndex, FinalizePendingSpin);
 
             PublishStateChanged();
             return true;
@@ -192,7 +181,7 @@ namespace Ape.Game
             {
                 Phase = GameRunPhase.BlockedByBuyIn;
                 ActiveWheel = null;
-                SyncWheelToScene(preserveRotation: true);
+                RequestWheelBuild(preserveRotation: true);
                 PublishStateChanged();
                 return;
             }
@@ -211,7 +200,7 @@ namespace Ape.Game
             CurrentZoneType = ActiveWheel.Definition.ZoneType;
 
             if (syncToScene)
-                SyncWheelToScene(preserveRotation);
+                RequestWheelBuild(preserveRotation);
         }
 
         private RouletteSpinResult ResolveSpin()
@@ -245,17 +234,17 @@ namespace Ape.Game
         {
             if (spinResult.WasBomb)
             {
-                PlayBombUiShake();
+                RequestFeedback(GameFeedbackRequest.CreateBombShake());
                 CaptureContinueState();
                 _rewardLedger.Clear();
                 Phase = GameRunPhase.Busted;
-                PlaySound(SpinBombSoundName);
+                RequestFeedback(GameFeedbackRequest.CreateSound(SpinBombSoundName));
                 return;
             }
 
             ClearPendingContinueState();
             _rewardLedger.AddReward(spinResult.SelectedSlice.Reward);
-            PlaySound(SpinRewardSoundName);
+            RequestFeedback(GameFeedbackRequest.CreateSound(SpinRewardSoundName));
 
             if (spinResult.CompletedRun)
             {
@@ -358,55 +347,51 @@ namespace Ape.Game
             return RouletteConfig;
         }
 
-        private void SyncWheelToScene(bool preserveRotation = true)
+        private void RequestWheelBuild(bool preserveRotation = true)
         {
-            if (SceneDependencies.RouletteWheel != null)
-                SceneDependencies.RouletteWheel.BuildWheel(ActiveWheel, preserveRotation);
+            WheelBuildRequested?.Invoke(new GameWheelBuildRequest(ActiveWheel, preserveRotation));
         }
 
-        private void StopWheelAnimation()
+        private void RequestWheelAnimationStop()
         {
-            if (SceneDependencies.RouletteWheel != null)
-                SceneDependencies.RouletteWheel.StopAnimation();
+            WheelAnimationStopRequested?.Invoke();
         }
 
         private void ResetWheelRotation()
         {
-            if (SceneDependencies.RouletteWheel != null)
-                SceneDependencies.RouletteWheel.ResetWheelRotation();
+            WheelRotationResetRequested?.Invoke();
         }
 
-        private void PlaySound(string soundName, float pitchMultiplier = 1f)
+        private void RequestSpinPresentation(RouletteResolvedWheel wheel, int targetSliceIndex, Action onCompleted)
         {
-            if (App.Sound == null)
+            if (SpinPresentationRequested == null)
+            {
+                onCompleted?.Invoke();
                 return;
+            }
 
-            App.Sound.PlaySound(soundName, isUI: true, pitchMultiplier: pitchMultiplier);
+            SpinPresentationRequested.Invoke(new GameSpinPresentationRequest(wheel, targetSliceIndex, onCompleted));
         }
 
-        private void PlaySpinStartUiShake()
+        private void RequestFeedback(GameFeedbackRequest request)
         {
-            SceneDependencies.UIManager?.Effects?.PlaySpinStartShake();
-        }
-
-        private void PlayBombUiShake()
-        {
-            SceneDependencies.UIManager?.Effects?.PlayBombShake();
+            FeedbackRequested?.Invoke(request);
         }
 
         private void PlayPendingWheelReveal(RouletteSpinResult spinResult)
         {
-            if (SceneDependencies.RouletteWheel == null)
+            if (SpinRevealPresentationRequested == null)
             {
-                SyncWheelToScene(preserveRotation: true);
+                RequestWheelBuild(preserveRotation: true);
+                PublishStateChanged();
                 return;
             }
 
-            SceneDependencies.RouletteWheel.PlayPostSpinReveal(
+            SpinRevealPresentationRequested.Invoke(new GameSpinRevealPresentationRequest(
                 ActiveWheel,
                 spinResult.SelectedSliceIndex,
                 spinResult.SelectedSlice,
-                PublishStateChanged);
+                PublishStateChanged));
         }
 
         private void PublishStateChanged()
@@ -436,7 +421,6 @@ namespace Ape.Game
 
         private void ResetManagerState()
         {
-            SceneDependencies = default;
             IsInitialized = false;
             IsSceneBound = false;
             IsGameStarted = false;
@@ -449,7 +433,7 @@ namespace Ape.Game
 
         private void ResetRunState()
         {
-            StopWheelAnimation();
+            RequestWheelAnimationStop();
             Phase = GameRunPhase.None;
             CurrentZone = 0;
             CurrentZoneType = RouletteZoneType.Normal;

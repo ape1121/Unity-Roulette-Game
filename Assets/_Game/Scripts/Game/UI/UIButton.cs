@@ -71,10 +71,7 @@ public class UIButton : Button
     protected override void DoStateTransition(SelectionState state, bool instant)
     {
         SelectionState visualState = ResolveVisualState(state);
-
-        // Preserve existing button behavior
         base.DoStateTransition(visualState, instant);
-
         ApplyExtraImageTint(visualState, instant);
         HandlePressAnimation(state, instant);
         UpdateHoverScale(instant);
@@ -140,11 +137,10 @@ public class UIButton : Button
 
     private void ApplyExtraImageTint(SelectionState state, bool instant)
     {
-        // Only apply color tints when the button's transition is ColorTint
         if (transition != Transition.ColorTint || extraImages == null || extraImages.Length == 0)
             return;
 
-        var cb = colors; // ColorBlock
+        var cb = colors;
         Color tintColor;
         switch (state)
         {

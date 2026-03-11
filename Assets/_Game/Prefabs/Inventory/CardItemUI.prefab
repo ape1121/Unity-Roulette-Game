@@ -231,7 +231,7 @@ MonoBehaviour:
   clickSound: 
   enableHoverScale: 1
   hoverScaleTarget: {fileID: 0}
-  hoverScaleMultiplier: 1.06
+  hoverScaleMultiplier: 1.03
   hoverScaleDuration: 0.12
   hoverScaleEase: 9
 --- !u!1 &3031845375980289840

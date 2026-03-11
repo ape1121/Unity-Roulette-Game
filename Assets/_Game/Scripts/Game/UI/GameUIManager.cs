@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Ape.Core;
 using Ape.Data;
 using Ape.Profile;
@@ -13,14 +12,6 @@ namespace Ape.Game
     [DisallowMultipleComponent]
     public sealed class GameUIManager : MonoBehaviour
     {
-        private enum OverlayRootState
-        {
-            Hidden,
-            Showing,
-            Visible,
-            Hiding
-        }
-
         [Header("Buttons")]
         [SerializeField] private Button _spinButton;
         [SerializeField] private Button _cashOutButton;
@@ -58,25 +49,23 @@ namespace Ape.Game
         [FormerlySerializedAs("_inventoryList")]
         [SerializeField] private InventoryUIWindow _inventoryWindow;
 
+        [Header("Presentation")]
+        [SerializeField] private RouletteWheelUI _rouletteWheel;
+
         [Header("Feedback")]
         [SerializeField] private GameUIEffects _effects;
 
+        private readonly GameUIActionButtonsController _actionButtonsController = new GameUIActionButtonsController();
+        private readonly GameUIHudPresenter _hudPresenter = new GameUIHudPresenter();
+        private readonly GameUIOverlayController _overlayController = new GameUIOverlayController();
         private bool _gameSubscribed;
         private bool _profileSubscribed;
-        private readonly Dictionary<RectTransform, Tween> _overlayTweens = new Dictionary<RectTransform, Tween>();
-        private readonly Dictionary<RectTransform, OverlayRootState> _overlayRootStates = new Dictionary<RectTransform, OverlayRootState>();
-        private readonly Dictionary<RectTransform, Vector2> _overlayShownAnchoredPositions = new Dictionary<RectTransform, Vector2>();
-        private readonly Dictionary<RectTransform, Vector2> _companionRootBaseAnchoredPositions = new Dictionary<RectTransform, Vector2>();
-        private RectTransform _desiredOverlayRoot;
 
         public GameUIEffects Effects => _effects;
 
         private void OnEnable()
         {
-            InitializeSlidingRoot(_gameOverRoot);
-            InitializeSlidingRoot(_cashOutOverlayRoot);
-            InitializeCompanionRoots(_overlaySlideCompanionRoots);
-
+            ConfigureControllers();
             BindButtons();
             SubscribeToManagers();
             RefreshAll();
@@ -84,7 +73,7 @@ namespace Ape.Game
 
         private void OnDisable()
         {
-            KillOverlayTweens();
+            _overlayController.KillTweens();
             UnsubscribeFromManagers();
             UnbindButtons();
         }
@@ -93,7 +82,43 @@ namespace Ape.Game
         {
             _effects ??= GetComponent<GameUIEffects>();
             _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
+            _rouletteWheel ??= GetComponentInChildren<RouletteWheelUI>(true);
             ResolveButtonReferences();
+        }
+
+        private void ConfigureControllers()
+        {
+            _actionButtonsController.Configure(
+                _spinButton,
+                _cashOutButton,
+                _continueButton,
+                _restartButton,
+                _inventoryButton,
+                _continueButtonLabel);
+
+            _hudPresenter.Configure(
+                _zoneValueText,
+                _zoneTypeValueText,
+                _phaseValueText,
+                _statusValueText,
+                _pendingCashValueText,
+                _pendingGoldValueText,
+                _pendingItemsValueText,
+                _savedCashValueText,
+                _savedGoldValueText,
+                _inventoryPendingBadgeRoot,
+                _inventoryPendingCountText);
+
+            _overlayController.Configure(
+                _gameOverRoot,
+                _cashOutOverlayRoot,
+                _overlayShownPositionSource,
+                _overlaySlideCompanionRoots,
+                _gameOverSlideDuration,
+                _gameOverSlideEase,
+                _gameOverHideEase);
+
+            _overlayController.Initialize();
         }
 
         private void ResolveButtonReferences()
@@ -107,40 +132,22 @@ namespace Ape.Game
 
         private void BindButtons()
         {
-            UnbindButtons();
-
-            if (_spinButton != null)
-                _spinButton.onClick.AddListener(HandleSpinClicked);
-
-            if (_cashOutButton != null)
-                _cashOutButton.onClick.AddListener(HandleCashOutClicked);
-
-            if (_continueButton != null)
-                _continueButton.onClick.AddListener(HandleContinueClicked);
-
-            if (_restartButton != null)
-                _restartButton.onClick.AddListener(HandleRestartClicked);
-
-            if (_inventoryButton != null)
-                _inventoryButton.onClick.AddListener(HandleInventoryClicked);
+            _actionButtonsController.Bind(
+                HandleSpinClicked,
+                HandleCashOutClicked,
+                HandleContinueClicked,
+                HandleRestartClicked,
+                HandleInventoryClicked);
         }
 
         private void UnbindButtons()
         {
-            if (_spinButton != null)
-                _spinButton.onClick.RemoveListener(HandleSpinClicked);
-
-            if (_cashOutButton != null)
-                _cashOutButton.onClick.RemoveListener(HandleCashOutClicked);
-
-            if (_continueButton != null)
-                _continueButton.onClick.RemoveListener(HandleContinueClicked);
-
-            if (_restartButton != null)
-                _restartButton.onClick.RemoveListener(HandleRestartClicked);
-
-            if (_inventoryButton != null)
-                _inventoryButton.onClick.RemoveListener(HandleInventoryClicked);
+            _actionButtonsController.Unbind(
+                HandleSpinClicked,
+                HandleCashOutClicked,
+                HandleContinueClicked,
+                HandleRestartClicked,
+                HandleInventoryClicked);
         }
 
         private void SubscribeToManagers()
@@ -241,27 +248,10 @@ namespace Ape.Game
 
         private void RefreshState(GameStateSnapshot state, bool instant)
         {
-            SetText(_zoneValueText, state.CurrentZone > 0 ? "FLOOR " + state.CurrentZone.ToString() : "-");
-            SetText(_zoneTypeValueText, string.Empty);
-            SetText(_phaseValueText, BuildPhaseLabel(state));
-            SetText(_pendingCashValueText, state.PendingCash.ToString());
-            SetText(_pendingGoldValueText, state.PendingGold.ToString());
-            SetText(_pendingItemsValueText, FormatPendingItems(state));
-            SetText(_savedCashValueText, state.SavedCash.ToString());
-            SetText(_savedGoldValueText, state.SavedGold.ToString());
-            SetText(_statusValueText, BuildStatusLabel(state));
-            RefreshInventoryPendingUi(state.PendingInventoryRewardCount);
+            _hudPresenter.Refresh(state);
 
-            if (_zoneTypeValueText != null)
-                _zoneTypeValueText.gameObject.SetActive(false);
-
-            SetButtonInteractable(_spinButton, state.CanSpin && !IsSpinRevealPending());
-            SetButtonInteractable(_cashOutButton, state.CanCashOut);
-            SetButtonInteractable(_continueButton, state.CanContinue);
-            SetButtonInteractable(_restartButton, state.CanRestart);
-            SetWheelIdlePresentationState(state.CanSpin && !IsSpinRevealPending(), IsBeforeFirstSpinOfRun());
-
-            SetText(_continueButtonLabel, BuildContinueButtonLabel());
+            bool isSpinRevealPending = IsSpinRevealPending();
+            SetWheelIdlePresentationState(state.CanSpin && !isSpinRevealPending, IsBeforeFirstSpinOfRun());
 
             bool isGameOver = state.Phase == GameRunPhase.Busted
                               || state.Phase == GameRunPhase.CashedOut
@@ -274,21 +264,22 @@ namespace Ape.Game
                                       || (isGameOver && cashOutAnytimeEnabled);
             RectTransform desiredOverlayRoot = ResolveDesiredOverlayRoot(isGameOver, showCashOutOverlay);
 
-            bool showContinueButton = ResolveContinueButtonVisibility(state.CanContinue, desiredOverlayRoot, instant);
-            SetButtonVisible(_continueButton, showContinueButton);
+            bool showContinueButton = _overlayController.ResolveContinueButtonVisibility(
+                _continueButton,
+                state.CanContinue,
+                desiredOverlayRoot,
+                instant);
 
-            UpdateOverlaySlot(desiredOverlayRoot, instant);
-            UpdateCompanionRoots(desiredOverlayRoot != null, desiredOverlayRoot, instant);
-        }
+            _actionButtonsController.ApplyState(
+                state.CanSpin && !isSpinRevealPending,
+                state.CanCashOut,
+                state.CanContinue,
+                state.CanRestart,
+                showContinueButton,
+                BuildContinueButtonLabel());
 
-        private void RefreshInventoryPendingUi(int pendingItemCount)
-        {
-            int clampedPendingItemCount = Mathf.Max(0, pendingItemCount);
-
-            if (_inventoryPendingBadgeRoot != null)
-                _inventoryPendingBadgeRoot.SetActive(clampedPendingItemCount > 0);
-
-            SetText(_inventoryPendingCountText, clampedPendingItemCount.ToString());
+            _overlayController.Update(desiredOverlayRoot, instant);
+            _overlayController.UpdateCompanionRoots(desiredOverlayRoot != null, desiredOverlayRoot, instant);
         }
 
         private string BuildContinueButtonLabel()
@@ -298,78 +289,6 @@ namespace Ape.Game
 
             int continueCost = Mathf.Max(0, App.Game.Config.continueCost);
             return continueCost > 0 ? $"CONTINUE ({continueCost} CASH)" : "CONTINUE";
-        }
-
-        private static string FormatPendingItems(GameStateSnapshot state)
-        {
-            return state.PendingInventoryRewardKinds > 0
-                ? $"{state.PendingInventoryRewardCount} ({state.PendingInventoryRewardKinds} kinds)"
-                : "0";
-        }
-
-        private static string BuildStatusLabel(GameStateSnapshot state)
-        {
-            switch (state.Phase)
-            {
-                case GameRunPhase.AwaitingSpin:
-                    return state.CanCashOut
-                        ? "Spin again or cash out."
-                        : "Spin to continue the run.";
-
-                case GameRunPhase.Spinning:
-                    return "Wheel spinning...";
-
-                case GameRunPhase.Busted:
-                    return state.CanContinue
-                        ? "Bomb hit. Continue or restart."
-                        : "Bomb hit. Restart to begin a new run.";
-
-                case GameRunPhase.CashedOut:
-                    return "Rewards banked. Restart for a new run.";
-
-                case GameRunPhase.Completed:
-                    return "Run complete. Rewards banked.";
-
-                case GameRunPhase.BlockedByBuyIn:
-                    return "Not enough cash for the buy-in.";
-
-                default:
-                    return "Waiting for scene bootstrap.";
-            }
-        }
-
-        private static string BuildSpinResultLabel(RouletteSpinResult spinResult)
-        {
-            if (spinResult.SelectedSlice.SliceRule == null)
-                return "-";
-
-            if (spinResult.WasBomb)
-                return "Bomb";
-
-            if (!spinResult.SelectedSlice.Reward.HasReward)
-                return spinResult.SelectedSlice.DisplayName;
-
-            return $"{spinResult.SelectedSlice.Reward.RewardName} {spinResult.SelectedSlice.Reward.FormatAmountLabel()}";
-        }
-
-        private static string BuildPhaseLabel(GameStateSnapshot state)
-        {
-            if (state.Phase == GameRunPhase.AwaitingSpin)
-            {
-                return state.CurrentZoneType switch
-                {
-                    RouletteZoneType.Safe => "SAFE ZONE",
-                    RouletteZoneType.Super => "SUPER ZONE",
-                    _ => "Awaiting Spin"
-                };
-            }
-
-            return state.Phase switch
-            {
-                GameRunPhase.BlockedByBuyIn => "Buy-In Blocked",
-                GameRunPhase.CashedOut => "Cashed Out",
-                _ => state.Phase.ToString()
-            };
         }
 
         private bool IsCashOutAnytimeEnabled()
@@ -390,325 +309,23 @@ namespace Ape.Game
             return null;
         }
 
-        private bool ResolveContinueButtonVisibility(bool canContinue, RectTransform desiredOverlayRoot, bool instant)
-        {
-            if (_continueButton == null)
-                return false;
-
-            if (desiredOverlayRoot == _gameOverRoot)
-                return canContinue;
-
-            if (instant || GetOverlayRootState(_gameOverRoot) == OverlayRootState.Hidden)
-                return false;
-
-            // Preserve the current game-over layout while the overlay is still animating out.
-            return _continueButton.gameObject.activeSelf;
-        }
-
-        private void InitializeSlidingRoot(RectTransform root)
-        {
-            if (root == null)
-                return;
-
-            CacheShownOverlayAnchoredPosition(root);
-            _overlayRootStates[root] = OverlayRootState.Hidden;
-            root.anchoredPosition = GetHiddenOverlayAnchoredPosition(root);
-            root.gameObject.SetActive(false);
-        }
-
-        private void InitializeCompanionRoots(RectTransform[] roots)
-        {
-            if (roots == null)
-                return;
-
-            for (int i = 0; i < roots.Length; i++)
-            {
-                RectTransform root = roots[i];
-
-                if (root == _gameOverRoot || root == _cashOutOverlayRoot)
-                    continue;
-
-                if (root == null)
-                    continue;
-
-                _companionRootBaseAnchoredPositions[root] = root.anchoredPosition;
-            }
-        }
-
-        private void UpdateOverlaySlot(RectTransform desiredRoot, bool instant)
-        {
-            _desiredOverlayRoot = desiredRoot;
-
-            if (instant)
-            {
-                SetOverlayRootVisibleImmediate(_gameOverRoot, desiredRoot == _gameOverRoot);
-                SetOverlayRootVisibleImmediate(_cashOutOverlayRoot, desiredRoot == _cashOutOverlayRoot);
-                return;
-            }
-
-            RectTransform occupyingRoot = GetOccupyingOverlayRoot();
-
-            if (occupyingRoot != null && occupyingRoot != desiredRoot)
-            {
-                HideOverlayRoot(occupyingRoot);
-                return;
-            }
-
-            if (desiredRoot == null)
-                return;
-
-            ShowOverlayRoot(desiredRoot);
-        }
-
-        private RectTransform GetOccupyingOverlayRoot()
-        {
-            if (IsOverlayRootOccupyingSlot(_gameOverRoot))
-                return _gameOverRoot;
-
-            if (IsOverlayRootOccupyingSlot(_cashOutOverlayRoot))
-                return _cashOutOverlayRoot;
-
-            return null;
-        }
-
-        private bool IsOverlayRootOccupyingSlot(RectTransform root)
-        {
-            return root != null && GetOverlayRootState(root) != OverlayRootState.Hidden;
-        }
-
-        private OverlayRootState GetOverlayRootState(RectTransform root)
-        {
-            return root != null && _overlayRootStates.TryGetValue(root, out OverlayRootState state)
-                ? state
-                : OverlayRootState.Hidden;
-        }
-
-        private void SetOverlayRootState(RectTransform root, OverlayRootState state)
-        {
-            if (root != null)
-                _overlayRootStates[root] = state;
-        }
-
-        private void SetOverlayRootVisibleImmediate(RectTransform root, bool isVisible)
-        {
-            if (root == null)
-                return;
-
-            KillOverlayTween(root);
-
-            if (isVisible)
-            {
-                root.gameObject.SetActive(true);
-                root.anchoredPosition = GetShownOverlayAnchoredPosition(root);
-                SetOverlayRootState(root, OverlayRootState.Visible);
-                return;
-            }
-
-            root.anchoredPosition = GetHiddenOverlayAnchoredPosition(root);
-            root.gameObject.SetActive(false);
-            SetOverlayRootState(root, OverlayRootState.Hidden);
-        }
-
-        private void ShowOverlayRoot(RectTransform root)
-        {
-            if (root == null)
-                return;
-
-            OverlayRootState state = GetOverlayRootState(root);
-
-            if (state == OverlayRootState.Visible || state == OverlayRootState.Showing)
-                return;
-
-            KillOverlayTween(root);
-            root.gameObject.SetActive(true);
-
-            if (state == OverlayRootState.Hidden)
-                root.anchoredPosition = GetHiddenOverlayAnchoredPosition(root);
-
-            SetOverlayRootState(root, OverlayRootState.Showing);
-            Tween showTween = root.DOAnchorPos(GetShownOverlayAnchoredPosition(root), _gameOverSlideDuration)
-                .SetEase(_gameOverSlideEase)
-                .SetLink(root.gameObject, LinkBehaviour.KillOnDestroy)
-                .OnComplete(() => SetOverlayRootState(root, OverlayRootState.Visible))
-                .OnKill(() => _overlayTweens.Remove(root));
-            _overlayTweens[root] = showTween;
-        }
-
-        private void HideOverlayRoot(RectTransform root)
-        {
-            if (root == null)
-                return;
-
-            OverlayRootState state = GetOverlayRootState(root);
-
-            if (state == OverlayRootState.Hidden || state == OverlayRootState.Hiding)
-                return;
-
-            KillOverlayTween(root);
-            SetOverlayRootState(root, OverlayRootState.Hiding);
-
-            Tween hideTween = root.DOAnchorPos(GetHiddenOverlayAnchoredPosition(root), _gameOverSlideDuration)
-                .SetEase(_gameOverHideEase)
-                .SetLink(root.gameObject, LinkBehaviour.KillOnDestroy)
-                .OnComplete(() =>
-                {
-                    root.gameObject.SetActive(false);
-                    SetOverlayRootState(root, OverlayRootState.Hidden);
-
-                    if (_desiredOverlayRoot != null && _desiredOverlayRoot != root && GetOccupyingOverlayRoot() == null)
-                        ShowOverlayRoot(_desiredOverlayRoot);
-                })
-                .OnKill(() => _overlayTweens.Remove(root));
-            _overlayTweens[root] = hideTween;
-        }
-
-        private void UpdateCompanionRoots(bool shiftUp, RectTransform referenceOverlayRoot, bool instant)
-        {
-            if (_overlaySlideCompanionRoots == null)
-                return;
-
-            Vector2 offset = shiftUp ? GetOverlaySlideOffset(referenceOverlayRoot) : Vector2.zero;
-
-            for (int i = 0; i < _overlaySlideCompanionRoots.Length; i++)
-            {
-                RectTransform root = _overlaySlideCompanionRoots[i];
-
-                if (root == null)
-                    continue;
-
-                if (!_companionRootBaseAnchoredPositions.TryGetValue(root, out Vector2 baseAnchoredPosition))
-                {
-                    baseAnchoredPosition = root.anchoredPosition;
-                    _companionRootBaseAnchoredPositions[root] = baseAnchoredPosition;
-                }
-
-                Vector2 targetAnchoredPosition = baseAnchoredPosition + offset;
-
-                KillOverlayTween(root);
-
-                if (instant)
-                {
-                    root.anchoredPosition = targetAnchoredPosition;
-                    continue;
-                }
-
-                if (root.anchoredPosition == targetAnchoredPosition)
-                    continue;
-
-                Tween companionTween = root.DOAnchorPos(targetAnchoredPosition, _gameOverSlideDuration)
-                    .SetEase(shiftUp ? _gameOverSlideEase : _gameOverHideEase)
-                    .SetLink(root.gameObject, LinkBehaviour.KillOnDestroy)
-                    .OnKill(() => _overlayTweens.Remove(root));
-                _overlayTweens[root] = companionTween;
-            }
-        }
-
-        private Vector2 GetOverlaySlideOffset(RectTransform root)
-        {
-            return root == null
-                ? Vector2.zero
-                : GetShownOverlayAnchoredPosition(root) - GetHiddenOverlayAnchoredPosition(root);
-        }
-
-        private void KillOverlayTweens()
-        {
-            KillOverlayTween(_gameOverRoot);
-            KillOverlayTween(_cashOutOverlayRoot);
-
-            if (_overlaySlideCompanionRoots == null)
-                return;
-
-            for (int i = 0; i < _overlaySlideCompanionRoots.Length; i++)
-                KillOverlayTween(_overlaySlideCompanionRoots[i]);
-        }
-
-        private void KillOverlayTween(RectTransform root)
-        {
-            if (root == null)
-                return;
-
-            if (_overlayTweens.TryGetValue(root, out Tween overlayTween) && overlayTween != null && overlayTween.IsActive())
-                overlayTween.Kill();
-
-            _overlayTweens.Remove(root);
-        }
-
-        private void CacheShownOverlayAnchoredPosition(RectTransform root)
-        {
-            if (root == null)
-                return;
-
-            _overlayShownAnchoredPositions[root] = ResolveShownOverlayAnchoredPosition(root);
-        }
-
-        private Vector2 GetShownOverlayAnchoredPosition(RectTransform root)
-        {
-            if (root == null)
-                return Vector2.zero;
-
-            if (_overlayShownPositionSource != null)
-                return _overlayShownPositionSource.anchoredPosition;
-
-            if (_overlayShownAnchoredPositions.TryGetValue(root, out Vector2 shownAnchoredPosition))
-                return shownAnchoredPosition;
-
-            shownAnchoredPosition = root.anchoredPosition;
-            _overlayShownAnchoredPositions[root] = shownAnchoredPosition;
-            return shownAnchoredPosition;
-        }
-
-        private Vector2 ResolveShownOverlayAnchoredPosition(RectTransform root)
-        {
-            return _overlayShownPositionSource != null
-                ? _overlayShownPositionSource.anchoredPosition
-                : root.anchoredPosition;
-        }
-
-        private Vector2 GetHiddenOverlayAnchoredPosition(RectTransform root)
-        {
-            return GetShownOverlayAnchoredPosition(root) + Vector2.down * root.rect.height;
-        }
-
-        private static void SetButtonInteractable(Button button, bool isInteractable)
-        {
-            if (button != null)
-                button.interactable = isInteractable;
-        }
-
         private static bool IsBeforeFirstSpinOfRun()
         {
             return App.Game != null && App.Game.LastSpinResult.SelectedSlice.SliceRule == null;
         }
 
-        private static bool IsSpinRevealPending()
+        private bool IsSpinRevealPending()
         {
-            if (App.Game == null || !App.Game.IsSceneBound)
-                return false;
-
-            RouletteWheelUI rouletteWheel = App.Game.SceneDependencies.RouletteWheel;
-            return rouletteWheel != null && rouletteWheel.IsPostSpinRevealPending;
+            return App.Game != null
+                && App.Game.IsSceneBound
+                && _rouletteWheel != null
+                && _rouletteWheel.IsPostSpinRevealPending;
         }
 
-        private static void SetWheelIdlePresentationState(bool isSpinButtonIdleActive, bool isWheelIdleRotationActive)
+        private void SetWheelIdlePresentationState(bool isSpinButtonIdleActive, bool isWheelIdleRotationActive)
         {
-            if (App.Game == null)
-                return;
-
-            RouletteWheelUI rouletteWheel = App.Game.SceneDependencies.RouletteWheel;
-            if (rouletteWheel != null)
-                rouletteWheel.SetIdlePresentationActive(isSpinButtonIdleActive, isSpinButtonIdleActive && isWheelIdleRotationActive);
-        }
-
-        private static void SetButtonVisible(Button button, bool isVisible)
-        {
-            if (button != null)
-                button.gameObject.SetActive(isVisible);
-        }
-
-        private static void SetText(TextMeshProUGUI text, string value)
-        {
-            if (text != null)
-                text.text = value;
+            if (_rouletteWheel != null)
+                _rouletteWheel.SetIdlePresentationActive(isSpinButtonIdleActive, isSpinButtonIdleActive && isWheelIdleRotationActive);
         }
     }
 }

@@ -4,7 +4,6 @@ using Ape.Data;
 
 namespace Ape.Game
 {
-    // Runtime wheel instance: authored definition plus the resolved slices for this run.
     public sealed class RouletteResolvedWheel
     {
         public RouletteWheelData Definition { get; }

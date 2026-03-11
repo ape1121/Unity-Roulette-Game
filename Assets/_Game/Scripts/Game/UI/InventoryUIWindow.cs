@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Ape.Core;
-using Ape.Game.UI;
 using Ape.Profile;
 using DG.Tweening;
 using TMPro;
@@ -17,7 +16,7 @@ namespace Ape.Game
         [SerializeField] private Button _backdropButton;
         [SerializeField] private Button _pendingTabButton;
         [SerializeField] private Button _bankedTabButton;
-        
+
         [Header("Structure")]
         [SerializeField] private RectTransform _windowRoot;
         [SerializeField] private CanvasGroup _windowCanvasGroup;
@@ -47,28 +46,19 @@ namespace Ape.Game
         [SerializeField] private Ease _openEase = Ease.OutCubic;
         [SerializeField] private Ease _closeEase = Ease.InCubic;
 
-        private readonly List<RewardCardUI> _pendingCards = new List<RewardCardUI>();
-        private readonly List<RewardCardUI> _bankedCards = new List<RewardCardUI>();
         private readonly List<InventoryRewardEntry> _pendingRewards = new List<InventoryRewardEntry>();
         private readonly List<InventoryRewardEntry> _bankedRewards = new List<InventoryRewardEntry>();
-
-        private Sequence _transitionSequence;
+        private readonly InventoryWindowAnimationController _animationController = new InventoryWindowAnimationController();
+        private readonly InventoryRewardSectionController _pendingSectionController = new InventoryRewardSectionController();
+        private readonly InventoryRewardSectionController _bankedSectionController = new InventoryRewardSectionController();
         private bool _isProfileSubscribed;
         private bool _isGameSubscribed;
         private bool _isOpen;
-        private bool _hasCachedPanelPosition;
-        private Vector2 _panelOpenAnchoredPosition;
         private InventoryTab _activeTab = InventoryTab.Pending;
         private InventoryTab _appliedTab = InventoryTab.Pending;
-        private int _pendingRewardsSignature = int.MinValue;
-        private int _bankedRewardsSignature = int.MinValue;
         private int _lastPendingBadgeCount = int.MinValue;
         private int _lastVisibleRewardCount = int.MinValue;
         private bool _hasAppliedTabState;
-        private bool _pendingCardsInitialized;
-        private bool _bankedCardsInitialized;
-        private Transform _resolvedPendingCardsContentRoot;
-        private Transform _resolvedBankedCardsContentRoot;
 
         public bool IsOpen => _isOpen;
 
@@ -82,27 +72,25 @@ namespace Ape.Game
         {
             CacheReferences();
             BindButtons();
-            CachePanelOpenPosition();
-            ApplyClosedState(force: true);
+            _animationController.ApplyClosedState();
         }
 
         private void OnEnable()
         {
             CacheReferences();
             BindButtons();
-            CachePanelOpenPosition();
             SubscribeToSources();
             Refresh();
 
             if (_isOpen)
-                ApplyOpenState(force: true);
+                _animationController.ApplyOpenState();
             else
-                ApplyClosedState(force: true);
+                _animationController.ApplyClosedState();
         }
 
         private void OnDisable()
         {
-            KillTransition();
+            _animationController.KillTransition();
             StopCaseOpenPresentation(refresh: false);
             UnsubscribeFromSources();
         }
@@ -115,33 +103,12 @@ namespace Ape.Game
             ResolveButtonReferences();
         }
 
-        private void ResolveButtonReferences()
-        {
-            _pendingTabButton ??= UIReferenceUtility.FindButtonByName(this, "Pending");
-            _bankedTabButton ??= UIReferenceUtility.FindButtonByName(this, "Banked");
-            _backdropButton ??= UIReferenceUtility.FindButtonByName(this, "BackgroundBlocker");
-        }
-
         public void Refresh()
         {
             CacheReferences();
-
-            int pendingSignature = BuildPendingRewards();
-            int bankedSignature = BuildBankedRewards();
-            bool pendingChanged = pendingSignature != _pendingRewardsSignature;
-            bool bankedChanged = bankedSignature != _bankedRewardsSignature;
-
-            if (_rewardCardPrefab != null)
-            {
-                if (!_pendingCardsInitialized || pendingChanged)
-                    _pendingCardsInitialized = SyncSection(_pendingRewards, _pendingCards, _resolvedPendingCardsContentRoot);
-
-                if (!_bankedCardsInitialized || bankedChanged)
-                    _bankedCardsInitialized = SyncSection(_bankedRewards, _bankedCards, _resolvedBankedCardsContentRoot);
-            }
-
-            _pendingRewardsSignature = pendingSignature;
-            _bankedRewardsSignature = bankedSignature;
+            BuildPendingRewards();
+            BuildBankedRewards();
+            SyncSections();
             RefreshPendingBadge();
             ApplyActiveTab();
         }
@@ -153,13 +120,12 @@ namespace Ape.Game
 
             CacheReferences();
             BindButtons();
-            CachePanelOpenPosition();
             Refresh();
 
             _isOpen = true;
-            SetInteractionState(true);
+            _animationController.SetInteractionState(true);
             SetCaseOpenUiVisible(false);
-            PlayTransition(show: true, instant);
+            _animationController.PlayTransition(gameObject, show: true, instant, onHidden: null);
         }
 
         public void Close(bool instant = false)
@@ -171,8 +137,8 @@ namespace Ape.Game
             StopCaseOpenPresentation(refresh: false);
 
             _isOpen = false;
-            SetInteractionState(false);
-            PlayTransition(show: false, instant);
+            _animationController.SetInteractionState(false);
+            _animationController.PlayTransition(gameObject, show: false, instant, () => gameObject.SetActive(false));
         }
 
         public void Toggle()
@@ -181,6 +147,55 @@ namespace Ape.Game
                 Close();
             else
                 Open();
+        }
+
+        private void CacheReferences()
+        {
+            _windowRoot ??= GetComponent<RectTransform>();
+            _windowCanvasGroup ??= GetComponent<CanvasGroup>();
+            _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
+
+            _animationController.Configure(
+                _windowCanvasGroup,
+                _panelRoot,
+                _fadeDuration,
+                _panelDuration,
+                _hiddenPanelOffset,
+                _hiddenPanelScale,
+                _openEase,
+                _closeEase);
+            _animationController.CachePanelOpenPosition();
+
+            _pendingSectionController.Configure(_pendingContentRoot, _pendingCardsContentRoot, _rewardCardPrefab);
+            _bankedSectionController.Configure(_bankedContentRoot, _bankedCardsContentRoot, _rewardCardPrefab);
+        }
+
+        private void ResolveButtonReferences()
+        {
+            _pendingTabButton ??= UIReferenceUtility.FindButtonByName(this, "Pending");
+            _bankedTabButton ??= UIReferenceUtility.FindButtonByName(this, "Banked");
+            _backdropButton ??= UIReferenceUtility.FindButtonByName(this, "BackgroundBlocker");
+        }
+
+        private void BindButtons()
+        {
+            if (_backdropButton != null)
+            {
+                _backdropButton.onClick.RemoveListener(HandleBackdropClicked);
+                _backdropButton.onClick.AddListener(HandleBackdropClicked);
+            }
+
+            if (_pendingTabButton != null)
+            {
+                _pendingTabButton.onClick.RemoveListener(HandlePendingTabClicked);
+                _pendingTabButton.onClick.AddListener(HandlePendingTabClicked);
+            }
+
+            if (_bankedTabButton != null)
+            {
+                _bankedTabButton.onClick.RemoveListener(HandleBankedTabClicked);
+                _bankedTabButton.onClick.AddListener(HandleBankedTabClicked);
+            }
         }
 
         private void SubscribeToSources()
@@ -225,11 +240,6 @@ namespace Ape.Game
             Close();
         }
 
-        private void HandleCloseClicked()
-        {
-            Close();
-        }
-
         private void HandlePendingTabClicked()
         {
             SetActiveTab(InventoryTab.Pending);
@@ -240,218 +250,40 @@ namespace Ape.Game
             SetActiveTab(InventoryTab.Banked);
         }
 
-        private void CacheReferences()
-        {
-            _windowRoot ??= GetComponent<RectTransform>();
-            _windowCanvasGroup ??= GetComponent<CanvasGroup>();
-            _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
-            _resolvedPendingCardsContentRoot = ResolveCardsContentRoot(_pendingCardsContentRoot, _pendingContentRoot, _resolvedPendingCardsContentRoot);
-            _resolvedBankedCardsContentRoot = ResolveCardsContentRoot(_bankedCardsContentRoot, _bankedContentRoot, _resolvedBankedCardsContentRoot);
-        }
-
-        private void BindButtons()
-        {
-            if (_backdropButton != null)
-            {
-                _backdropButton.onClick.RemoveListener(HandleBackdropClicked);
-                _backdropButton.onClick.AddListener(HandleBackdropClicked);
-            }
-
-            if (_pendingTabButton != null)
-            {
-                _pendingTabButton.onClick.RemoveListener(HandlePendingTabClicked);
-                _pendingTabButton.onClick.AddListener(HandlePendingTabClicked);
-            }
-
-            if (_bankedTabButton != null)
-            {
-                _bankedTabButton.onClick.RemoveListener(HandleBankedTabClicked);
-                _bankedTabButton.onClick.AddListener(HandleBankedTabClicked);
-            }
-        }
-
-        private void CachePanelOpenPosition()
-        {
-            if (_panelRoot == null || _hasCachedPanelPosition)
-                return;
-
-            _panelOpenAnchoredPosition = _panelRoot.anchoredPosition;
-            _hasCachedPanelPosition = true;
-        }
-
-        private void PlayTransition(bool show, bool instant)
-        {
-            if (_windowCanvasGroup == null || _panelRoot == null)
-            {
-                if (!show)
-                    gameObject.SetActive(false);
-
-                return;
-            }
-
-            KillTransition();
-
-            if (instant)
-            {
-                if (show)
-                    ApplyOpenState(force: true);
-                else
-                {
-                    ApplyClosedState(force: true);
-                    gameObject.SetActive(false);
-                }
-
-                return;
-            }
-
-            if (show)
-            {
-                ApplyClosedVisualState();
-                _transitionSequence = DOTween.Sequence()
-                    .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
-                    .OnKill(() => _transitionSequence = null);
-                _transitionSequence.Join(_windowCanvasGroup.DOFade(1f, _fadeDuration).SetEase(Ease.OutCubic));
-                _transitionSequence.Join(_panelRoot.DOAnchorPos(_panelOpenAnchoredPosition, _panelDuration).SetEase(_openEase));
-                _transitionSequence.Join(_panelRoot.DOScale(1f, _panelDuration).SetEase(_openEase));
-            }
-            else
-            {
-                _transitionSequence = DOTween.Sequence()
-                    .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
-                    .OnComplete(() =>
-                    {
-                        ApplyClosedState(force: true);
-                        gameObject.SetActive(false);
-                    })
-                    .OnKill(() => _transitionSequence = null);
-                _transitionSequence.Join(_windowCanvasGroup.DOFade(0f, _fadeDuration).SetEase(Ease.InCubic));
-                _transitionSequence.Join(_panelRoot.DOAnchorPos(_panelOpenAnchoredPosition + Vector2.down * _hiddenPanelOffset, _panelDuration).SetEase(_closeEase));
-                _transitionSequence.Join(_panelRoot.DOScale(_hiddenPanelScale, _panelDuration).SetEase(_closeEase));
-            }
-        }
-
-        private void ApplyOpenState(bool force)
-        {
-            if (!force && _isOpen)
-                return;
-
-            if (_windowCanvasGroup != null)
-                _windowCanvasGroup.alpha = 1f;
-
-            if (_panelRoot != null)
-            {
-                _panelRoot.anchoredPosition = _panelOpenAnchoredPosition;
-                _panelRoot.localScale = Vector3.one;
-            }
-        }
-
-        private void ApplyClosedState(bool force)
-        {
-            if (!force && !_isOpen)
-                return;
-
-            ApplyClosedVisualState();
-            SetInteractionState(false);
-        }
-
-        private void ApplyClosedVisualState()
-        {
-            if (_windowCanvasGroup != null)
-                _windowCanvasGroup.alpha = 0f;
-
-            if (_panelRoot != null)
-            {
-                _panelRoot.anchoredPosition = _panelOpenAnchoredPosition + Vector2.down * _hiddenPanelOffset;
-                _panelRoot.localScale = new Vector3(_hiddenPanelScale, _hiddenPanelScale, 1f);
-            }
-        }
-
-        private void SetInteractionState(bool isInteractive)
-        {
-            if (_windowCanvasGroup == null)
-                return;
-
-            _windowCanvasGroup.interactable = isInteractive;
-            _windowCanvasGroup.blocksRaycasts = isInteractive;
-        }
-
-        private void KillTransition()
-        {
-            if (_transitionSequence != null && _transitionSequence.IsActive())
-                _transitionSequence.Kill();
-
-            _transitionSequence = null;
-        }
-
-        private int BuildPendingRewards()
+        private void BuildPendingRewards()
         {
             _pendingRewards.Clear();
 
             if (App.Game == null || App.Game.Inventory == null)
-                return CalculateRewardsSignature(_pendingRewards);
+                return;
 
             App.Game.Inventory.GetPendingRewards(_pendingRewards);
-            return CalculateRewardsSignature(_pendingRewards);
         }
 
-        private int BuildBankedRewards()
+        private void BuildBankedRewards()
         {
             _bankedRewards.Clear();
 
             if (App.Game == null || App.Game.Inventory == null)
-                return CalculateRewardsSignature(_bankedRewards);
+                return;
 
             App.Game.Inventory.GetBankedRewards(_bankedRewards);
-            return CalculateRewardsSignature(_bankedRewards);
         }
 
-        private bool SyncSection(
-            List<InventoryRewardEntry> rewards,
-            List<RewardCardUI> cards,
-            Transform contentRoot)
+        private void SyncSections()
         {
-            if (contentRoot == null || _rewardCardPrefab == null)
-                return false;
+            if (_rewardCardPrefab == null)
+                return;
 
-            for (int i = 0; i < rewards.Count; i++)
-            {
-                RewardCardUI card = GetOrCreateCard(i, cards, contentRoot);
-                if (card == null)
-                    continue;
-
-                InventoryRewardEntry rewardEntry = rewards[i];
-                ResolvedReward reward = rewardEntry.Reward;
-                Color rarityColor = reward.HasReward && App.Game != null
-                    ? App.Game.Rewards.GetRarityColor(reward.Rarity, Color.white)
-                    : Color.white;
-
-                card.Bind(reward, rarityColor);
-                ConfigureCardAction(card, rewardEntry);
-                card.gameObject.SetActive(true);
-            }
-
-            for (int i = rewards.Count; i < cards.Count; i++)
-            {
-                if (cards[i] != null)
-                {
-                    cards[i].ClearAction();
-                    cards[i].gameObject.SetActive(false);
-                }
-            }
-
-            return true;
+            _pendingSectionController.Sync(_pendingRewards, ResolveRarityColor, ConfigureCardAction);
+            _bankedSectionController.Sync(_bankedRewards, ResolveRarityColor, ConfigureCardAction);
         }
 
-        private RewardCardUI GetOrCreateCard(int index, List<RewardCardUI> cards, Transform contentRoot)
+        private Color ResolveRarityColor(InventoryRewardEntry rewardEntry)
         {
-            while (cards.Count <= index)
-            {
-                RewardCardUI card = Instantiate(_rewardCardPrefab, contentRoot);
-                card.gameObject.SetActive(false);
-                cards.Add(card);
-            }
-
-            return cards[index];
+            return rewardEntry.HasReward && App.Game != null
+                ? App.Game.Rewards.GetRarityColor(rewardEntry.Rarity, Color.white)
+                : Color.white;
         }
 
         private void SetActiveTab(InventoryTab tab)
@@ -471,15 +303,15 @@ namespace Ape.Game
             if (_hasAppliedTabState && _appliedTab == _activeTab && _lastVisibleRewardCount == visibleRewardCount)
                 return;
 
-            Transform visibleContentRoot = showPending ? _pendingContentRoot : _bankedContentRoot;
-            Transform visibleCardsContentRoot = showPending ? _resolvedPendingCardsContentRoot : _resolvedBankedCardsContentRoot;
+            _pendingSectionController.SetVisualState(false);
+            _bankedSectionController.SetVisualState(false);
+            _pendingSectionController.SetVisible(showPending);
+            _bankedSectionController.SetVisible(!showPending);
 
-            SetSectionVisualState(_pendingContentRoot, false);
-            SetSectionVisualState(_bankedContentRoot, false);
-            ApplySectionVisibility(_pendingContentRoot, showPending);
-            ApplySectionVisibility(_bankedContentRoot, !showPending);
-            ForceSectionLayout(visibleContentRoot, visibleCardsContentRoot);
-            SetSectionVisualState(visibleContentRoot, true);
+            InventoryRewardSectionController visibleSection = showPending ? _pendingSectionController : _bankedSectionController;
+            visibleSection.ForceLayout();
+            visibleSection.SetVisualState(true);
+
             SetButtonInteractable(_pendingTabButton, !showPending);
             SetButtonInteractable(_bankedTabButton, showPending);
             RefreshTabTexts(showPending);
@@ -488,63 +320,6 @@ namespace Ape.Game
             _appliedTab = _activeTab;
             _lastVisibleRewardCount = visibleRewardCount;
             _hasAppliedTabState = true;
-        }
-
-        private void ApplySectionVisibility(Transform contentRoot, bool isVisible)
-        {
-            if (contentRoot != null)
-                contentRoot.gameObject.SetActive(isVisible);
-        }
-
-        private static void SetSectionVisualState(Transform contentRoot, bool isVisible)
-        {
-            if (contentRoot == null)
-                return;
-
-            CanvasGroup canvasGroup = contentRoot.GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-                canvasGroup = contentRoot.gameObject.AddComponent<CanvasGroup>();
-
-            canvasGroup.alpha = isVisible ? 1f : 0f;
-            canvasGroup.interactable = isVisible;
-            canvasGroup.blocksRaycasts = isVisible;
-        }
-
-        private static void ForceSectionLayout(Transform sectionRoot, Transform cardsContentRoot)
-        {
-            if (sectionRoot == null)
-                return;
-
-            Canvas.ForceUpdateCanvases();
-
-            DynamicScrollableGrid dynamicGrid = sectionRoot.GetComponent<DynamicScrollableGrid>();
-            if (dynamicGrid == null)
-                dynamicGrid = sectionRoot.GetComponentInChildren<DynamicScrollableGrid>(true);
-
-            if (dynamicGrid != null)
-                dynamicGrid.RefreshLayout();
-
-            ScrollRect scrollRect = sectionRoot.GetComponentInChildren<ScrollRect>(true);
-            RectTransform scrollContentRect = scrollRect != null ? scrollRect.content : null;
-            RectTransform cardsRect = cardsContentRoot as RectTransform;
-            RectTransform sectionRect = sectionRoot as RectTransform;
-
-            if (scrollContentRect != null)
-                LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-
-            if (cardsRect != null && cardsRect != scrollContentRect)
-                LayoutRebuilder.ForceRebuildLayoutImmediate(cardsRect);
-
-            if (sectionRect != null)
-                LayoutRebuilder.ForceRebuildLayoutImmediate(sectionRect);
-
-            Canvas.ForceUpdateCanvases();
-        }
-
-        private void SetEmptyStateVisible(bool isVisible)
-        {
-            if (_emptyStateRoot != null)
-                _emptyStateRoot.SetActive(isVisible);
         }
 
         private void RefreshPendingBadge()
@@ -573,20 +348,10 @@ namespace Ape.Game
                 _tabTitleText.text = showPending ? _pendingTabTitle : _bankedTabTitle;
         }
 
-        private static int GetRewardAmountTotal(List<InventoryRewardEntry> rewards)
+        private void SetEmptyStateVisible(bool isVisible)
         {
-            int total = 0;
-
-            for (int i = 0; i < rewards.Count; i++)
-                total += rewards[i].Amount;
-
-            return total;
-        }
-
-        private static void SetButtonInteractable(Button button, bool isInteractable)
-        {
-            if (button != null)
-                button.interactable = isInteractable;
+            if (_emptyStateRoot != null)
+                _emptyStateRoot.SetActive(isVisible);
         }
 
         private void ConfigureCardAction(RewardCardUI card, InventoryRewardEntry rewardEntry)
@@ -649,41 +414,20 @@ namespace Ape.Game
                 _caseOpenUI.gameObject.SetActive(isVisible);
         }
 
-        private static int CalculateRewardsSignature(List<InventoryRewardEntry> rewards)
+        private static int GetRewardAmountTotal(List<InventoryRewardEntry> rewards)
         {
-            unchecked
-            {
-                int hash = 17;
+            int total = 0;
 
-                for (int i = 0; i < rewards.Count; i++)
-                {
-                    InventoryRewardEntry reward = rewards[i];
-                    hash = (hash * 31) + reward.Amount;
-                    hash = (hash * 31) + (int)reward.Rarity;
-                    hash = (hash * 31) + (int)reward.Action;
-                    hash = (hash * 31) + (reward.RewardId != null ? reward.RewardId.GetHashCode() : 0);
-                }
+            for (int i = 0; i < rewards.Count; i++)
+                total += rewards[i].Amount;
 
-                return hash;
-            }
+            return total;
         }
 
-        private static Transform ResolveCardsContentRoot(Transform explicitContentRoot, Transform sectionRoot, Transform cachedContentRoot)
+        private static void SetButtonInteractable(Button button, bool isInteractable)
         {
-            if (explicitContentRoot != null)
-                return explicitContentRoot;
-
-            if (cachedContentRoot != null)
-                return cachedContentRoot;
-
-            if (sectionRoot == null)
-                return null;
-
-            ScrollRect scrollRect = sectionRoot.GetComponentInChildren<ScrollRect>(true);
-            if (scrollRect != null && scrollRect.content != null)
-                return scrollRect.content;
-
-            return sectionRoot;
+            if (button != null)
+                button.interactable = isInteractable;
         }
     }
 }

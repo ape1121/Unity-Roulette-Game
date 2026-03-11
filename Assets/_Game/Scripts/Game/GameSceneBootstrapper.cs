@@ -6,14 +6,18 @@ namespace Ape.Game
 {
     public sealed class GameSceneBootstrapper : SceneBootstrapper
     {
-        [SerializeField] private Camera _mainCamera;
-        [SerializeField] private RouletteWheelUI _rouletteWheel;
-        [SerializeField] private GameUIManager _gameUIManager;
+        [SerializeField] private GameScenePresenter _scenePresenter;
+
+        private void OnValidate()
+        {
+            _scenePresenter ??= GetComponentInChildren<GameScenePresenter>(true);
+        }
 
         protected override void BootstrapScene()
         {
             App.Game.PrepareForSceneLoad();
-            App.Game.BindScene(new GameSceneDependencies(_mainCamera, _rouletteWheel, _gameUIManager));
+            _scenePresenter?.Bind(App.Game);
+            App.Game.BindScene();
             App.Game.StartGame();
         }
     }

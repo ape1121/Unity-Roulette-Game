@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace Ape.Game
 {
-    // Runtime snapshot of a concrete reward roll resolved from authoring data.
     public readonly struct ResolvedReward
     {
         public RewardData RewardData { get; }

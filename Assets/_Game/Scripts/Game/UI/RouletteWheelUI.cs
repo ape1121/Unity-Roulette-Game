@@ -27,8 +27,8 @@ namespace Ape.Game
         [SerializeField] private bool _useBackgroundShortestDimension = true;
         [FormerlySerializedAs("_diameter")]
         [Min(100f)] [SerializeField] private float _fallbackDiameter = 640f;
-        [Range(0f, 0.5f)] [SerializeField] private float _sliceRadiusPaddingRatio = 0.1125f; // 72/640
-        [Range(0.05f, 0.5f)] [SerializeField] private float _sliceSizeRatio = 0.15625f; // 100/640
+        [Range(0f, 0.5f)] [SerializeField] private float _sliceRadiusPaddingRatio = 0.1125f;
+        [Range(0.05f, 0.5f)] [SerializeField] private float _sliceSizeRatio = 0.15625f;
 
         [Header("Indicator Sway")]
         [SerializeField] private float _indicatorSwayMaxAngle = 15f;

@@ -25,13 +25,13 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 887660821370545277}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 1001271629074963566}
-  m_RootOrder: 4
+  m_Father: {fileID: 2582116233340082650}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -432,7 +432,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1001271629074963566}
   - component: {fileID: 1001271629074963567}
-  - component: {fileID: 2383742667428715529}
   m_Layer: 5
   m_Name: RouletteSliceUI
   m_TagString: Untagged
@@ -456,7 +455,7 @@ RectTransform:
   - {fileID: 1001271628743536165}
   - {fileID: 1001271628843136333}
   - {fileID: 1001271628440357335}
-  - {fileID: 6522628717017060193}
+  - {fileID: 2582116233340082650}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -482,38 +481,10 @@ MonoBehaviour:
   _rarityBorderImage: {fileID: 7749686968936850462}
   _nameText: {fileID: 1001271628843136322}
   _amountText: {fileID: 1001271628440357332}
-  _replaceSmokePlayer: {fileID: 2383742667428715529}
+  _replaceSmokePlayer: {fileID: 5323536602041252064}
   _bombBorderColor: {r: 1, g: 0.34901962, b: 0.34901962, a: 1}
   _bombIcon: {fileID: 21300000, guid: 209cbd518dfd844e18d3420e9ac5787c, type: 3}
   showDisplayNames: 0
---- !u!114 &2383742667428715529
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1001271629074963561}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c79a2da9280d949f1a3d8423389ef6a5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _targetImage: {fileID: 8801368283708318380}
-  _frames:
-  - {fileID: -1927960547, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: -261603970, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 123800329, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: -334138683, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 1207464407, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 1572409379, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: -23773584, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: -667095138, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 591623998, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 302441867, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 1996895578, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  - {fileID: 2054145838, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
-  _framesPerSecond: 18
-  _hideWhenStopped: 1
 --- !u!1 &5620477277163317097
 GameObject:
   m_ObjectHideFlags: 0
@@ -590,3 +561,69 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1 &7143304648875067664
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2582116233340082650}
+  - component: {fileID: 5323536602041252064}
+  m_Layer: 5
+  m_Name: RouletteSliceSmokeAnimator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2582116233340082650
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7143304648875067664}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6522628717017060193}
+  m_Father: {fileID: 1001271629074963566}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &5323536602041252064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7143304648875067664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a2da9280d949f1a3d8423389ef6a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _targetImage: {fileID: 8801368283708318380}
+  _frames:
+  - {fileID: -1927960547, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: -261603970, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 123800329, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: -334138683, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 1207464407, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 1572409379, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: -23773584, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: -667095138, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 591623998, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 302441867, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 1996895578, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  - {fileID: 2054145838, guid: 483ec49eb138c4a1794809e537546ec3, type: 3}
+  _framesPerSecond: 32
+  _hideWhenStopped: 1

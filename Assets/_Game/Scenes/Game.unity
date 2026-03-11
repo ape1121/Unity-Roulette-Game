@@ -1006,7 +1006,7 @@ RectTransform:
   - {fileID: 1004625983}
   - {fileID: 870851682}
   m_Father: {fileID: 1504315744}
-  m_RootOrder: 3
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.9}
   m_AnchorMax: {x: 1, y: 1}
@@ -1433,7 +1433,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &780379662
 GameObject:
@@ -2384,9 +2384,9 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 863461823}
-  - {fileID: 1494242281}
-  - {fileID: 131373739}
   - {fileID: 413047978}
+  - {fileID: 131373739}
+  - {fileID: 1494242281}
   - {fileID: 407035413}
   - {fileID: 144985687}
   - {fileID: 349489965}
@@ -2436,6 +2436,7 @@ MonoBehaviour:
   _inventoryPendingBadgeRoot: {fileID: 985090542}
   _inventoryPendingCountText: {fileID: 419712318}
   _inventoryWindow: {fileID: 144985688}
+  _rouletteWheel: {fileID: 1494242282}
   _effects: {fileID: 1504315746}
 --- !u!114 &1504315746
 MonoBehaviour:
@@ -2464,6 +2465,53 @@ MonoBehaviour:
     randomness: 90
     snapping: 0
     fadeOut: 1
+--- !u!1 &1545082374
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1545082376}
+  - component: {fileID: 1545082375}
+  m_Layer: 0
+  m_Name: GameScenePresenter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1545082375
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545082374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f95d75d0472a448b98e2a89f6666820a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _rouletteWheel: {fileID: 1494242282}
+  _uiManager: {fileID: 1504315745}
+  _effects: {fileID: 1504315746}
+--- !u!4 &1545082376
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545082374}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1556273959
 GameObject:
   m_ObjectHideFlags: 0
@@ -2624,7 +2672,7 @@ RectTransform:
   m_Children:
   - {fileID: 1504315744}
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -3333,9 +3381,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c27a905e7d74dd387c2c2579dad0495, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _mainCamera: {fileID: 519420031}
-  _rouletteWheel: {fileID: 1494242282}
-  _gameUIManager: {fileID: 1504315745}
+  _scenePresenter: {fileID: 1545082375}
 --- !u!1001 &71430748622958865
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3514,7 +3560,7 @@ PrefabInstance:
       objectReference: {fileID: 780379663}
     - target: {fileID: 476643210496203893, guid: af29ef7a98a3b402d9d5e94547970534, type: 3}
       propertyPath: _replaceSwapDelay
-      value: 0.2
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 476643210496203893, guid: af29ef7a98a3b402d9d5e94547970534, type: 3}
       propertyPath: _rewardGhostPrefab
@@ -3546,7 +3592,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 476643210496203893, guid: af29ef7a98a3b402d9d5e94547970534, type: 3}
       propertyPath: _replaceSmokeChainInterval
-      value: 0.09
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 476643210496203893, guid: af29ef7a98a3b402d9d5e94547970534, type: 3}
       propertyPath: _spinButtonIdlePulseDuration
@@ -3566,7 +3612,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 476643210496203894, guid: af29ef7a98a3b402d9d5e94547970534, type: 3}
       propertyPath: m_RootOrder
-      value: 1
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 476643210496203894, guid: af29ef7a98a3b402d9d5e94547970534, type: 3}
       propertyPath: m_AnchorMax.x
