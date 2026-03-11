@@ -25,7 +25,6 @@ namespace Ape.Game
         [SerializeField] private Image _rouletteIndicatorImage;
         [SerializeField] private RouletteRewardSliceUI _rewardSlicePrefab;
         [SerializeField] private bool _useBackgroundShortestDimension = true;
-        [FormerlySerializedAs("_diameter")]
         [Min(100f)] [SerializeField] private float _fallbackDiameter = 640f;
         [Range(0f, 0.5f)] [SerializeField] private float _sliceRadiusPaddingRatio = 0.1125f;
         [Range(0.05f, 0.5f)] [SerializeField] private float _sliceSizeRatio = 0.15625f;
@@ -63,7 +62,6 @@ namespace Ape.Game
         [SerializeField] private float _idleRotationSpeedDegreesPerSecond = 8f;
 
         [Header("Post Spin Reveal")]
-        [FormerlySerializedAs("_replaceSmokeLeadTime")]
         [Min(0f)] [SerializeField] private float _replaceSmokeChainInterval = 0.08f;
         [Min(0f)] [SerializeField] private float _replaceSwapDelay = 0.1f;
         [Range(0f, 360f)] [SerializeField] private float _replaceChainStartAngle = 90f;

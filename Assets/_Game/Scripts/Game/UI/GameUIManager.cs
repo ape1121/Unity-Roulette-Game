@@ -33,7 +33,6 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _zoneValueText;
         [SerializeField] private TextMeshProUGUI _zoneTypeValueText;
         [SerializeField] private TextMeshProUGUI _phaseValueText;
-        [FormerlySerializedAs("_wheelThemeValueText")]
         [SerializeField] private TextMeshProUGUI _statusValueText;
 
         [Header("Run Rewards")]
@@ -46,7 +45,6 @@ namespace Ape.Game
         [SerializeField] private TextMeshProUGUI _savedGoldValueText;
         [SerializeField] private GameObject _inventoryPendingBadgeRoot;
         [SerializeField] private TextMeshProUGUI _inventoryPendingCountText;
-        [FormerlySerializedAs("_inventoryList")]
         [SerializeField] private InventoryUIWindow _inventoryWindow;
 
         [Header("Presentation")]
