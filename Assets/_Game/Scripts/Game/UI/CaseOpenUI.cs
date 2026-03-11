@@ -32,8 +32,12 @@ namespace Ape.Game
         private RewardManager _rewardManager;
         private RoulettePresentationConfig _roulettePresentationConfig;
         private SoundManager _soundManager;
+        private CanvasGroup _buttonsCanvasGroup;
+        private CanvasGroup _centerMarkerCanvasGroup;
+        private CanvasGroup _costCanvasGroup;
         private bool _missingReferencesLogged;
         private Sequence _spinSequence;
+        private Sequence _rollUiSequence;
         private Tween _previewLoopTween;
         private Tween _winnerPulseTween;
         private Action<CaseOpenSession> _onRollRequested;
@@ -107,6 +111,15 @@ namespace Ape.Game
         [Min(0)] [SerializeField] private int _rollStartLeadingBufferCards = 3;
         [Min(1)] [SerializeField] private int _rollStartTrailingBufferCards = 6;
 
+        [Header("UI State Animation")]
+        [Min(0.05f)] [SerializeField] private float _buttonsFadeDuration = 0.18f;
+        [Min(0.05f)] [SerializeField] private float _costFadeDuration = 0.12f;
+        [Min(0.05f)] [SerializeField] private float _markerFadeDuration = 0.14f;
+        [SerializeField] private Ease _buttonsFadeOutEase = Ease.InCubic;
+        [SerializeField] private Ease _buttonsFadeInEase = Ease.OutCubic;
+        [SerializeField] private Ease _costFadeEase = Ease.OutCubic;
+        [SerializeField] private Ease _markerFadeEase = Ease.OutCubic;
+
         public bool IsAnimating => _state == PresentationState.Rolling;
 
         public void SetPresentationContext(
@@ -141,7 +154,8 @@ namespace Ape.Game
             BuildPreviewCards(session);
             ApplyPreviewTexts(session);
             ApplyPreviewButtons(canRoll);
-            SetMarkerVisible(true);
+            SetCostVisible(true, instant: true);
+            SetMarkerVisible(false, instant: true);
             RefreshResponsiveLayout(force: true);
             PlayOpenTransition();
             StartPreviewLoop();
@@ -172,8 +186,7 @@ namespace Ape.Game
 
             _state = PresentationState.Rolling;
             ApplyRollingTexts(caseOpenResult);
-            SetButtonsVisible(false);
-            SetMarkerVisible(true);
+            PlayRollStateUiTransition();
 
             float targetX = ResolveTargetContentPosition(_currentWinningIndex);
             ResolveSpinPhasePositions(startX, targetX, out float rampUpX, out float cruiseX, out float overshootX);
@@ -287,6 +300,7 @@ namespace Ape.Game
                 _openEase,
                 _closeEase);
             _panelAnimationController.CachePanelOpenPosition();
+            ResolveUiCanvasGroups();
         }
 
         private bool HasRequiredSetup()
@@ -445,6 +459,9 @@ namespace Ape.Game
             if (_spinSequence != null && _spinSequence.IsActive())
                 _spinSequence.Kill();
 
+            if (_rollUiSequence != null && _rollUiSequence.IsActive())
+                _rollUiSequence.Kill();
+
             if (_previewLoopTween != null && _previewLoopTween.IsActive())
                 _previewLoopTween.Kill();
 
@@ -452,6 +469,7 @@ namespace Ape.Game
                 _winnerPulseTween.Kill();
 
             _spinSequence = null;
+            _rollUiSequence = null;
             _previewLoopTween = null;
             _winnerPulseTween = null;
             StopSlowSpinExcitement();
@@ -514,8 +532,9 @@ namespace Ape.Game
             if (_resultLabel != null)
                 _resultLabel.text = string.Empty;
 
-            SetButtonsVisible(false);
-            SetMarkerVisible(false);
+            SetButtonsVisible(false, instant: true);
+            SetCostVisible(false, instant: true);
+            SetMarkerVisible(false, instant: true);
             SetButtonsInteractable(false);
 
             for (int i = 0; i < _spawnedCards.Count; i++)
@@ -660,6 +679,8 @@ namespace Ape.Game
 
             if (_resultLabel != null)
                 _resultLabel.text = string.Empty;
+
+            SetCostVisible(true, instant: true);
         }
 
         private void ApplyRollingTexts(CaseOpenResult caseOpenResult)
@@ -711,7 +732,7 @@ namespace Ape.Game
                 _backButton.interactable = true;
             }
 
-            SetButtonsVisible(true);
+            SetButtonsVisible(true, instant: true);
         }
 
         private void ApplyResultButtons()
@@ -728,13 +749,44 @@ namespace Ape.Game
             if (_backButtonLabel != null)
                 _backButtonLabel.text = _textConfig != null ? _textConfig.CaseTakeButtonLabel : "TAKE";
 
-            SetButtonsVisible(true);
+            SetButtonsVisible(true, instant: false);
         }
 
-        private void SetButtonsVisible(bool isVisible)
+        private void SetButtonsVisible(bool isVisible, bool instant)
         {
-            if (_buttonsRoot != null)
-                _buttonsRoot.gameObject.SetActive(isVisible);
+            CanvasGroup buttonsCanvasGroup = ResolveCanvasGroup(_buttonsRoot, ref _buttonsCanvasGroup);
+            if (buttonsCanvasGroup == null)
+            {
+                if (_buttonsRoot != null)
+                    _buttonsRoot.gameObject.SetActive(isVisible);
+
+                return;
+            }
+
+            if (_rollUiSequence != null && _rollUiSequence.IsActive())
+                _rollUiSequence.Kill();
+
+            if (instant)
+            {
+                buttonsCanvasGroup.DOKill();
+                buttonsCanvasGroup.alpha = isVisible ? 1f : 0f;
+                buttonsCanvasGroup.interactable = isVisible;
+                buttonsCanvasGroup.blocksRaycasts = isVisible;
+                return;
+            }
+
+            buttonsCanvasGroup.DOKill();
+            buttonsCanvasGroup.interactable = false;
+            buttonsCanvasGroup.blocksRaycasts = false;
+            buttonsCanvasGroup
+                .DOFade(isVisible ? 1f : 0f, _buttonsFadeDuration)
+                .SetEase(isVisible ? _buttonsFadeInEase : _buttonsFadeOutEase)
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
+                .OnComplete(() =>
+                {
+                    buttonsCanvasGroup.interactable = isVisible;
+                    buttonsCanvasGroup.blocksRaycasts = isVisible;
+                });
         }
 
         private void SetButtonsInteractable(bool isInteractable)
@@ -746,10 +798,107 @@ namespace Ape.Game
                 _backButton.interactable = isInteractable;
         }
 
-        private void SetMarkerVisible(bool isVisible)
+        private void SetMarkerVisible(bool isVisible, bool instant)
         {
+            CanvasGroup markerCanvasGroup = ResolveCanvasGroup(_centerMarker, ref _centerMarkerCanvasGroup);
+            if (markerCanvasGroup != null)
+            {
+                markerCanvasGroup.DOKill();
+                markerCanvasGroup.alpha = isVisible ? 1f : 0f;
+                return;
+            }
+
             if (_centerMarker != null)
                 _centerMarker.gameObject.SetActive(isVisible);
+        }
+
+        private void SetCostVisible(bool isVisible, bool instant)
+        {
+            CanvasGroup costCanvasGroup = ResolveCanvasGroup(_costLabel, ref _costCanvasGroup);
+            if (costCanvasGroup != null)
+            {
+                costCanvasGroup.DOKill();
+                costCanvasGroup.alpha = isVisible ? 1f : 0f;
+                return;
+            }
+
+            if (_costLabel == null)
+                return;
+
+            Color color = _costLabel.color;
+            color.a = isVisible ? 1f : 0f;
+            _costLabel.color = color;
+        }
+
+        private void PlayRollStateUiTransition()
+        {
+            SetButtonsInteractable(false);
+            SetMarkerVisible(false, instant: true);
+
+            if (_rollUiSequence != null && _rollUiSequence.IsActive())
+                _rollUiSequence.Kill();
+
+            _rollUiSequence = DOTween.Sequence()
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
+                .OnComplete(() => _rollUiSequence = null)
+                .OnKill(() => _rollUiSequence = null);
+
+            CanvasGroup buttonsCanvasGroup = ResolveCanvasGroup(_buttonsRoot, ref _buttonsCanvasGroup);
+            if (buttonsCanvasGroup != null)
+            {
+                buttonsCanvasGroup.DOKill();
+                buttonsCanvasGroup.interactable = false;
+                buttonsCanvasGroup.blocksRaycasts = false;
+                _rollUiSequence.Join(buttonsCanvasGroup.DOFade(0f, _buttonsFadeDuration).SetEase(_buttonsFadeOutEase));
+            }
+
+            CanvasGroup costCanvasGroup = ResolveCanvasGroup(_costLabel, ref _costCanvasGroup);
+            if (costCanvasGroup != null)
+            {
+                costCanvasGroup.DOKill();
+                _rollUiSequence.Append(costCanvasGroup.DOFade(0f, _costFadeDuration).SetEase(_costFadeEase));
+            }
+            else if (_costLabel != null)
+            {
+                _rollUiSequence.Append(DOTween.To(
+                        () => _costLabel.color.a,
+                        value =>
+                        {
+                            Color color = _costLabel.color;
+                            color.a = value;
+                            _costLabel.color = color;
+                        },
+                        0f,
+                        _costFadeDuration)
+                    .SetEase(_costFadeEase));
+            }
+
+            CanvasGroup markerCanvasGroup = ResolveCanvasGroup(_centerMarker, ref _centerMarkerCanvasGroup);
+            if (markerCanvasGroup != null)
+            {
+                markerCanvasGroup.DOKill();
+                markerCanvasGroup.alpha = 0f;
+                _rollUiSequence.Append(markerCanvasGroup.DOFade(1f, _markerFadeDuration).SetEase(_markerFadeEase));
+                return;
+            }
+
+            if (_centerMarker != null)
+            {
+                Color color = _centerMarker.color;
+                color.a = 0f;
+                _centerMarker.color = color;
+                _rollUiSequence.Append(DOTween.To(
+                        () => _centerMarker.color.a,
+                        value =>
+                        {
+                            Color markerColor = _centerMarker.color;
+                            markerColor.a = value;
+                            _centerMarker.color = markerColor;
+                        },
+                        1f,
+                        _markerFadeDuration)
+                    .SetEase(_markerFadeEase));
+            }
         }
 
         private float ResolveCardStep()
@@ -1040,6 +1189,28 @@ namespace Ape.Game
         private static bool Approximately(Vector2 a, Vector2 b)
         {
             return Mathf.Abs(a.x - b.x) < 0.01f && Mathf.Abs(a.y - b.y) < 0.01f;
+        }
+
+        private void ResolveUiCanvasGroups()
+        {
+            ResolveCanvasGroup(_buttonsRoot, ref _buttonsCanvasGroup);
+            ResolveCanvasGroup(_centerMarker, ref _centerMarkerCanvasGroup);
+            ResolveCanvasGroup(_costLabel, ref _costCanvasGroup);
+        }
+
+        private static CanvasGroup ResolveCanvasGroup(Component target, ref CanvasGroup canvasGroup)
+        {
+            if (canvasGroup != null)
+                return canvasGroup;
+
+            if (target == null)
+                return null;
+
+            canvasGroup = target.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+                canvasGroup = target.gameObject.AddComponent<CanvasGroup>();
+
+            return canvasGroup;
         }
 
         private static bool RewardsMatch(ResolvedReward left, ResolvedReward right)

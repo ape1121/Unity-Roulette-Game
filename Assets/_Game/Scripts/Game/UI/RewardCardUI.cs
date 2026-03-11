@@ -3,6 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using System;
 
 namespace Ape.Game
 {
@@ -11,6 +12,7 @@ namespace Ape.Game
     {
         [SerializeField] private Image _iconImage;
         [SerializeField] private Image _rarityBorderImage;
+        [SerializeField] private Image _backglowImage;
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _amountText;
         [SerializeField] private Button _actionButton;
@@ -65,6 +67,9 @@ namespace Ape.Game
 
             if (_rarityBorderImage != null)
                 _rarityBorderImage.color = rarityColor;
+            
+            if (_backglowImage != null)
+                _backglowImage.color = rarityColor * 0.5f;
 
             if (_nameText != null)
                 _nameText.text = hasReward ? reward.RewardName : string.Empty;
@@ -126,9 +131,8 @@ namespace Ape.Game
                 {
                     if (targetTransform != null)
                         targetTransform.localScale = _baseScale;
-
                     _highlightTween = null;
-                });
+                }).SetLoops(2);
         }
 
         private void StopHighlight(bool resetScale)
