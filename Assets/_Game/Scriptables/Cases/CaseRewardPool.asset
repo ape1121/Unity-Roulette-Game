@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2af693471d54982b5a8bbce3e9b31aa, type: 3}
+  m_Name: CaseRewardPool
+  m_EditorClassIdentifier: 
+  rewards:
+  - rewardData: {fileID: 11400000, guid: 839ecad4e484842b8866d8ed1c290cc0, type: 2}
+    weight: 1
+    minAmountOverride: 0
+    maxAmountOverride: 0
+  - rewardData: {fileID: 11400000, guid: eca5752b6b0da4c1296ca9b41b6503f6, type: 2}
+    weight: 1
+    minAmountOverride: 0
+    maxAmountOverride: 0
+  - rewardData: {fileID: 11400000, guid: 1942f9e930bea4d4b8c052c676bc8136, type: 2}
+    weight: 1
+    minAmountOverride: 0
+    maxAmountOverride: 0

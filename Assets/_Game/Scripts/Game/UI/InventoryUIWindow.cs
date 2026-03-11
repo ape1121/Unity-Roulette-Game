@@ -409,12 +409,10 @@ namespace Ape.Game
             if (App.Profile == null)
                 return CalculateRewardsSignature(_bankedRewards);
 
-            RouletteConfig rouletteConfig = App.Config != null && App.Config.GameConfig != null
-                ? App.Config.GameConfig.RouletteConfig
-                : null;
+            GameConfig gameConfig = App.Config != null ? App.Config.GameConfig : null;
             IReadOnlyList<RewardInventoryEntry> inventory = App.Profile.Inventory;
 
-            if (rouletteConfig == null || inventory == null)
+            if (gameConfig == null || inventory == null)
                 return CalculateRewardsSignature(_bankedRewards);
 
             for (int i = 0; i < inventory.Count; i++)
@@ -423,13 +421,13 @@ namespace Ape.Game
                 if (entry.Amount <= 0)
                     continue;
 
-                if (!rouletteConfig.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
+                if (!gameConfig.TryGetReward(entry.RewardId, out RewardData rewardData) || rewardData == null)
                 {
                     Debug.LogWarning($"Reward inventory entry '{entry.RewardId}' could not be resolved from the reward catalog.", this);
                     continue;
                 }
 
-                if (rewardData.Kind != RewardType.ItemCard)
+                if (rewardData.Kind == RewardType.Cash || rewardData.Kind == RewardType.Gold)
                     continue;
 
                 _bankedRewards.Add(new ResolvedReward(rewardData, entry.Amount));
