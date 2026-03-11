@@ -14,12 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cases:
   - caseReward: {fileID: 11400000, guid: 30f3218da7329475db49434dbeb5bbec, type: 2}
-    possibleRewards: {fileID: 0}
+    possibleRewards: {fileID: 11400000, guid: 391eec29214eb41ed85233a6fe222601, type: 2}
     reelItemCount: 0
     minimumLandingIndex: 0
     landingTailCount: 0
-  - caseReward: {fileID: 11400000, guid: 30f3218da7329475db49434dbeb5bbec, type: 2}
-    possibleRewards: {fileID: 0}
+  - caseReward: {fileID: 11400000, guid: 5af6a0970924e46da9d82b9c08af1cf7, type: 2}
+    possibleRewards: {fileID: 11400000, guid: 391eec29214eb41ed85233a6fe222601, type: 2}
+    reelItemCount: 0
+    minimumLandingIndex: 0
+    landingTailCount: 0
+  - caseReward: {fileID: 11400000, guid: 313935c2da39c40c9a4ee02c8c3dd8cc, type: 2}
+    possibleRewards: {fileID: 11400000, guid: 391eec29214eb41ed85233a6fe222601, type: 2}
+    reelItemCount: 0
+    minimumLandingIndex: 0
+    landingTailCount: 0
+  - caseReward: {fileID: 11400000, guid: 616856f85df4642749d00633e79f2e90, type: 2}
+    possibleRewards: {fileID: 11400000, guid: 391eec29214eb41ed85233a6fe222601, type: 2}
     reelItemCount: 0
     minimumLandingIndex: 0
     landingTailCount: 0
