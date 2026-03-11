@@ -4,7 +4,6 @@ using Ape.Data;
 using DG.Tweening;
 using DG.Tweening.Core;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Ape.Game
