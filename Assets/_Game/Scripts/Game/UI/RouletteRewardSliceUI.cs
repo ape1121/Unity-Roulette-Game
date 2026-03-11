@@ -16,7 +16,7 @@ namespace Ape.Game
         [SerializeField] private UISpriteSequencePlayer _replaceSmokePlayer;
         [SerializeField] private Color _bombBorderColor = new Color32(255, 89, 89, 255);
         [SerializeField] private Sprite _bombIcon;
-        [SerializeField] private bool showDisplayNames = false;
+        [SerializeField] private bool _showDisplayNames = false;
 
         public RectTransform RootRect => _rootRect;
         public float ReplaceSmokeDuration => _replaceSmokePlayer != null ? _replaceSmokePlayer.Duration : 0f;
@@ -62,7 +62,7 @@ namespace Ape.Game
 
             if (_nameText != null)
             {
-                _nameText.gameObject.SetActive(showDisplayNames);
+                _nameText.gameObject.SetActive(_showDisplayNames);
                 _nameText.text = slice.DisplayName;
             }
 

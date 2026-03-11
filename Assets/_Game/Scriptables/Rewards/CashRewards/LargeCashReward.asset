@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: LargeCashReward
   m_EditorClassIdentifier: 
-  rewardId: lcash
-  rewardName: Cash
-  icon: {fileID: 21300000, guid: fe17945ed8be34bf4ba0d0e11f3cb784, type: 3}
-  rewardKind: 0
-  rarity: 2
-  minAmount: 2000
-  maxAmount: 5000
-  amountIncreasePerZone: 100
+  _rewardId: lcash
+  _rewardName: Cash
+  _icon: {fileID: 21300000, guid: fe17945ed8be34bf4ba0d0e11f3cb784, type: 3}
+  _rewardKind: 0
+  _rarity: 2
+  _minAmount: 2000
+  _maxAmount: 5000
+  _amountIncreasePerZone: 100

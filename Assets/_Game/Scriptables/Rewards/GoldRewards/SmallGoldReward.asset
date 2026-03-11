@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: SmallGoldReward
   m_EditorClassIdentifier: 
-  rewardId: sgold
-  rewardName: Gold
-  icon: {fileID: 21300000, guid: 28b2fe4d1636c42d4afd944e04a16b6d, type: 3}
-  rewardKind: 1
-  rarity: 1
-  minAmount: 5
-  maxAmount: 10
-  amountIncreasePerZone: 1
+  _rewardId: sgold
+  _rewardName: Gold
+  _icon: {fileID: 21300000, guid: 28b2fe4d1636c42d4afd944e04a16b6d, type: 3}
+  _rewardKind: 1
+  _rarity: 1
+  _minAmount: 5
+  _maxAmount: 10
+  _amountIncreasePerZone: 1

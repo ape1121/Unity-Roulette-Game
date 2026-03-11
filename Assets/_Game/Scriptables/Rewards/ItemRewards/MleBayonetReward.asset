@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: MleBayonetReward
   m_EditorClassIdentifier: 
-  rewardId: mle
-  rewardName: MLE Bayonet
-  icon: {fileID: 21300000, guid: 9136e85fad17b4abc87423f6689b0191, type: 3}
-  rewardKind: 2
-  rarity: 2
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: mle
+  _rewardName: MLE Bayonet
+  _icon: {fileID: 21300000, guid: 9136e85fad17b4abc87423f6689b0191, type: 3}
+  _rewardKind: 2
+  _rarity: 2
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0

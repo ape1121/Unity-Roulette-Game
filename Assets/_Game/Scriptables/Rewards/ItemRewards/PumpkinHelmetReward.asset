@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: PumpkinHelmetReward
   m_EditorClassIdentifier: 
-  rewardId: pumpkinhelmet
-  rewardName: Pumpkin Helmet
-  icon: {fileID: 21300000, guid: e416725f62d16494d9e375a65f625939, type: 3}
-  rewardKind: 2
-  rarity: 3
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: pumpkinhelmet
+  _rewardName: Pumpkin Helmet
+  _icon: {fileID: 21300000, guid: e416725f62d16494d9e375a65f625939, type: 3}
+  _rewardKind: 2
+  _rarity: 3
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0

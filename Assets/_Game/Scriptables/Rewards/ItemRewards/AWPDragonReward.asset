@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: AWPDragonReward
   m_EditorClassIdentifier: 
-  rewardId: awp
-  rewardName: AWP Dragon Lore
-  icon: {fileID: 21300000, guid: a787afa2ec9954a30b39323a2acfe84e, type: 3}
-  rewardKind: 2
-  rarity: 3
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: awp
+  _rewardName: AWP Dragon Lore
+  _icon: {fileID: 21300000, guid: a787afa2ec9954a30b39323a2acfe84e, type: 3}
+  _rewardKind: 2
+  _rarity: 3
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0

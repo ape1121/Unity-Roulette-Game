@@ -172,11 +172,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1778b7e97c5af4f8e905607127c1be47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  iconImage: {fileID: 3031845375980289846}
-  rarityBorderImage: {fileID: 3031845374920401835}
-  nameText: {fileID: 775116836267728366}
-  amountText: {fileID: 8098706016934647097}
-  actionButton: {fileID: 676707643573857708}
+  _iconImage: {fileID: 3031845375980289846}
+  _rarityBorderImage: {fileID: 3031845374920401835}
+  _nameText: {fileID: 775116836267728366}
+  _amountText: {fileID: 8098706016934647097}
+  _actionButton: {fileID: 676707643573857708}
 --- !u!114 &6006109068339308360
 MonoBehaviour:
   m_ObjectHideFlags: 0

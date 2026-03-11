@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcb8c35d8a6fc462ea4aea76bfb25a82, type: 3}
   m_Name: ItemSliceData
   m_EditorClassIdentifier: 
-  isBomb: 0
-  allowCashRewards: 0
-  allowGoldRewards: 0
-  allowItemRewards: 1
-  allowCaseRewards: 0
-  minimumRarity: 0
-  maximumRarity: 3
-  amountMultiplier: 1
-  flatAmountBonus: 0
-  rarityWeights:
+  _isBomb: 0
+  _allowCashRewards: 0
+  _allowGoldRewards: 0
+  _allowItemRewards: 1
+  _allowCaseRewards: 0
+  _minimumRarity: 0
+  _maximumRarity: 3
+  _amountMultiplier: 1
+  _flatAmountBonus: 0
+  _rarityWeights:
   - rarity: 0
     weight: 20
   - rarity: 1

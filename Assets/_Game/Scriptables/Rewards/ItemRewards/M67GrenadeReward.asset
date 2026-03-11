@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: M67GrenadeReward
   m_EditorClassIdentifier: 
-  rewardId: m67g
-  rewardName: M67 Grenade
-  icon: {fileID: 21300000, guid: ff3de643ee0884fa2b6dbe3255beabe7, type: 3}
-  rewardKind: 2
-  rarity: 0
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: m67g
+  _rewardName: M67 Grenade
+  _icon: {fileID: 21300000, guid: ff3de643ee0884fa2b6dbe3255beabe7, type: 3}
+  _rewardKind: 2
+  _rarity: 0
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0

@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e72c718724dbf4a18ae5d27383eb0078, type: 3}
   m_Name: SafeRouletteWheelData
   m_EditorClassIdentifier: 
-  zoneType: 1
-  allowDuplicateRewards: 1
-  sliceDefinitions:
+  _zoneType: 1
+  _allowDuplicateRewards: 1
+  _sliceDefinitions:
   - {fileID: 11400000, guid: 4f2421f5340ae448a9a8b5b1d511c60d, type: 2}
   - {fileID: 11400000, guid: f6b27787cce324a0b8626cc612322903, type: 2}
   - {fileID: 11400000, guid: b9271329c7e9349b2b2e504dff72509f, type: 2}
@@ -23,14 +23,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f6b27787cce324a0b8626cc612322903, type: 2}
   - {fileID: 11400000, guid: b9b9300dcdc05425582957255c36e303, type: 2}
   - {fileID: 11400000, guid: a4a35dabbbdae452bb35da5fffa157aa, type: 2}
-  spinDuration: 3.4
-  fullRotations: 6
-  settleDuration: 0.24
-  spinEase: 12
-  settleEase: 27
-  startScale: 1.05
-  startScaleDuration: 0.18
-  endScaleDuration: 0.12
-  scaleEase: 9
-  wheelBackground: {fileID: 21300000, guid: f8ab9accc7f054060ba504b915d070df, type: 3}
-  rouletteIndicator: {fileID: 21300000, guid: d3b262bc8588c4ff695a2b78ec441d4e, type: 3}
+  _spinDuration: 3.4
+  _fullRotations: 6
+  _settleDuration: 0.24
+  _spinEase: 12
+  _settleEase: 27
+  _startScale: 1.05
+  _startScaleDuration: 0.18
+  _endScaleDuration: 0.12
+  _scaleEase: 9
+  _wheelBackground: {fileID: 21300000, guid: f8ab9accc7f054060ba504b915d070df, type: 3}
+  _rouletteIndicator: {fileID: 21300000, guid: d3b262bc8588c4ff695a2b78ec441d4e, type: 3}

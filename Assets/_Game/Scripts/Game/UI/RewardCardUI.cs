@@ -8,11 +8,11 @@ namespace Ape.Game
     [DisallowMultipleComponent]
     public sealed class RewardCardUI : MonoBehaviour
     {
-        [SerializeField] private Image iconImage;
-        [SerializeField] private Image rarityBorderImage;
-        [SerializeField] private TextMeshProUGUI nameText;
-        [SerializeField] private TextMeshProUGUI amountText;
-        [SerializeField] private Button actionButton;
+        [SerializeField] private Image _iconImage;
+        [SerializeField] private Image _rarityBorderImage;
+        [SerializeField] private TextMeshProUGUI _nameText;
+        [SerializeField] private TextMeshProUGUI _amountText;
+        [SerializeField] private Button _actionButton;
 
         private UnityAction _boundAction;
 
@@ -23,7 +23,7 @@ namespace Ape.Game
 
         private void OnValidate()
         {
-            actionButton ??= UIReferenceUtility.FindButtonByName(this, "CardAction");
+            _actionButton ??= UIReferenceUtility.FindButtonByName(this, "CardAction");
         }
 
         public void Bind(ResolvedReward reward, Color rarityColor)
@@ -32,60 +32,60 @@ namespace Ape.Game
 
             ClearAction();
 
-            if (iconImage != null)
+            if (_iconImage != null)
             {
-                iconImage.enabled = hasReward && reward.Icon != null;
-                iconImage.sprite = hasReward ? reward.Icon : null;
+                _iconImage.enabled = hasReward && reward.Icon != null;
+                _iconImage.sprite = hasReward ? reward.Icon : null;
             }
 
-            if (rarityBorderImage != null)
-                rarityBorderImage.color = rarityColor;
+            if (_rarityBorderImage != null)
+                _rarityBorderImage.color = rarityColor;
 
-            if (nameText != null)
-                nameText.text = hasReward ? reward.RewardName : string.Empty;
+            if (_nameText != null)
+                _nameText.text = hasReward ? reward.RewardName : string.Empty;
 
-            if (amountText != null)
-                amountText.text = hasReward ? reward.FormatAmountLabel() : string.Empty;
+            if (_amountText != null)
+                _amountText.text = hasReward ? reward.FormatAmountLabel() : string.Empty;
         }
 
         public void SetActionVisible(bool isVisible)
         {
-            if (actionButton != null)
-                actionButton.gameObject.SetActive(isVisible);
+            if (_actionButton != null)
+                _actionButton.gameObject.SetActive(isVisible);
         }
 
         public void SetActionInteractable(bool isInteractable)
         {
-            if (actionButton != null)
-                actionButton.interactable = isInteractable;
+            if (_actionButton != null)
+                _actionButton.interactable = isInteractable;
         }
 
         public void BindAction(UnityAction onClick, bool isInteractable = true)
         {
             ClearAction();
 
-            if (actionButton == null || onClick == null)
+            if (_actionButton == null || onClick == null)
                 return;
 
             _boundAction = onClick;
-            actionButton.onClick.AddListener(_boundAction);
-            actionButton.gameObject.SetActive(true);
-            actionButton.interactable = isInteractable;
+            _actionButton.onClick.AddListener(_boundAction);
+            _actionButton.gameObject.SetActive(true);
+            _actionButton.interactable = isInteractable;
         }
 
         public void ClearAction()
         {
-            if (actionButton == null)
+            if (_actionButton == null)
                 return;
 
             if (_boundAction != null)
             {
-                actionButton.onClick.RemoveListener(_boundAction);
+                _actionButton.onClick.RemoveListener(_boundAction);
                 _boundAction = null;
             }
 
-            actionButton.interactable = false;
-            actionButton.gameObject.SetActive(false);
+            _actionButton.interactable = false;
+            _actionButton.gameObject.SetActive(false);
         }
     }
 }

@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: Mag7GoldReward
   m_EditorClassIdentifier: 
-  rewardId: mag7
-  rewardName: MAG-7 Gold Edition
-  icon: {fileID: 21300000, guid: 029e4ba3b126243a1914f227e380a0d6, type: 3}
-  rewardKind: 2
-  rarity: 0
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: mag7
+  _rewardName: MAG-7 Gold Edition
+  _icon: {fileID: 21300000, guid: 029e4ba3b126243a1914f227e380a0d6, type: 3}
+  _rewardKind: 2
+  _rarity: 0
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0

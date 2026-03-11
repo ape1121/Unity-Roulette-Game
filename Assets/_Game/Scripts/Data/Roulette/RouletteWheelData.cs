@@ -1,39 +1,40 @@
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Ape.Data
 {
     [CreateAssetMenu(fileName = "RouletteWheelData", menuName = "CriticalShot/Roulette/Roulette Wheel Data")]
     public sealed class RouletteWheelData : ScriptableObject
     {
-        [SerializeField] private RouletteZoneType zoneType;
-        [SerializeField] private bool allowDuplicateRewards;
-        [SerializeField] private RouletteSliceData[] sliceDefinitions;
-        [Min(0.5f)] [SerializeField] private float spinDuration = 3.4f;
-        [Min(1)] [SerializeField] private int fullRotations = 6;
-        [Min(0.05f)] [SerializeField] private float settleDuration = 0.24f;
-        [SerializeField] private Ease spinEase = Ease.OutQuart;
-        [SerializeField] private Ease settleEase = Ease.OutBack;
-        [Min(1f)] [SerializeField] private float startScale = 1.05f;
-        [Min(0.01f)] [SerializeField] private float startScaleDuration = 0.18f;
-        [Min(0.01f)] [SerializeField] private float endScaleDuration = 0.12f;
-        [SerializeField] private Ease scaleEase = Ease.OutCubic;
-        [SerializeField] private Sprite wheelBackground;
-        [SerializeField] private Sprite rouletteIndicator;
+        [SerializeField] private RouletteZoneType _zoneType;
+        [SerializeField] private bool _allowDuplicateRewards;
+        [SerializeField] private RouletteSliceData[] _sliceDefinitions;
+        [Min(0.5f)] [SerializeField] private float _spinDuration = 3.4f;
+        [Min(1)] [SerializeField] private int _fullRotations = 6;
+        [Min(0.05f)] [SerializeField] private float _settleDuration = 0.24f;
+        [SerializeField] private Ease _spinEase = Ease.OutQuart;
+        [SerializeField] private Ease _settleEase = Ease.OutBack;
+        [Min(1f)] [SerializeField] private float _startScale = 1.05f;
+        [Min(0.01f)] [SerializeField] private float _startScaleDuration = 0.18f;
+        [Min(0.01f)] [SerializeField] private float _endScaleDuration = 0.12f;
+        [SerializeField] private Ease _scaleEase = Ease.OutCubic;
+        [SerializeField] private Sprite _wheelBackground;
+        [SerializeField] private Sprite _rouletteIndicator;
 
-        public bool AllowDuplicateRewards => allowDuplicateRewards;
-        public RouletteSliceData[] SliceDefinitions => sliceDefinitions ?? System.Array.Empty<RouletteSliceData>();
-        public float SpinDuration => Mathf.Max(0.5f, spinDuration);
-        public int FullRotations => Mathf.Max(1, fullRotations);
-        public float SettleDuration => Mathf.Max(0.05f, settleDuration);
-        public Ease SpinEase => spinEase;
-        public Ease SettleEase => settleEase;
-        public float StartScale => Mathf.Max(1f, startScale);
-        public float StartScaleDuration => Mathf.Max(0.01f, startScaleDuration);
-        public float EndScaleDuration => Mathf.Max(0.01f, endScaleDuration);
-        public Ease ScaleEase => scaleEase;
-        public RouletteZoneType ZoneType => zoneType;
-        public Sprite WheelBackground => wheelBackground;
-        public Sprite RouletteIndicator => rouletteIndicator;
+        public bool AllowDuplicateRewards => _allowDuplicateRewards;
+        public RouletteSliceData[] SliceDefinitions => _sliceDefinitions ?? System.Array.Empty<RouletteSliceData>();
+        public float SpinDuration => Mathf.Max(0.5f, _spinDuration);
+        public int FullRotations => Mathf.Max(1, _fullRotations);
+        public float SettleDuration => Mathf.Max(0.05f, _settleDuration);
+        public Ease SpinEase => _spinEase;
+        public Ease SettleEase => _settleEase;
+        public float StartScale => Mathf.Max(1f, _startScale);
+        public float StartScaleDuration => Mathf.Max(0.01f, _startScaleDuration);
+        public float EndScaleDuration => Mathf.Max(0.01f, _endScaleDuration);
+        public Ease ScaleEase => _scaleEase;
+        public RouletteZoneType ZoneType => _zoneType;
+        public Sprite WheelBackground => _wheelBackground;
+        public Sprite RouletteIndicator => _rouletteIndicator;
     }
 }

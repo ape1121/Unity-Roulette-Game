@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: M3PumpReward
   m_EditorClassIdentifier: 
-  rewardId: m3
-  rewardName: M3 Gold Chrome
-  icon: {fileID: 21300000, guid: a3b70ee0ae008436bb7c0a02865773e5, type: 3}
-  rewardKind: 2
-  rarity: 1
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: m3
+  _rewardName: M3 Gold Chrome
+  _icon: {fileID: 21300000, guid: a3b70ee0ae008436bb7c0a02865773e5, type: 3}
+  _rewardKind: 2
+  _rarity: 1
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0

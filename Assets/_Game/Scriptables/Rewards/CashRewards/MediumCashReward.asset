@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: MediumCashReward
   m_EditorClassIdentifier: 
-  rewardId: mcash
-  rewardName: Cash
-  icon: {fileID: 21300000, guid: fe17945ed8be34bf4ba0d0e11f3cb784, type: 3}
-  rewardKind: 0
-  rarity: 1
-  minAmount: 200
-  maxAmount: 500
-  amountIncreasePerZone: 25
+  _rewardId: mcash
+  _rewardName: Cash
+  _icon: {fileID: 21300000, guid: fe17945ed8be34bf4ba0d0e11f3cb784, type: 3}
+  _rewardKind: 0
+  _rarity: 1
+  _minAmount: 200
+  _maxAmount: 500
+  _amountIncreasePerZone: 25

@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab478cdd415c24801826a6e67fff8237, type: 3}
   m_Name: SunglassesReward
   m_EditorClassIdentifier: 
-  rewardId: sunglasses
-  rewardName: Cool Shades
-  icon: {fileID: 21300000, guid: b3590259966a445e083dc1a1c470f2f9, type: 3}
-  rewardKind: 2
-  rarity: 3
-  minAmount: 1
-  maxAmount: 1
-  amountIncreasePerZone: 0
+  _rewardId: sunglasses
+  _rewardName: Cool Shades
+  _icon: {fileID: 21300000, guid: b3590259966a445e083dc1a1c470f2f9, type: 3}
+  _rewardKind: 2
+  _rarity: 3
+  _minAmount: 1
+  _maxAmount: 1
+  _amountIncreasePerZone: 0
