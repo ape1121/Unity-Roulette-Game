@@ -5,6 +5,9 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Ape.Game
 {
@@ -20,10 +23,37 @@ namespace Ape.Game
             Result
         }
 
+        private static readonly Vector2 InvalidViewportSize = new Vector2(-1f, -1f);
+
+        private readonly InventoryWindowAnimationController _panelAnimationController = new InventoryWindowAnimationController();
+        private readonly List<RewardCardUI> _spawnedCards = new List<RewardCardUI>();
+        private readonly List<ResolvedReward> _previewRewards = new List<ResolvedReward>();
+        private readonly List<ResolvedReward> _activeRewards = new List<ResolvedReward>();
+
         private GameUiTextConfig _textConfig;
         private RewardManager _rewardManager;
         private bool _missingReferencesLogged;
+        private Sequence _spinSequence;
+        private Tween _previewLoopTween;
+        private Tween _winnerPulseTween;
+        private Action<CaseOpenSession> _onRollRequested;
+        private Action _onCloseRequested;
+        private CaseOpenSession _currentSession;
+        private PresentationState _state;
+        private bool _canRoll;
+        private int _previewUniqueRewardCount;
+        private int _currentWinningIndex = -1;
+        private Vector2 _lastViewportSize = InvalidViewportSize;
+        private float _resolvedCardWidth;
+        private float _resolvedCardHeight;
+#if UNITY_EDITOR
+        private bool _editorRefreshQueued;
+#endif
 
+        [Header("Structure")]
+        [SerializeField] private RectTransform _windowRoot;
+        [SerializeField] private CanvasGroup _windowCanvasGroup;
+        [SerializeField] private RectTransform _panelRoot;
         [SerializeField] private RectTransform _viewportRect;
         [SerializeField] private RectTransform _contentRect;
         [SerializeField] private RewardCardUI _rewardCardPrefab;
@@ -38,12 +68,22 @@ namespace Ape.Game
         [SerializeField] private Image _centerMarker;
 
         [Header("Layout")]
-        [Min(96f)] [SerializeField] private float _cardWidth = 150f;
-        [Min(96f)] [SerializeField] private float _cardHeight = 180f;
+        [Min(32f)] [SerializeField] private float _cardWidth = 150f;
+        [Min(32f)] [SerializeField] private float _cardHeight = 180f;
         [Min(0f)] [SerializeField] private float _cardSpacing = 18f;
         [Min(3)] [SerializeField] private int _previewCycleCount = 6;
+        [Min(0f)] [SerializeField] private float _centerMarkerWidthPadding = 24f;
+        [Min(0f)] [SerializeField] private float _centerMarkerHeightPadding = 24f;
 
-        [Header("Animation")]
+        [Header("Panel Animation")]
+        [Min(0.05f)] [SerializeField] private float _fadeDuration = 0.18f;
+        [Min(0.05f)] [SerializeField] private float _panelDuration = 0.28f;
+        [Min(0f)] [SerializeField] private float _hiddenPanelOffset = 48f;
+        [Range(0.5f, 1f)] [SerializeField] private float _hiddenPanelScale = 0.96f;
+        [SerializeField] private Ease _openEase = Ease.OutCubic;
+        [SerializeField] private Ease _closeEase = Ease.InCubic;
+
+        [Header("Reel Animation")]
         [Min(20f)] [SerializeField] private float _previewScrollSpeed = 140f;
         [Min(0.1f)] [SerializeField] private float _rampUpDuration = 0.45f;
         [Min(0.1f)] [SerializeField] private float _cruiseDuration = 1.15f;
@@ -57,19 +97,6 @@ namespace Ape.Game
         [SerializeField] private Ease _settleEase = Ease.OutBack;
         [Min(1f)] [SerializeField] private float _winnerScale = 1.08f;
         [Min(0.05f)] [SerializeField] private float _winnerPulseDuration = 0.18f;
-
-        private readonly List<RewardCardUI> _spawnedCards = new List<RewardCardUI>();
-        private readonly List<ResolvedReward> _previewRewards = new List<ResolvedReward>();
-
-        private Sequence _openSequence;
-        private Tween _previewLoopTween;
-        private Tween _winnerPulseTween;
-        private Action<CaseOpenSession> _onRollRequested;
-        private Action _onCloseRequested;
-        private CaseOpenSession _currentSession;
-        private PresentationState _state;
-        private bool _canRoll;
-        private int _previewUniqueRewardCount;
 
         public bool IsAnimating => _state == PresentationState.Rolling;
 
@@ -94,11 +121,14 @@ namespace Ape.Game
             _onRollRequested = onRollRequested;
             _onCloseRequested = onCloseRequested;
             _state = PresentationState.Preview;
+            _currentWinningIndex = -1;
 
             BuildPreviewCards(session);
             ApplyPreviewTexts(session);
             ApplyPreviewButtons(canRoll);
             SetMarkerVisible(true);
+            RefreshResponsiveLayout(force: true);
+            PlayOpenTransition();
             StartPreviewLoop();
         }
 
@@ -115,22 +145,25 @@ namespace Ape.Game
             if (!caseOpenResult.IsValid || !HasRequiredSetup())
                 return;
 
-            StopAnimation();
+            StopMotionTweens();
+            EnsurePanelOpenState();
+
+            _currentWinningIndex = Mathf.Clamp(caseOpenResult.WinningReelIndex, 0, caseOpenResult.ReelRewards.Count - 1);
+
             BuildCards(caseOpenResult.ReelRewards);
+            RefreshResponsiveLayout(force: true);
 
             _state = PresentationState.Rolling;
             ApplyRollingTexts(caseOpenResult);
             SetButtonsVisible(false);
+            SetMarkerVisible(true);
 
-            Canvas.ForceUpdateCanvases();
-
-            int winningIndex = Mathf.Clamp(caseOpenResult.WinningReelIndex, 0, caseOpenResult.ReelRewards.Count - 1);
-            float targetX = ResolveTargetContentPosition(winningIndex);
-            float step = _cardWidth + _cardSpacing;
+            float targetX = ResolveTargetContentPosition(_currentWinningIndex);
+            float step = ResolveCardStep();
             float travelDistance = Mathf.Max(
                 _spinTravelDistance,
                 ResolveViewportWidth() * 2.2f,
-                (winningIndex + 1) * step * 0.75f);
+                (_currentWinningIndex + 1) * step * 0.75f);
             float startX = targetX + travelDistance;
             float rampUpX = targetX + (travelDistance * 0.72f);
             float cruiseX = targetX + (travelDistance * 0.24f);
@@ -138,79 +171,63 @@ namespace Ape.Game
 
             SetContentPosition(startX);
 
-            _openSequence = DOTween.Sequence();
-            _openSequence.Append(_contentRect.DOAnchorPosX(rampUpX, _rampUpDuration).SetEase(_rampUpEase));
-            _openSequence.Append(_contentRect.DOAnchorPosX(cruiseX, _cruiseDuration).SetEase(_cruiseEase));
-            _openSequence.Append(_contentRect.DOAnchorPosX(overshootX, _slowDownDuration).SetEase(_slowDownEase));
-            _openSequence.Append(_contentRect.DOAnchorPosX(targetX, _settleDuration).SetEase(_settleEase));
-            _openSequence.AppendCallback(() => CompleteRoll(caseOpenResult, winningIndex));
-            _openSequence.OnKill(() => _openSequence = null);
+            _spinSequence = DOTween.Sequence()
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
+                .OnKill(() => _spinSequence = null);
+            _spinSequence.Append(_contentRect.DOAnchorPosX(rampUpX, _rampUpDuration).SetEase(_rampUpEase));
+            _spinSequence.Append(_contentRect.DOAnchorPosX(cruiseX, _cruiseDuration).SetEase(_cruiseEase));
+            _spinSequence.Append(_contentRect.DOAnchorPosX(overshootX, _slowDownDuration).SetEase(_slowDownEase));
+            _spinSequence.Append(_contentRect.DOAnchorPosX(targetX, _settleDuration).SetEase(_settleEase));
+            _spinSequence.AppendCallback(() => CompleteRoll(caseOpenResult, _currentWinningIndex));
         }
 
         public void StopAnimation()
         {
-            if (_openSequence != null && _openSequence.IsActive())
-                _openSequence.Kill();
-
-            if (_previewLoopTween != null && _previewLoopTween.IsActive())
-                _previewLoopTween.Kill();
-
-            if (_winnerPulseTween != null && _winnerPulseTween.IsActive())
-                _winnerPulseTween.Kill();
-
-            _openSequence = null;
-            _previewLoopTween = null;
-            _winnerPulseTween = null;
-            ResetCardScales();
+            StopMotionTweens();
+            _panelAnimationController.KillTransition();
         }
 
         public void HidePresentation()
         {
             StopAnimation();
-
-            _currentSession = default;
-            _onRollRequested = null;
-            _onCloseRequested = null;
-            _previewRewards.Clear();
-            _previewUniqueRewardCount = 0;
-            _state = PresentationState.Hidden;
-            _canRoll = false;
-
-            if (_titleLabel != null)
-                _titleLabel.text = string.Empty;
-
-            if (_costLabel != null)
-                _costLabel.text = string.Empty;
-
-            if (_resultLabel != null)
-                _resultLabel.text = string.Empty;
-
-            if (_buttonsRoot != null)
-                _buttonsRoot.gameObject.SetActive(false);
-
-            SetMarkerVisible(false);
-
-            for (int i = 0; i < _spawnedCards.Count; i++)
-            {
-                if (_spawnedCards[i] != null)
-                    _spawnedCards[i].gameObject.SetActive(false);
-            }
+            ResetPresentationState();
+            ResetHiddenLayout();
+            CacheAnimationReferences();
+            _panelAnimationController.ApplyClosedState();
         }
 
         private void Awake()
         {
+            CacheAnimationReferences();
             BindButtons();
-            HidePresentation();
+            ResetPresentationState();
         }
 
         private void OnEnable()
         {
+            CacheAnimationReferences();
             BindButtons();
+
+            if (_state == PresentationState.Hidden)
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    QueueEditorRefresh();
+                    return;
+                }
+#endif
+                ResetHiddenLayout();
+                _panelAnimationController.ApplyClosedState();
+            }
         }
 
         private void OnDisable()
         {
             StopAnimation();
+#if UNITY_EDITOR
+            CancelEditorRefresh();
+#endif
         }
 
         private void OnDestroy()
@@ -218,10 +235,56 @@ namespace Ape.Game
             StopAnimation();
         }
 
+        private void OnRectTransformDimensionsChange()
+        {
+            CacheAnimationReferences();
+
+            if (!isActiveAndEnabled || _state == PresentationState.Hidden || _viewportRect == null || _contentRect == null)
+                return;
+
+            HandleViewportSizeChanged();
+        }
+
+        private void OnValidate()
+        {
+            CacheAnimationReferences();
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                QueueEditorRefresh();
+#endif
+        }
+
+        private void CacheAnimationReferences()
+        {
+            _windowRoot ??= GetComponent<RectTransform>();
+            _windowCanvasGroup ??= GetComponent<CanvasGroup>();
+
+            if (_panelRoot == null)
+            {
+                RectTransform viewportParent = _viewportRect != null ? _viewportRect.parent as RectTransform : null;
+                _panelRoot = viewportParent != null ? viewportParent : _windowRoot;
+            }
+
+            _panelAnimationController.Configure(
+                _windowCanvasGroup,
+                _panelRoot,
+                _fadeDuration,
+                _panelDuration,
+                _hiddenPanelOffset,
+                _hiddenPanelScale,
+                _openEase,
+                _closeEase);
+            _panelAnimationController.CachePanelOpenPosition();
+        }
+
         private bool HasRequiredSetup()
         {
+            CacheAnimationReferences();
+
             bool hasSetup =
-                _viewportRect != null
+                _windowCanvasGroup != null
+                && _panelRoot != null
+                && _viewportRect != null
                 && _contentRect != null
                 && _rewardCardPrefab != null
                 && _buttonsRoot != null
@@ -239,7 +302,7 @@ namespace Ape.Game
 
             _missingReferencesLogged = true;
             Debug.LogWarning(
-                "CaseOpenUI is missing required references. Assign the viewport, reel content, reward card prefab, buttons root, roll button, and back button in the prefab.",
+                "CaseOpenUI is missing required references. Assign the root canvas group, panel root, viewport, reel content, reward card prefab, buttons root, roll button, and back button in the prefab.",
                 this);
             return false;
         }
@@ -267,7 +330,7 @@ namespace Ape.Game
             if (_contentRect == null)
                 return;
 
-            float step = _cardWidth + _cardSpacing;
+            _activeRewards.Clear();
 
             for (int i = 0; i < rewards.Count; i++)
             {
@@ -275,24 +338,15 @@ namespace Ape.Game
                 if (card == null)
                     continue;
 
-                RectTransform cardRect = card.transform as RectTransform;
-                if (cardRect != null)
-                {
-                    cardRect.anchorMin = new Vector2(0f, 0.5f);
-                    cardRect.anchorMax = new Vector2(0f, 0.5f);
-                    cardRect.pivot = new Vector2(0f, 0.5f);
-                    cardRect.sizeDelta = new Vector2(_cardWidth, _cardHeight);
-                    cardRect.anchoredPosition = new Vector2(i * step, 0f);
-                    cardRect.localScale = Vector3.one;
-                }
-
                 ResolvedReward reward = rewards[i];
                 Color rarityColor = reward.HasReward && _rewardManager != null
                     ? _rewardManager.GetRarityColor(reward.Rarity, Color.white)
                     : Color.white;
 
                 card.Bind(reward, rarityColor);
+                DisableCardInteractions(card);
                 card.gameObject.SetActive(true);
+                _activeRewards.Add(reward);
             }
 
             for (int i = rewards.Count; i < _spawnedCards.Count; i++)
@@ -300,11 +354,6 @@ namespace Ape.Game
                 if (_spawnedCards[i] != null)
                     _spawnedCards[i].gameObject.SetActive(false);
             }
-
-            _contentRect.anchorMin = new Vector2(0f, 0.5f);
-            _contentRect.anchorMax = new Vector2(0f, 0.5f);
-            _contentRect.pivot = new Vector2(0f, 0.5f);
-            _contentRect.sizeDelta = new Vector2(Mathf.Max(0f, (rewards.Count * step) - _cardSpacing), _cardHeight);
         }
 
         private RewardCardUI GetOrCreateCard(int index)
@@ -322,16 +371,22 @@ namespace Ape.Game
 
         private void StartPreviewLoop()
         {
-            if (_contentRect == null || _previewUniqueRewardCount <= 0)
+            if (_contentRect == null || _previewUniqueRewardCount <= 0 || _state != PresentationState.Preview)
                 return;
 
-            Canvas.ForceUpdateCanvases();
+            if (_previewLoopTween != null && _previewLoopTween.IsActive())
+                _previewLoopTween.Kill();
+
+            RefreshResponsiveLayout(force: false);
 
             int startIndex = _previewUniqueRewardCount;
             int endIndex = startIndex + _previewUniqueRewardCount;
             float startX = ResolveTargetContentPosition(startIndex);
             float endX = ResolveTargetContentPosition(endIndex);
             float distance = Mathf.Abs(endX - startX);
+            if (distance <= 0.01f)
+                return;
+
             float duration = distance / Mathf.Max(20f, _previewScrollSpeed);
 
             SetContentPosition(startX);
@@ -339,12 +394,17 @@ namespace Ape.Game
                 .DOAnchorPosX(endX, duration)
                 .SetEase(Ease.Linear)
                 .SetLoops(-1, LoopType.Restart)
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
                 .OnKill(() => _previewLoopTween = null);
         }
 
         private void CompleteRoll(CaseOpenResult caseOpenResult, int winningIndex)
         {
             _state = PresentationState.Result;
+            _currentWinningIndex = winningIndex;
+
+            RefreshResponsiveLayout(force: true);
+            SetContentPosition(ResolveTargetContentPosition(winningIndex));
             PulseWinner(winningIndex);
             ApplyResultTexts(caseOpenResult);
             ApplyResultButtons();
@@ -363,7 +423,25 @@ namespace Ape.Game
                 .DOScale(_winnerScale, _winnerPulseDuration)
                 .SetLoops(2, LoopType.Yoyo)
                 .SetEase(Ease.OutQuad)
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy)
                 .OnKill(() => _winnerPulseTween = null);
+        }
+
+        private void StopMotionTweens()
+        {
+            if (_spinSequence != null && _spinSequence.IsActive())
+                _spinSequence.Kill();
+
+            if (_previewLoopTween != null && _previewLoopTween.IsActive())
+                _previewLoopTween.Kill();
+
+            if (_winnerPulseTween != null && _winnerPulseTween.IsActive())
+                _winnerPulseTween.Kill();
+
+            _spinSequence = null;
+            _previewLoopTween = null;
+            _winnerPulseTween = null;
+            ResetCardScales();
         }
 
         private void ResetCardScales()
@@ -377,6 +455,180 @@ namespace Ape.Game
                 if (cardRect != null)
                     cardRect.localScale = Vector3.one;
             }
+        }
+
+        private void RefreshResponsiveLayout(bool force)
+        {
+            if (_viewportRect == null || _contentRect == null || _rewardCardPrefab == null)
+                return;
+
+            Canvas.ForceUpdateCanvases();
+
+            Vector2 viewportSize = _viewportRect.rect.size;
+            if (viewportSize.x <= 0f || viewportSize.y <= 0f)
+                return;
+
+            if (!force && Approximately(viewportSize, _lastViewportSize))
+                return;
+
+            ResolveCardDimensions(viewportSize);
+            ApplyCardLayout();
+            ApplyCenterMarkerLayout();
+            _lastViewportSize = viewportSize;
+        }
+
+        private void ResetPresentationState()
+        {
+            _currentSession = default;
+            _onRollRequested = null;
+            _onCloseRequested = null;
+            _previewRewards.Clear();
+            _activeRewards.Clear();
+            _previewUniqueRewardCount = 0;
+            _currentWinningIndex = -1;
+            _state = PresentationState.Hidden;
+            _canRoll = false;
+            _lastViewportSize = InvalidViewportSize;
+
+            if (_titleLabel != null)
+                _titleLabel.text = string.Empty;
+
+            if (_costLabel != null)
+                _costLabel.text = string.Empty;
+
+            if (_resultLabel != null)
+                _resultLabel.text = string.Empty;
+
+            SetButtonsVisible(false);
+            SetMarkerVisible(false);
+            SetButtonsInteractable(false);
+
+            for (int i = 0; i < _spawnedCards.Count; i++)
+            {
+                if (_spawnedCards[i] != null)
+                    _spawnedCards[i].gameObject.SetActive(false);
+            }
+        }
+
+        private void ResetHiddenLayout()
+        {
+            if (_contentRect == null)
+                return;
+
+            _contentRect.anchorMin = new Vector2(0f, 0.5f);
+            _contentRect.anchorMax = new Vector2(0f, 0.5f);
+            _contentRect.pivot = new Vector2(0f, 0.5f);
+            _contentRect.anchoredPosition = Vector2.zero;
+            _contentRect.sizeDelta = Vector2.zero;
+        }
+
+        private void ResolveCardDimensions(Vector2 viewportSize)
+        {
+            float aspectRatio = ResolveCardAspectRatio();
+            _resolvedCardHeight = Mathf.Max(0f, viewportSize.y);
+            _resolvedCardWidth = _resolvedCardHeight * aspectRatio;
+        }
+
+        private float ResolveCardAspectRatio()
+        {
+            RectTransform prefabRect = _rewardCardPrefab != null ? _rewardCardPrefab.transform as RectTransform : null;
+            if (prefabRect != null)
+            {
+                Vector2 prefabSize = prefabRect.rect.size;
+                if (prefabSize.x > 0f && prefabSize.y > 0f)
+                    return prefabSize.x / prefabSize.y;
+
+                Vector2 sizeDelta = prefabRect.sizeDelta;
+                if (sizeDelta.x > 0f && sizeDelta.y > 0f)
+                    return sizeDelta.x / sizeDelta.y;
+            }
+
+            return Mathf.Max(0.01f, _cardWidth) / Mathf.Max(0.01f, _cardHeight);
+        }
+
+        private void ApplyCardLayout()
+        {
+            float step = ResolveCardStep();
+
+            for (int i = 0; i < _activeRewards.Count; i++)
+            {
+                RewardCardUI card = _spawnedCards[i];
+                if (card == null)
+                    continue;
+
+                RectTransform cardRect = card.transform as RectTransform;
+                if (cardRect == null)
+                    continue;
+
+                cardRect.anchorMin = new Vector2(0f, 0.5f);
+                cardRect.anchorMax = new Vector2(0f, 0.5f);
+                cardRect.pivot = new Vector2(0.5f, 0.5f);
+                cardRect.sizeDelta = new Vector2(_resolvedCardWidth, _resolvedCardHeight);
+                cardRect.anchoredPosition = new Vector2((_resolvedCardWidth * 0.5f) + (i * step), 0f);
+                cardRect.localScale = Vector3.one;
+            }
+
+            _contentRect.anchorMin = new Vector2(0f, 0.5f);
+            _contentRect.anchorMax = new Vector2(0f, 0.5f);
+            _contentRect.pivot = new Vector2(0f, 0.5f);
+            _contentRect.sizeDelta = new Vector2(
+                Mathf.Max(0f, (_activeRewards.Count * step) - _cardSpacing),
+                _resolvedCardHeight);
+        }
+
+        private void ApplyCenterMarkerLayout()
+        {
+            if (_centerMarker == null)
+                return;
+
+            RectTransform markerRect = _centerMarker.rectTransform;
+            markerRect.anchorMin = new Vector2(0.5f, 0.5f);
+            markerRect.anchorMax = new Vector2(0.5f, 0.5f);
+            markerRect.pivot = new Vector2(0.5f, 0.5f);
+            markerRect.anchoredPosition = Vector2.zero;
+            markerRect.sizeDelta = new Vector2(
+                _resolvedCardWidth + _centerMarkerWidthPadding,
+                _resolvedCardHeight + _centerMarkerHeightPadding);
+        }
+
+        private void HandleViewportSizeChanged()
+        {
+            Vector2 viewportSize = _viewportRect.rect.size;
+            if (viewportSize.x <= 0f || viewportSize.y <= 0f || Approximately(viewportSize, _lastViewportSize))
+                return;
+
+            RefreshResponsiveLayout(force: true);
+
+            if (_state == PresentationState.Preview)
+            {
+                StartPreviewLoop();
+                return;
+            }
+
+            if (_state == PresentationState.Result && _currentWinningIndex >= 0)
+                SetContentPosition(ResolveTargetContentPosition(_currentWinningIndex));
+        }
+
+        private void PlayOpenTransition()
+        {
+            CacheAnimationReferences();
+            _panelAnimationController.SetInteractionState(true);
+            _panelAnimationController.PlayTransition(gameObject, show: true, instant: false, onHidden: null);
+        }
+
+        private void EnsurePanelOpenState()
+        {
+            CacheAnimationReferences();
+            _panelAnimationController.KillTransition();
+            _panelAnimationController.ApplyOpenState();
+            _panelAnimationController.SetInteractionState(true);
+        }
+
+        private void PlayCloseTransition(Action onClosed)
+        {
+            CacheAnimationReferences();
+            _panelAnimationController.SetInteractionState(false);
+            _panelAnimationController.PlayTransition(gameObject, show: false, instant: false, onClosed);
         }
 
         private void ApplyPreviewTexts(CaseOpenSession session)
@@ -470,16 +722,29 @@ namespace Ape.Game
                 _buttonsRoot.gameObject.SetActive(isVisible);
         }
 
+        private void SetButtonsInteractable(bool isInteractable)
+        {
+            if (_rollButton != null)
+                _rollButton.interactable = isInteractable && _canRoll;
+
+            if (_backButton != null)
+                _backButton.interactable = isInteractable;
+        }
+
         private void SetMarkerVisible(bool isVisible)
         {
             if (_centerMarker != null)
                 _centerMarker.gameObject.SetActive(isVisible);
         }
 
+        private float ResolveCardStep()
+        {
+            return _resolvedCardWidth + _cardSpacing;
+        }
+
         private float ResolveTargetContentPosition(int winningIndex)
         {
-            float step = _cardWidth + _cardSpacing;
-            float winningCenter = (winningIndex * step) + (_cardWidth * 0.5f);
+            float winningCenter = (_resolvedCardWidth * 0.5f) + (winningIndex * ResolveCardStep());
             return (ResolveViewportWidth() * 0.5f) - winningCenter;
         }
 
@@ -518,7 +783,9 @@ namespace Ape.Game
             if (_state == PresentationState.Rolling)
                 return;
 
-            _onCloseRequested?.Invoke();
+            StopMotionTweens();
+            SetButtonsInteractable(false);
+            PlayCloseTransition(() => _onCloseRequested?.Invoke());
         }
 
         private void BindButtons()
@@ -535,5 +802,66 @@ namespace Ape.Game
                 _backButton.onClick.AddListener(HandleBackClicked);
             }
         }
+
+        private static void DisableCardInteractions(RewardCardUI card)
+        {
+            if (card == null)
+                return;
+
+            Selectable[] selectables = card.GetComponentsInChildren<Selectable>(true);
+            for (int i = 0; i < selectables.Length; i++)
+                selectables[i].interactable = false;
+        }
+
+        private static bool Approximately(Vector2 a, Vector2 b)
+        {
+            return Mathf.Abs(a.x - b.x) < 0.01f && Mathf.Abs(a.y - b.y) < 0.01f;
+        }
+
+#if UNITY_EDITOR
+        private void QueueEditorRefresh()
+        {
+            if (_editorRefreshQueued)
+                return;
+
+            _editorRefreshQueued = true;
+            EditorApplication.delayCall -= HandleEditorRefresh;
+            EditorApplication.delayCall += HandleEditorRefresh;
+            EditorApplication.QueuePlayerLoopUpdate();
+            SceneView.RepaintAll();
+        }
+
+        private void CancelEditorRefresh()
+        {
+            if (!_editorRefreshQueued)
+                return;
+
+            EditorApplication.delayCall -= HandleEditorRefresh;
+            _editorRefreshQueued = false;
+        }
+
+        private void HandleEditorRefresh()
+        {
+            EditorApplication.delayCall -= HandleEditorRefresh;
+            _editorRefreshQueued = false;
+
+            if (this == null)
+                return;
+
+            CacheAnimationReferences();
+
+            if (_viewportRect != null && _contentRect != null && _rewardCardPrefab != null)
+                RefreshResponsiveLayout(force: true);
+
+            if (_state == PresentationState.Hidden)
+            {
+                ResetHiddenLayout();
+                _panelAnimationController.ApplyClosedState();
+            }
+
+            EditorApplication.QueuePlayerLoopUpdate();
+            SceneView.RepaintAll();
+        }
+#endif
     }
 }

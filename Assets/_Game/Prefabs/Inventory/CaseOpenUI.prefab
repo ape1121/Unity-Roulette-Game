@@ -64,7 +64,7 @@ RectTransform:
   m_GameObject: {fileID: 482148197054342355}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.96, y: 0.96, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 482148196993518305}
@@ -75,7 +75,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.2, y: 0.2}
   m_AnchorMax: {x: 0.8, y: 0.8}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -96}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &482148197054342356
@@ -125,6 +125,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 482148197283754908}
+  - component: {fileID: 482148197283754910}
   - component: {fileID: 482148197283754911}
   m_Layer: 5
   m_Name: CaseOpenUI
@@ -155,6 +156,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &482148197283754910
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482148197283754909}
+  m_Enabled: 1
+  m_Alpha: 0
+  m_Interactable: 0
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!114 &482148197283754911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -167,7 +180,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9d164b1df16490a83b5cdbe7011e6d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _viewportRect: {fileID: 482148197054342354}
+  _windowRoot: {fileID: 482148197283754908}
+  _windowCanvasGroup: {fileID: 482148197283754910}
+  _panelRoot: {fileID: 482148197054342354}
+  _viewportRect: {fileID: 482148197562697267}
   _contentRect: {fileID: 482148197325326270}
   _rewardCardPrefab: {fileID: 3031845375332442261, guid: 65a3a4f9eee2d4eb28355baa23945d00, type: 3}
   _buttonsRoot: {fileID: 482148198394385521}
@@ -183,6 +199,14 @@ MonoBehaviour:
   _cardHeight: 180
   _cardSpacing: 18
   _previewCycleCount: 6
+  _centerMarkerWidthPadding: 24
+  _centerMarkerHeightPadding: 24
+  _fadeDuration: 0.18
+  _panelDuration: 0.28
+  _hiddenPanelOffset: 48
+  _hiddenPanelScale: 0.96
+  _openEase: 9
+  _closeEase: 8
   _previewScrollSpeed: 140
   _rampUpDuration: 0.45
   _cruiseDuration: 1.15
@@ -227,11 +251,11 @@ RectTransform:
   m_Father: {fileID: 482148197562697267}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.000061035156, y: 0}
+  m_AnchorMin: {x: 0, y: 0.5}
+  m_AnchorMax: {x: 0, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_Pivot: {x: 0, y: 0.5}
 --- !u!1 &482148197562697264
 GameObject:
   m_ObjectHideFlags: 0
@@ -241,6 +265,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 482148197562697267}
+  - component: {fileID: 482148197562697268}
   m_Layer: 5
   m_Name: CaseRewardsBox
   m_TagString: Untagged
@@ -270,6 +295,20 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &482148197562697268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482148197562697264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RectMask2D
+  m_Padding: {x: 0, y: 0, z: 0, w: 0}
+  m_Softness: {x: 0, y: 0}
 --- !u!1 &482148197723778901
 GameObject:
   m_ObjectHideFlags: 0

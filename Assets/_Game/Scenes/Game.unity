@@ -3560,6 +3560,46 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 482148197325326270, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197325326270, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197325326270, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197325326270, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197325326270, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197723778900, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197723778900, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197723778900, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 628.80005
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197723778900, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 830.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 482148197723778900, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1284140042012393191, guid: cc4966638bae94217bf9f1fde0a72ef8, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
