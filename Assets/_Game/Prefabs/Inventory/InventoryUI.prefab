@@ -311,7 +311,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 45.45
+  m_fontSize: 42.05
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1340,7 +1340,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 58.15
+  m_fontSize: 53.85
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1475,7 +1475,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 28.4
+  m_fontSize: 21.2
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1923,7 +1923,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 128
+  m_fontSize: 109.7
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -2383,8 +2383,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Content: {fileID: 71430749760838184}
-  m_Horizontal: 1
-  m_Vertical: 0
+  m_Horizontal: 0
+  m_Vertical: 1
   m_MovementType: 1
   m_Elasticity: 0.1
   m_Inertia: 1
@@ -2811,11 +2811,11 @@ MonoBehaviour:
     m_Bottom: 30
   m_ChildAlignment: 1
   m_StartCorner: 0
-  m_StartAxis: 1
-  m_CellSize: {x: 332.28265, y: 498.42395}
+  m_StartAxis: 0
+  m_CellSize: {x: 168.79999, y: 253.19998}
   m_Spacing: {x: 15, y: 15}
-  m_Constraint: 2
-  m_ConstraintCount: 1
+  m_Constraint: 1
+  m_ConstraintCount: 2
 --- !u!114 &71430749760838186
 MonoBehaviour:
   m_ObjectHideFlags: 0

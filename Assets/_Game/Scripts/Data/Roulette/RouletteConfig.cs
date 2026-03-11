@@ -9,6 +9,7 @@ namespace Ape.Data
     {
         [SerializeField] private int deterministicSeed = 1337;
         [SerializeField] private bool randomizeSeedOnRunStart;
+        [Min(0f)] [SerializeField] private float postSpinRevealDelay = 1f;
         [SerializeField] private RouletteRewards rewardCatalog;
         [SerializeField] private RouletteWheelData[] wheels;
 
@@ -16,6 +17,7 @@ namespace Ape.Data
 
         public int DeterministicSeed => deterministicSeed;
         public bool RandomizeSeedOnRunStart => randomizeSeedOnRunStart;
+        public float PostSpinRevealDelay => Mathf.Max(0f, postSpinRevealDelay);
 
         public RewardData[] GetRewardCatalog()
         {
@@ -45,6 +47,7 @@ namespace Ape.Data
 
         private void OnValidate()
         {
+            postSpinRevealDelay = Mathf.Max(0f, postSpinRevealDelay);
             _wheelLookup = null;
         }
 

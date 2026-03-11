@@ -61,9 +61,13 @@ namespace Ape.Game
         [Header("Wheel Idle Rotation")]
         [SerializeField] private float _idleRotationSpeedDegreesPerSecond = 8f;
 
+        [Header("Post Spin Reveal")]
+        [Min(0f)] [SerializeField] private float _replaceSmokeLeadTime = 0.16f;
+
         private readonly List<RouletteRewardSliceUI> _spawnedSlices = new List<RouletteRewardSliceUI>();
 
         private Sequence _spinSequence;
+        private Sequence _postSpinRevealSequence;
         private Tween _spinButtonIdleTween;
         private float _currentRotationDegrees;
         private RouletteResolvedWheel _lastWheel;
@@ -73,6 +77,8 @@ namespace Ape.Game
         private Vector3 _spinButtonIdleBaseScale = Vector3.one;
         private bool _hasSpinButtonIdleBaseScale;
         private bool _wheelIdleRotationActive;
+
+        public bool IsPostSpinRevealPending => _postSpinRevealSequence != null && _postSpinRevealSequence.IsActive();
 
         private void OnEnable()
         {
@@ -124,8 +130,13 @@ namespace Ape.Game
             if (_spinSequence != null && _spinSequence.IsActive())
                 _spinSequence.Kill();
 
+            if (_postSpinRevealSequence != null && _postSpinRevealSequence.IsActive())
+                _postSpinRevealSequence.Kill();
+
             _spinSequence = null;
+            _postSpinRevealSequence = null;
             SetIndicatorRotation(0f);
+            ResolveEffects()?.StopRouletteRewardGhost();
         }
 
         public void ResetWheelRotation()
@@ -149,7 +160,8 @@ namespace Ape.Game
 
             float sliceAngle = 360f / wheel.Slices.Count;
             float currentNormalizedRotation = Mathf.Repeat(_currentRotationDegrees, 360f);
-            float targetNormalizedRotation = Mathf.Repeat(targetSliceIndex * sliceAngle, 360f);
+            int clampedTargetSliceIndex = Mathf.Clamp(targetSliceIndex, 0, wheel.Slices.Count - 1);
+            float targetNormalizedRotation = Mathf.Repeat(clampedTargetSliceIndex * sliceAngle, 360f);
             float deltaToTarget = Mathf.Repeat(targetNormalizedRotation - currentNormalizedRotation, 360f);
             float endRotation = _currentRotationDegrees + (wheelDefinition.FullRotations * 360f) + deltaToTarget;
             bool isSqueeker = Random.value < _squeekerChance;
@@ -212,6 +224,52 @@ namespace Ape.Game
                 onComplete?.Invoke();
             });
             _spinSequence.OnKill(() => _spinSequence = null);
+        }
+
+        public void PlayPostSpinReveal(
+            RouletteResolvedWheel nextWheel,
+            int winningSliceIndex,
+            RouletteResolvedSlice winningSlice,
+            System.Action onComplete = null)
+        {
+            if (nextWheel == null)
+                return;
+
+            if (_postSpinRevealSequence != null && _postSpinRevealSequence.IsActive())
+                _postSpinRevealSequence.Kill();
+
+            ResolveEffects()?.StopRouletteRewardGhost();
+
+            float revealDelay = ResolvePostSpinRevealDelay();
+            if (revealDelay <= 0f || _spawnedSlices.Count == 0)
+            {
+                BuildWheel(nextWheel, preserveRotation: true);
+                return;
+            }
+
+            int clampedWinningSliceIndex = Mathf.Clamp(winningSliceIndex, 0, _spawnedSlices.Count - 1);
+            PlayWinningSliceGhost(clampedWinningSliceIndex, winningSlice);
+
+            _postSpinRevealSequence = DOTween.Sequence()
+                .OnComplete(() =>
+                {
+                    BuildWheel(nextWheel, preserveRotation: true);
+                    _postSpinRevealSequence = null;
+                    onComplete?.Invoke();
+                })
+                .OnKill(() => _postSpinRevealSequence = null);
+
+            float smokeLeadTime = Mathf.Min(revealDelay, Mathf.Max(0f, _replaceSmokeLeadTime));
+            float idleDelay = Mathf.Max(0f, revealDelay - smokeLeadTime);
+
+            if (idleDelay > 0f)
+                _postSpinRevealSequence.AppendInterval(idleDelay);
+
+            if (smokeLeadTime > 0f)
+            {
+                _postSpinRevealSequence.AppendCallback(PlayReplaceSmokeOnVisibleSlices);
+                _postSpinRevealSequence.AppendInterval(smokeLeadTime);
+            }
         }
 
         public void SetIdlePresentationActive(bool isButtonIdleActive, bool isWheelIdleRotationActive)
@@ -370,6 +428,7 @@ namespace Ape.Game
             float pitchMultiplier = 1f + ((sliceIndex % pitchCycle) * _tickPitchStep);
             PlayUISound(SpinTickSoundName, pitchMultiplier);
         }
+
         private float ComputeRandomizedOvershoot()
         {
             return Random.Range(_overshootMin, Mathf.Max(_overshootMin, _overshootMax));
@@ -490,6 +549,45 @@ namespace Ape.Game
 
             _spinButtonIdleBaseScale = pulseTarget.localScale;
             _hasSpinButtonIdleBaseScale = true;
+        }
+
+        private void PlayWinningSliceGhost(int sliceIndex, RouletteResolvedSlice slice)
+        {
+            if (sliceIndex < 0 || sliceIndex >= _spawnedSlices.Count)
+                return;
+
+            RouletteRewardSliceUI sourceSliceView = _spawnedSlices[sliceIndex];
+            if (sourceSliceView == null)
+                return;
+
+            Color rarityColor = slice.Reward.HasReward && App.Game != null
+                ? App.Game.Rewards.GetRarityColor(slice.Reward.Rarity, Color.white)
+                : Color.white;
+
+            ResolveEffects()?.PlayRouletteRewardGhost(sourceSliceView, slice, rarityColor);
+        }
+
+        private void PlayReplaceSmokeOnVisibleSlices()
+        {
+            for (int i = 0; i < _spawnedSlices.Count; i++)
+                _spawnedSlices[i]?.PlayReplaceSmoke();
+        }
+
+        private float ResolvePostSpinRevealDelay()
+        {
+            if (App.Game == null || App.Game.Config == null || App.Game.Config.RouletteConfig == null)
+                return 0f;
+
+            return App.Game.Config.RouletteConfig.PostSpinRevealDelay;
+        }
+
+        private GameUIEffects ResolveEffects()
+        {
+            if (App.Game == null || !App.Game.IsSceneBound)
+                return null;
+
+            GameUIManager uiManager = App.Game.SceneDependencies.UIManager;
+            return uiManager != null ? uiManager.Effects : null;
         }
 
         private static void PlayUISound(string soundName, float pitchMultiplier = 1f)

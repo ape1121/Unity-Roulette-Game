@@ -200,14 +200,16 @@ namespace Ape.Game
             PublishStateChanged();
         }
 
-        private void BuildWheelForCurrentZone(bool preserveRotation = true)
+        private void BuildWheelForCurrentZone(bool preserveRotation = true, bool syncToScene = true)
         {
             CurrentZoneType = Config.GetZoneType(CurrentZone);
             RouletteConfig rouletteConfig = GetRouletteConfig();
             RouletteWheelData wheelData = rouletteConfig.GetWheelData(CurrentZoneType);
             ActiveWheel = RouletteWheelBuilder.BuildWheel(rouletteConfig, wheelData, CurrentZone, _runRandom);
             CurrentZoneType = ActiveWheel.Definition.ZoneType;
-            SyncWheelToScene(preserveRotation);
+
+            if (syncToScene)
+                SyncWheelToScene(preserveRotation);
         }
 
         private RouletteSpinResult ResolveSpin()
@@ -262,8 +264,9 @@ namespace Ape.Game
 
             CurrentZone = spinResult.NextZone;
             CurrentZoneType = Config.GetZoneType(CurrentZone);
-            BuildWheelForCurrentZone(preserveRotation: true);
+            BuildWheelForCurrentZone(preserveRotation: true, syncToScene: false);
             Phase = GameRunPhase.AwaitingSpin;
+            PlayPendingWheelReveal(spinResult);
         }
 
         private void CaptureContinueState()
@@ -387,6 +390,21 @@ namespace Ape.Game
         private void PlayBombUiShake()
         {
             SceneDependencies.UIManager?.Effects?.PlayBombShake();
+        }
+
+        private void PlayPendingWheelReveal(RouletteSpinResult spinResult)
+        {
+            if (SceneDependencies.RouletteWheel == null)
+            {
+                SyncWheelToScene(preserveRotation: true);
+                return;
+            }
+
+            SceneDependencies.RouletteWheel.PlayPostSpinReveal(
+                ActiveWheel,
+                spinResult.SelectedSliceIndex,
+                spinResult.SelectedSlice,
+                PublishStateChanged);
         }
 
         private void PublishStateChanged()

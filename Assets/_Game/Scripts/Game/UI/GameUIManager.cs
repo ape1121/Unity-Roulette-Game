@@ -255,11 +255,11 @@ namespace Ape.Game
             if (_zoneTypeValueText != null)
                 _zoneTypeValueText.gameObject.SetActive(false);
 
-            SetButtonInteractable(_spinButton, state.CanSpin);
+            SetButtonInteractable(_spinButton, state.CanSpin && !IsSpinRevealPending());
             SetButtonInteractable(_cashOutButton, state.CanCashOut);
             SetButtonInteractable(_continueButton, state.CanContinue);
             SetButtonInteractable(_restartButton, state.CanRestart);
-            SetWheelIdlePresentationState(state.CanSpin, IsBeforeFirstSpinOfRun());
+            SetWheelIdlePresentationState(state.CanSpin && !IsSpinRevealPending(), IsBeforeFirstSpinOfRun());
 
             SetText(_continueButtonLabel, BuildContinueButtonLabel());
 
@@ -678,6 +678,15 @@ namespace Ape.Game
         private static bool IsBeforeFirstSpinOfRun()
         {
             return App.Game != null && App.Game.LastSpinResult.SelectedSlice.SliceRule == null;
+        }
+
+        private static bool IsSpinRevealPending()
+        {
+            if (App.Game == null || !App.Game.IsSceneBound)
+                return false;
+
+            RouletteWheelUI rouletteWheel = App.Game.SceneDependencies.RouletteWheel;
+            return rouletteWheel != null && rouletteWheel.IsPostSpinRevealPending;
         }
 
         private static void SetWheelIdlePresentationState(bool isSpinButtonIdleActive, bool isWheelIdleRotationActive)

@@ -13,11 +13,17 @@ namespace Ape.Game
         [SerializeField] private Image _rarityBorderImage;
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _amountText;
+        [SerializeField] private UISpriteSequencePlayer _replaceSmokePlayer;
         [SerializeField] private Color _bombBorderColor = new Color32(255, 89, 89, 255);
         [SerializeField] private Sprite _bombIcon;
         [SerializeField] private bool showDisplayNames = false;
 
         public RectTransform RootRect => _rootRect;
+
+        public void PlayReplaceSmoke()
+        {
+            _replaceSmokePlayer?.Play();
+        }
 
         public void Bind(RouletteResolvedSlice slice, Color rarityColor)
         {
@@ -36,7 +42,10 @@ namespace Ape.Game
                     _nameText.gameObject.SetActive(false);
 
                 if (_amountText != null)
+                {
+                    _amountText.gameObject.SetActive(false);
                     _amountText.text = string.Empty;
+                }
 
                 return;
             }
@@ -56,9 +65,11 @@ namespace Ape.Game
                 _nameText.text = slice.DisplayName;
             }
 
-            if (_amountText != null && slice.Reward.HasReward)
-                _amountText.gameObject.SetActive(slice.Reward.Amount > 1);
+            if (_amountText != null)
+            {
+                _amountText.gameObject.SetActive(slice.Reward.HasReward && slice.Reward.Amount > 1);
                 _amountText.text = slice.Reward.FormatAmountLabel();
+            }
         }
 
         private void OnValidate()
