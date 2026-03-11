@@ -50,6 +50,11 @@ namespace Ape.Profile
             return _currentData.Cash >= Mathf.Max(0, amount);
         }
 
+        public bool CanAffordGold(int amount)
+        {
+            return _currentData.Gold >= Mathf.Max(0, amount);
+        }
+
         public void AddCash(int amount, bool saveImmediately = true)
         {
             int resolvedAmount = Mathf.Max(0, amount);
@@ -144,6 +149,20 @@ namespace Ape.Profile
                 return false;
 
             _currentData.Cash -= resolvedAmount;
+
+            if (saveImmediately)
+                Save();
+
+            return true;
+        }
+
+        public bool TrySpendGold(int amount, bool saveImmediately = true)
+        {
+            int resolvedAmount = Mathf.Max(0, amount);
+            if (_currentData.Gold < resolvedAmount)
+                return false;
+
+            _currentData.Gold -= resolvedAmount;
 
             if (saveImmediately)
                 Save();

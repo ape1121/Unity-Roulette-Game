@@ -12,6 +12,9 @@ namespace Ape.Game
         private ProfileManager _profile;
         private RewardManager _rewardManager;
         private int _caseOpenCounter;
+        private int _nextSessionId;
+        private CaseOpenSession _preparedSession;
+        private bool _hasPreparedSession;
 
         private GameConfig Config => _config;
 
@@ -32,6 +35,9 @@ namespace Ape.Game
         public void ResetState()
         {
             _caseOpenCounter = 0;
+            _nextSessionId = 0;
+            _preparedSession = default;
+            _hasPreparedSession = false;
             IsPresentationActive = false;
         }
 
@@ -51,7 +57,7 @@ namespace Ape.Game
                 || _profile == null)
                 return false;
 
-            if (!Config.TryGetCaseDefinition(caseRewardId, out CaseRewardsConfig.CaseDefinition caseDefinition))
+            if (!Config.TryGetCaseDefinition(caseRewardId, out CaseDefinitionData caseDefinition))
                 return false;
 
             if (caseDefinition.CaseReward == null || caseDefinition.CaseReward.Kind != RewardType.Case)
@@ -60,54 +66,82 @@ namespace Ape.Game
             return _profile.GetInventoryRewardCount(caseDefinition.CaseRewardId) > 0;
         }
 
-        public bool TryOpenCase(string caseRewardId, out CaseOpenResult caseOpenResult)
+        public bool TryPrepareCaseOpen(string caseRewardId, out CaseOpenSession session)
         {
-            caseOpenResult = default;
+            session = default;
 
-            if (string.IsNullOrWhiteSpace(caseRewardId) || Config == null)
+            if (IsPresentationActive
+                || string.IsNullOrWhiteSpace(caseRewardId)
+                || Config == null
+                || _profile == null)
                 return false;
 
-            if (!Config.TryGetCaseDefinition(caseRewardId, out CaseRewardsConfig.CaseDefinition caseDefinition))
+            if (!Config.TryGetCaseDefinition(caseRewardId, out CaseDefinitionData caseDefinition)
+                || caseDefinition == null
+                || caseDefinition.CaseReward == null
+                || caseDefinition.CaseReward.Kind != RewardType.Case
+                || caseDefinition.PossibleRewards == null
+                || _profile.GetInventoryRewardCount(caseDefinition.CaseRewardId) <= 0)
                 return false;
 
-            return TryOpenCase(caseDefinition.CaseReward, out caseOpenResult);
+            List<CaseRewardPoolConfig.Entry> weightedEntries = CollectWeightedEntries(caseDefinition.PossibleRewards);
+            if (weightedEntries.Count == 0)
+                return false;
+
+            session = new CaseOpenSession(++_nextSessionId, caseDefinition, ResolveOpenCost(caseDefinition));
+            _preparedSession = session;
+            _hasPreparedSession = true;
+            IsPresentationActive = true;
+            return true;
         }
 
-        public bool TryOpenCase(RewardData caseReward, out CaseOpenResult caseOpenResult)
+        public bool CanRollPreparedCase(CaseOpenSession session)
+        {
+            if (!TryResolvePreparedSession(session, out CaseOpenSession preparedSession))
+                return false;
+
+            return CanConsumeCaseAndOpenCost(preparedSession.CaseRewardId, preparedSession.OpenCost);
+        }
+
+        public bool TryStartCaseRoll(CaseOpenSession session, out CaseOpenResult caseOpenResult)
         {
             caseOpenResult = default;
 
-            if (IsPresentationActive || caseReward == null || caseReward.Kind != RewardType.Case || Config == null)
+            if (!TryResolvePreparedSession(session, out CaseOpenSession preparedSession))
                 return false;
 
             EnsureRewardManager();
             EnsureProfile();
 
-            if (!Config.TryGetCaseDefinition(caseReward.RewardId, out CaseRewardsConfig.CaseDefinition caseDefinition))
+            if (!CanConsumeCaseAndOpenCost(preparedSession.CaseRewardId, preparedSession.OpenCost))
                 return false;
 
-            if (!TryBuildCaseOpenResult(caseDefinition, out caseOpenResult))
+            if (!TryBuildCaseOpenResult(preparedSession.CaseDefinition, preparedSession.OpenCost, out caseOpenResult))
                 return false;
 
-            if (!_profile.TrySpendInventoryReward(caseReward.RewardId, 1, saveImmediately: false))
+            if (!TrySpendCaseAndOpenCost(preparedSession.CaseRewardId, preparedSession.OpenCost))
                 return false;
 
             _rewardManager.GrantReward(caseOpenResult.GrantedReward, saveImmediately: false);
             _profile.Save();
-            IsPresentationActive = true;
+            _preparedSession = default;
+            _hasPreparedSession = false;
             return true;
         }
 
         public void CompletePresentation()
         {
+            _preparedSession = default;
+            _hasPreparedSession = false;
             IsPresentationActive = false;
         }
 
-        private bool TryBuildCaseOpenResult(CaseRewardsConfig.CaseDefinition caseDefinition, out CaseOpenResult caseOpenResult)
+        private bool TryBuildCaseOpenResult(CaseDefinitionData caseDefinition, ResolvedReward openCost, out CaseOpenResult caseOpenResult)
         {
             caseOpenResult = default;
 
-            if (caseDefinition.CaseReward == null
+            if (caseDefinition == null
+                || caseDefinition.CaseReward == null
                 || caseDefinition.CaseReward.Kind != RewardType.Case
                 || caseDefinition.PossibleRewards == null)
                 return false;
@@ -132,7 +166,7 @@ namespace Ape.Game
                 : random.Next(minWinningIndex, maxWinningIndex + 1);
 
             List<ResolvedReward> reelRewards = BuildReelRewards(weightedEntries, grantedReward, winningIndex, reelItemCount, random);
-            caseOpenResult = new CaseOpenResult(caseDefinition, grantedReward, reelRewards, winningIndex);
+            caseOpenResult = new CaseOpenResult(caseDefinition, openCost, grantedReward, reelRewards, winningIndex);
             return caseOpenResult.IsValid;
         }
 
@@ -159,24 +193,38 @@ namespace Ape.Game
             int reelItemCount,
             System.Random random)
         {
+            List<ResolvedReward> previewRewards = BuildPreviewRewards(weightedEntries);
             List<ResolvedReward> reelRewards = new List<ResolvedReward>(reelItemCount);
+            if (previewRewards.Count == 0)
+                return reelRewards;
+
+            int offset = previewRewards.Count > 1
+                ? random.Next(0, previewRewards.Count)
+                : 0;
 
             for (int i = 0; i < reelItemCount; i++)
-            {
-                if (i == winningIndex)
-                {
-                    reelRewards.Add(winningReward);
-                    continue;
-                }
+                reelRewards.Add(previewRewards[(offset + i) % previewRewards.Count]);
 
-                string excludedRewardId = weightedEntries.Count > 1 && Mathf.Abs(i - winningIndex) <= 1
-                    ? winningReward.RewardId
-                    : null;
-
-                reelRewards.Add(ResolveWeightedReward(weightedEntries, random, excludedRewardId));
-            }
+            if (winningIndex >= 0 && winningIndex < reelRewards.Count)
+                reelRewards[winningIndex] = winningReward;
 
             return reelRewards;
+        }
+
+        private static List<ResolvedReward> BuildPreviewRewards(IReadOnlyList<CaseRewardPoolConfig.Entry> weightedEntries)
+        {
+            List<ResolvedReward> rewards = new List<ResolvedReward>(weightedEntries.Count);
+
+            for (int i = 0; i < weightedEntries.Count; i++)
+            {
+                ResolvedReward reward = weightedEntries[i].ResolvePreviewReward();
+                if (!reward.HasReward || reward.Amount <= 0)
+                    continue;
+
+                rewards.Add(reward);
+            }
+
+            return rewards;
         }
 
         private static ResolvedReward ResolveWeightedReward(
@@ -249,6 +297,92 @@ namespace Ape.Game
             _caseOpenCounter++;
             int seed = unchecked((Environment.TickCount * 397) ^ (_caseOpenCounter * 486187739) ^ rewardId.GetHashCode());
             return new System.Random(seed);
+        }
+
+        private static ResolvedReward ResolveOpenCost(CaseDefinitionData caseDefinition)
+        {
+            if (caseDefinition == null || !caseDefinition.HasOpenCost || caseDefinition.OpenCost.Reward == null)
+                return default;
+
+            return new ResolvedReward(caseDefinition.OpenCost.Reward, caseDefinition.OpenCost.Amount);
+        }
+
+        private bool TryResolvePreparedSession(CaseOpenSession session, out CaseOpenSession preparedSession)
+        {
+            preparedSession = default;
+
+            if (!_hasPreparedSession || !session.IsValid || !_preparedSession.IsValid)
+                return false;
+
+            if (_preparedSession.SessionId != session.SessionId)
+                return false;
+
+            preparedSession = _preparedSession;
+            return true;
+        }
+
+        private bool CanConsumeCaseAndOpenCost(string caseRewardId, ResolvedReward openCost)
+        {
+            if (_profile == null || string.IsNullOrWhiteSpace(caseRewardId))
+                return false;
+
+            int caseCostAmount = openCost.HasReward
+                && openCost.Amount > 0
+                && openCost.IsInventoryReward
+                && openCost.RewardId == caseRewardId
+                    ? openCost.Amount
+                    : 0;
+
+            if (_profile.GetInventoryRewardCount(caseRewardId) < 1 + caseCostAmount)
+                return false;
+
+            if (!openCost.HasReward || openCost.Amount <= 0)
+                return true;
+
+            switch (openCost.RewardKind)
+            {
+                case RewardType.Cash:
+                    return _profile.CanAffordCash(openCost.Amount);
+
+                case RewardType.Gold:
+                    return _profile.CanAffordGold(openCost.Amount);
+
+                default:
+                    return openCost.RewardId == caseRewardId
+                        || _profile.GetInventoryRewardCount(openCost.RewardId) >= openCost.Amount;
+            }
+        }
+
+        private bool TrySpendCaseAndOpenCost(string caseRewardId, ResolvedReward openCost)
+        {
+            if (!CanConsumeCaseAndOpenCost(caseRewardId, openCost))
+                return false;
+
+            if (openCost.HasReward && openCost.Amount > 0)
+            {
+                switch (openCost.RewardKind)
+                {
+                    case RewardType.Cash:
+                        if (!_profile.TrySpendCash(openCost.Amount, saveImmediately: false))
+                            return false;
+                        break;
+
+                    case RewardType.Gold:
+                        if (!_profile.TrySpendGold(openCost.Amount, saveImmediately: false))
+                            return false;
+                        break;
+
+                    default:
+                        if (openCost.RewardId == caseRewardId)
+                            return _profile.TrySpendInventoryReward(caseRewardId, openCost.Amount + 1, saveImmediately: false);
+
+                        if (!_profile.TrySpendInventoryReward(openCost.RewardId, openCost.Amount, saveImmediately: false))
+                            return false;
+                        break;
+                }
+            }
+
+            return _profile.TrySpendInventoryReward(caseRewardId, 1, saveImmediately: false);
         }
 
         private void EnsureRewardManager()

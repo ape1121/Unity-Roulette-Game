@@ -16,6 +16,14 @@ namespace Ape.Data
         [SerializeField] private string _pendingInventoryTabTitle = "PENDING";
         [SerializeField] private string _bankedInventoryTabTitle = "BANKED";
         [SerializeField] private string _caseWinnerLabelFormat = "{0} {1}";
+        [SerializeField] private string _caseRollButtonLabel = "ROLL";
+        [SerializeField] private string _caseBackButtonLabel = "BACK";
+        [SerializeField] private string _caseTakeButtonLabel = "TAKE";
+        [SerializeField] private string _caseFreeCostLabel = "OPEN COST: FREE";
+        [SerializeField] private string _caseCashCostLabelFormat = "OPEN COST: {0} CASH";
+        [SerializeField] private string _caseGoldCostLabelFormat = "OPEN COST: {0} GOLD";
+        [SerializeField] private string _caseInventoryCostLabelFormat = "OPEN COST: {0} {1}";
+        [SerializeField] private string _caseRollingLabel = "ROLLING...";
 
         [Header("Phase Labels")]
         [SerializeField] private string _awaitingSpinPhaseLabel = "Awaiting Spin";
@@ -37,6 +45,10 @@ namespace Ape.Data
 
         public string PendingInventoryTabTitle => _pendingInventoryTabTitle;
         public string BankedInventoryTabTitle => _bankedInventoryTabTitle;
+        public string CaseRollButtonLabel => _caseRollButtonLabel;
+        public string CaseBackButtonLabel => _caseBackButtonLabel;
+        public string CaseTakeButtonLabel => _caseTakeButtonLabel;
+        public string CaseRollingLabel => _caseRollingLabel;
 
         public string FormatZoneLabel(int zone)
         {
@@ -65,6 +77,19 @@ namespace Ape.Data
                 return string.Empty;
 
             return SafeFormat(_caseWinnerLabelFormat, reward.RewardName, reward.FormatAmountLabel());
+        }
+
+        public string FormatCaseOpenCostLabel(ResolvedReward reward)
+        {
+            if (!reward.HasReward || reward.Amount <= 0)
+                return _caseFreeCostLabel;
+
+            return reward.RewardKind switch
+            {
+                RewardType.Cash => SafeFormat(_caseCashCostLabelFormat, reward.Amount),
+                RewardType.Gold => SafeFormat(_caseGoldCostLabelFormat, reward.Amount),
+                _ => SafeFormat(_caseInventoryCostLabelFormat, reward.Amount, reward.RewardName)
+            };
         }
 
         public string GetStatusLabel(GameStateSnapshot state)

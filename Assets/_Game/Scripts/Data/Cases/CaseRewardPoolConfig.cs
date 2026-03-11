@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Ape.Game;
 using UnityEngine;
 
 namespace Ape.Data
@@ -30,11 +32,50 @@ namespace Ape.Data
                     ? resolvedMinAmount
                     : random.Next(resolvedMinAmount, resolvedMaxAmount + 1);
             }
+
+            public int ResolvePreviewAmount()
+            {
+                if (rewardData == null)
+                    return 0;
+
+                if (!HasAmountOverride)
+                    return rewardData.ResolvePreviewAmount();
+
+                int resolvedMinAmount = Mathf.Max(1, minAmountOverride > 0 ? minAmountOverride : maxAmountOverride);
+                int resolvedMaxAmount = Mathf.Max(resolvedMinAmount, maxAmountOverride > 0 ? maxAmountOverride : resolvedMinAmount);
+                return Mathf.Max(1, resolvedMaxAmount);
+            }
+
+            public ResolvedReward ResolvePreviewReward()
+            {
+                return rewardData == null
+                    ? default
+                    : new ResolvedReward(rewardData, ResolvePreviewAmount());
+            }
         }
 
         [SerializeField] private Entry[] rewards;
 
         public Entry[] Rewards => rewards ?? Array.Empty<Entry>();
+
+        public void GetPreviewRewards(List<ResolvedReward> destination)
+        {
+            destination?.Clear();
+
+            if (destination == null)
+                return;
+
+            Entry[] entries = Rewards;
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                ResolvedReward reward = entries[i].ResolvePreviewReward();
+                if (!reward.HasReward || reward.Amount <= 0)
+                    continue;
+
+                destination.Add(reward);
+            }
+        }
 
         public bool TryGetReward(string rewardId, out RewardData rewardData)
         {

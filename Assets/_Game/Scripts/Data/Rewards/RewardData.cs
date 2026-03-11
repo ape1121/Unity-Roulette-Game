@@ -20,6 +20,8 @@ namespace Ape.Data
         public Sprite Icon => _icon;
         public RewardType Kind => _rewardKind;
         public RarityType Rarity => _rarity;
+        public int MinimumAmount => Mathf.Max(1, _minAmount);
+        public int MaximumAmount => Mathf.Max(MinimumAmount, _maxAmount);
 
         public int ResolveAmount(int zone, int amountMultiplier, int flatAmountBonus, System.Random random)
         {
@@ -32,6 +34,13 @@ namespace Ape.Data
             int resolvedAmountMultiplier = Mathf.Max(1, amountMultiplier);
             int zoneBonus = Mathf.Max(0, zone - 1) * Mathf.Max(0, _amountIncreasePerZone);
             return Mathf.Max(1, (baseAmount * resolvedAmountMultiplier) + Mathf.Max(0, flatAmountBonus) + zoneBonus);
+        }
+
+        public int ResolvePreviewAmount(int zone = 1, int amountMultiplier = 1, int flatAmountBonus = 0)
+        {
+            int resolvedAmountMultiplier = Mathf.Max(1, amountMultiplier);
+            int zoneBonus = Mathf.Max(0, zone - 1) * Mathf.Max(0, _amountIncreasePerZone);
+            return Mathf.Max(1, (MaximumAmount * resolvedAmountMultiplier) + Mathf.Max(0, flatAmountBonus) + zoneBonus);
         }
 
         private void OnValidate()

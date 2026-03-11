@@ -61,6 +61,9 @@ namespace Ape.Game
         private int _lastPendingBadgeCount = int.MinValue;
         private int _lastVisibleRewardCount = int.MinValue;
         private bool _hasAppliedTabState;
+        private CaseOpenSession _activeCaseSession;
+        private bool _hasActiveCaseSession;
+        private bool _caseRollCommitted;
 
         public bool IsOpen => _isOpen;
 
@@ -137,6 +140,7 @@ namespace Ape.Game
             SyncSections();
             RefreshPendingBadge();
             ApplyActiveTab();
+            RefreshCaseOpenUi();
         }
 
         public void Open(bool instant = false)
@@ -406,17 +410,49 @@ namespace Ape.Game
                 || _caseOpenUI == null
                 || _gameManager == null
                 || _gameManager.Inventory == null
-                || !_gameManager.Inventory.Cases.TryOpenCase(rewardId, out CaseOpenResult caseOpenResult))
+                || !_gameManager.Inventory.Cases.TryPrepareCaseOpen(rewardId, out CaseOpenSession caseOpenSession))
                 return;
 
+            _activeCaseSession = caseOpenSession;
+            _hasActiveCaseSession = true;
+            _caseRollCommitted = false;
             SetCaseOpenUiVisible(true);
+            _caseOpenUI.ShowPreview(
+                caseOpenSession,
+                _gameManager.Inventory.Cases.CanRollPreparedCase(caseOpenSession),
+                HandleCaseRollRequested,
+                HandleCasePresentationClosed);
             Refresh();
-            _caseOpenUI.Play(caseOpenResult, HandleCaseOpenCompleted);
         }
 
-        private void HandleCaseOpenCompleted(CaseOpenResult _)
+        private void HandleCaseRollRequested(CaseOpenSession caseOpenSession)
         {
-            CompleteCasePresentation(refresh: true);
+            if (!_hasActiveCaseSession
+                || !_activeCaseSession.IsValid
+                || _activeCaseSession.SessionId != caseOpenSession.SessionId
+                || _gameManager == null
+                || _gameManager.Inventory == null)
+            {
+                RefreshCaseOpenUi();
+                return;
+            }
+
+            _caseRollCommitted = true;
+
+            if (!_gameManager.Inventory.Cases.TryStartCaseRoll(caseOpenSession, out CaseOpenResult caseOpenResult))
+            {
+                _caseRollCommitted = false;
+                Refresh();
+                return;
+            }
+
+            Refresh();
+            _caseOpenUI.ShowRollResult(caseOpenResult);
+        }
+
+        private void HandleCasePresentationClosed()
+        {
+            StopCaseOpenPresentation(refresh: true);
         }
 
         private void StopCaseOpenPresentation(bool refresh)
@@ -424,6 +460,7 @@ namespace Ape.Game
             if (_caseOpenUI != null)
             {
                 _caseOpenUI.StopAnimation();
+                _caseOpenUI.HidePresentation();
                 SetCaseOpenUiVisible(false);
             }
 
@@ -434,6 +471,10 @@ namespace Ape.Game
         {
             if (_gameManager != null && _gameManager.Inventory != null)
                 _gameManager.Inventory.Cases.CompletePresentation();
+
+            _activeCaseSession = default;
+            _hasActiveCaseSession = false;
+            _caseRollCommitted = false;
 
             if (refresh && isActiveAndEnabled)
                 Refresh();
@@ -449,6 +490,14 @@ namespace Ape.Game
         {
             if (_caseOpenUI != null)
                 _caseOpenUI.SetPresentationContext(_gameManager != null ? _gameManager.Rewards : null, _uiTextConfig);
+        }
+
+        private void RefreshCaseOpenUi()
+        {
+            if (_caseOpenUI == null || !_hasActiveCaseSession || _caseRollCommitted || _gameManager == null || _gameManager.Inventory == null)
+                return;
+
+            _caseOpenUI.SetRollInteractable(_gameManager.Inventory.Cases.CanRollPreparedCase(_activeCaseSession));
         }
 
         private static int GetRewardAmountTotal(List<InventoryRewardEntry> rewards)

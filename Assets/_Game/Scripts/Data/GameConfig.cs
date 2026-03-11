@@ -72,9 +72,9 @@ namespace Ape.Data
             return false;
         }
 
-        public bool TryGetCaseDefinition(string rewardId, out CaseRewardsConfig.CaseDefinition caseDefinition)
+        public bool TryGetCaseDefinition(string rewardId, out CaseDefinitionData caseDefinition)
         {
-            caseDefinition = default;
+            caseDefinition = null;
             return CaseRewardsConfig != null && CaseRewardsConfig.TryGetCase(rewardId, out caseDefinition);
         }
     }

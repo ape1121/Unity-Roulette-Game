@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a26e8df8a0441f78df37e177c28cb5d, type: 3}
+  m_Name: CommonCaseDefinition
+  m_EditorClassIdentifier: 
+  _caseReward: {fileID: 11400000, guid: 30f3218da7329475db49434dbeb5bbec, type: 2}
+  _possibleRewards: {fileID: 11400000, guid: 391eec29214eb41ed85233a6fe222601, type: 2}
+  _openCost:
+    reward: {fileID: 0}
+    amount: 0
+  _reelItemCount: 24
+  _minimumLandingIndex: 0
+  _landingTailCount: 4
