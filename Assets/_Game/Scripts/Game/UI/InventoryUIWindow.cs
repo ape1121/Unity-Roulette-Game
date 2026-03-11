@@ -106,9 +106,8 @@ namespace Ape.Game
 
         private void OnValidate()
         {
-            _windowRoot ??= GetComponent<RectTransform>();
-            _windowCanvasGroup ??= GetComponent<CanvasGroup>();
-            _caseOpenUI ??= GetComponentInChildren<CaseOpenUI>(true);
+            _windowRoot = GetComponent<RectTransform>();
+            _windowCanvasGroup = GetComponent<CanvasGroup>();
             ResolveButtonReferences();
         }
 
@@ -209,9 +208,9 @@ namespace Ape.Game
 
         private void ResolveButtonReferences()
         {
-            _pendingTabButton ??= UIReferenceUtility.FindButtonByName(this, "Pending");
-            _bankedTabButton ??= UIReferenceUtility.FindButtonByName(this, "Banked");
-            _backdropButton ??= UIReferenceUtility.FindButtonByName(this, "BackgroundBlocker");
+            _pendingTabButton = UIReferenceUtility.FindButtonByName(this, "Pending");
+            _bankedTabButton = UIReferenceUtility.FindButtonByName(this, "Banked");
+            _backdropButton = UIReferenceUtility.FindButtonByName(this, "BackgroundBlocker");
         }
 
         private void BindButtons()

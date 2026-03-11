@@ -198,12 +198,7 @@ namespace Ape.Game
 
         private void ResolveReferences()
         {
-            _rootRect ??= GetComponent<RectTransform>();
-            _wheelRotatorRect ??= _rootRect;
-            _sliceRootRect ??= _wheelRotatorRect;
-            _spinButton ??= GetComponentInChildren<Button>(true);
-            _spinButtonPulseTarget ??= _spinButton != null ? _spinButton.transform as RectTransform : null;
-            _ghostEffectsRoot ??= _rootRect;
+            _spinButton = GetComponentInChildren<Button>(true);
         }
 
         private void ConfigureControllers()

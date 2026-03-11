@@ -82,9 +82,9 @@ namespace Ape.Game
 
         private void OnValidate()
         {
-            _effects ??= GetComponent<GameUIEffects>();
-            _inventoryWindow ??= GetComponentInChildren<InventoryUIWindow>(true);
-            _rouletteWheel ??= GetComponentInChildren<RouletteWheelUI>(true);
+            _effects = GetComponent<GameUIEffects>();
+            _inventoryWindow = GetComponentInChildren<InventoryUIWindow>(true);
+            _rouletteWheel = GetComponentInChildren<RouletteWheelUI>(true);
             ResolveButtonReferences();
         }
 

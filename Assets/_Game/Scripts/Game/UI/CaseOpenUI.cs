@@ -51,9 +51,6 @@ namespace Ape.Game
         private float _resolvedCardWidth;
         private float _resolvedCardHeight;
         private bool _isSlowSpinExcitementPlaying;
-#if UNITY_EDITOR
-        private bool _editorRefreshQueued;
-#endif
 
         [Header("Structure")]
         [SerializeField] private RectTransform _windowRoot;
@@ -121,6 +118,12 @@ namespace Ape.Game
         [SerializeField] private Ease _markerFadeEase = Ease.OutCubic;
 
         public bool IsAnimating => _state == PresentationState.Rolling;
+
+        private void OnValidate()
+        {
+            _rollButton = UIReferenceUtility.FindButtonByName(this, "CaseOpenRoll");
+            _backButton = UIReferenceUtility.FindButtonByName(this, "CaseOpenBack");
+        }
 
         public void SetPresentationContext(
             RewardManager rewardManager,

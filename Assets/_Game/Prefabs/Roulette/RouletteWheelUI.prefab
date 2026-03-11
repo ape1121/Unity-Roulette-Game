@@ -1,5 +1,41 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &780379662
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 780379663}
+  m_Layer: 5
+  m_Name: Effects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &780379663
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 780379662}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 476643210496203894}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0.00014256388, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1175377915
 GameObject:
   m_ObjectHideFlags: 0
@@ -106,6 +142,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 626931005682970473}
+  - {fileID: 780379663}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -134,8 +171,8 @@ MonoBehaviour:
   _rewardSlicePrefab: {fileID: 1001271629074963567, guid: f029e8636a6044133bf441e5f1f6270b, type: 3}
   _useBackgroundShortestDimension: 1
   _fallbackDiameter: 1152
-  _sliceRadiusPaddingRatio: 0.208
-  _sliceSizeRatio: 0.126
+  _sliceRadiusPaddingRatio: 0.21
+  _sliceSizeRatio: 0.142
   _indicatorSwayMaxAngle: 60
   _indicatorSwayFrequency: 12
   _indicatorSwayDamping: 2
@@ -150,12 +187,25 @@ MonoBehaviour:
   _tickAngleOffsetDegrees: 0
   _tickPitchStep: 0.04
   _tickPitchCycle: 3
+  _slowSpinExcitementTriggerSlices: 0.4
   _spinButton: {fileID: 6292708179339406437}
   _spinButtonPulseTarget: {fileID: 2626328259521625362}
-  _spinButtonIdleScaleMultiplier: 1.08
-  _spinButtonIdlePulseDuration: 0.8
-  _spinButtonIdlePulseEase: 4
+  _spinButtonIdleScaleMultiplier: 1.06
+  _spinButtonIdlePulseDuration: 0.4
+  _spinButtonIdlePulseEase: 26
   _idleRotationSpeedDegreesPerSecond: 8
+  _replaceSmokeChainInterval: 0.05
+  _replaceSwapDelay: 0.15
+  _replaceChainStartAngle: 90
+  _ghostEffectsRoot: {fileID: 780379663}
+  _rewardGhostPrefab: {fileID: 1001271629074963567, guid: 3dd58843c089c4f509c39f2baf349606, type: 3}
+  _rewardGhostRiseDistance: 300
+  _rewardGhostDuration: 2
+  _rewardGhostFadeDuration: 2
+  _rewardGhostEndScale: 4
+  _rewardGhostMoveEase: 6
+  _rewardGhostScaleEase: 9
+  _rewardGhostFadeEase: 5
 --- !u!1 &1557323243026473409
 GameObject:
   m_ObjectHideFlags: 0
