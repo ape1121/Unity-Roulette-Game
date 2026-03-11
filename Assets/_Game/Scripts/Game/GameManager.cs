@@ -14,7 +14,6 @@ namespace Ape.Game
         private bool _hasPendingSpinResult;
 
         public event Action<GameStateSnapshot> StateChanged;
-        public event Action<RouletteSpinResult> SpinResolved;
         public event Action<GameWheelBuildRequest> WheelBuildRequested;
         public event Action<GameSpinPresentationRequest> SpinPresentationRequested;
         public event Action<GameSpinRevealPresentationRequest> SpinRevealPresentationRequested;
@@ -193,7 +192,6 @@ namespace Ape.Game
 
             _hasPendingSpinResult = false;
             ApplySpinResult(_pendingSpinResult);
-            SpinResolved?.Invoke(_pendingSpinResult);
             PublishStateChanged();
         }
 

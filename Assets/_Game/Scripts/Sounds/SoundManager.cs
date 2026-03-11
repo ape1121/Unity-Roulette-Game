@@ -25,7 +25,10 @@ namespace Ape.Sounds
 
         private Dictionary<string, Sound> soundDictionary;
         private Dictionary<string, float> soundCooldowns = new Dictionary<string, float>();
+        private Dictionary<AudioSource, Sound> audioSourceSounds = new Dictionary<AudioSource, Sound>();
+        private Dictionary<AudioSource, int> audioSourcePlaybackIds = new Dictionary<AudioSource, int>();
         private const float DEFAULT_COOLDOWN = 0.05f;
+        private int nextPlaybackId = 1;
 
         private Dictionary<string, Coroutine> activeFadeOuts = new Dictionary<string, Coroutine>();
         private Dictionary<string, Coroutine> activeDelayedSounds = new Dictionary<string, Coroutine>();
@@ -91,14 +94,16 @@ namespace Ape.Sounds
             return;
 
         soundCooldowns[soundKey] = Time.time;
-        audioSource.clip = sound.Clip;
-        audioSource.volume = sound.Volume * (isUI ? uiVolume : sfxVolume) * masterVolume;
-        audioSource.pitch = sound.Pitch * pitchMultiplier;
-        audioSource.loop = sound.Loop;
-        audioSource.Play();
+        int playbackId = StartPlayback(
+            audioSource,
+            sound,
+            sound.Volume * (isUI ? uiVolume : sfxVolume) * masterVolume,
+            sound.Pitch * pitchMultiplier,
+            sound.Loop,
+            spatialBlend: 0f);
 
         if (!sound.Loop)
-            StartCoroutine(ReleaseWhenFinished(audioSource));
+            StartCoroutine(ReleaseWhenFinished(audioSource, playbackId, ResolvePlaybackDuration(sound.Clip, sound.Pitch * pitchMultiplier)));
     }
 
     public void TryPlaySound(string soundName, bool isUI = false)
@@ -112,7 +117,7 @@ namespace Ape.Sounds
             {
                 foreach (AudioSource source in activeAudioSources)
                 {
-                    if (source.clip == sound.Clip)
+                    if (audioSourceSounds.TryGetValue(source, out Sound activeSound) && activeSound == sound)
                     {
                         source.volume = sound.Volume * (isUI ? uiVolume : sfxVolume) * masterVolume;
                     }
@@ -131,7 +136,9 @@ namespace Ape.Sounds
 
         foreach (AudioSource source in activeAudioSources)
         {
-            if (source.clip == sound.Clip && source.isPlaying)
+            if (source.isPlaying
+                && audioSourceSounds.TryGetValue(source, out Sound activeSound)
+                && activeSound == sound)
             {
                 return true;
             }
@@ -161,18 +168,19 @@ namespace Ape.Sounds
         if (audioSource == null) return;
 
         soundCooldowns[soundName] = Time.time;
-
-        audioSource.clip = soundData.Clip;
-        audioSource.volume = soundData.Volume * musicVolume * masterVolume;
-        audioSource.pitch = soundData.Pitch;
-        audioSource.loop = soundData.Loop;
-        audioSource.Play();
+        int playbackId = StartPlayback(
+            audioSource,
+            soundData,
+            soundData.Volume * musicVolume * masterVolume,
+            soundData.Pitch,
+            soundData.Loop,
+            spatialBlend: 0f);
 
         currentBGM = audioSource;
 
         if (!soundData.Loop)
         {
-            StartCoroutine(ReleaseWhenFinished(audioSource));
+            StartCoroutine(ReleaseWhenFinished(audioSource, playbackId, ResolvePlaybackDuration(soundData.Clip, soundData.Pitch)));
         }
     }
 
@@ -196,7 +204,7 @@ namespace Ape.Sounds
         for (int i = activeAudioSources.Count - 1; i >= 0; i--)
         {
             AudioSource source = activeAudioSources[i];
-            if (source.clip == sound.Clip)
+            if (audioSourceSounds.TryGetValue(source, out Sound activeSound) && activeSound == sound)
             {
                 ReleaseAudioSource(source);
                 if (source == currentBGM)
@@ -219,27 +227,48 @@ namespace Ape.Sounds
 
         foreach (AudioSource source in activeAudioSources)
         {
-            if (source.clip == sound.Clip && source.isPlaying)
+            if (source.isPlaying
+                && audioSourceSounds.TryGetValue(source, out Sound activeSound)
+                && activeSound == sound)
             {
-                Coroutine fadeCoroutine = StartCoroutine(FadeOut(source, duration, soundName));
+                if (!audioSourcePlaybackIds.TryGetValue(source, out int playbackId))
+                    continue;
+
+                Coroutine fadeCoroutine = StartCoroutine(FadeOut(source, duration, soundName, playbackId));
                 activeFadeOuts[soundName] = fadeCoroutine;
             }
         }
     }
 
-    private IEnumerator FadeOut(AudioSource audioSource, float duration, string soundName)
+    private IEnumerator FadeOut(AudioSource audioSource, float duration, string soundName, int playbackId)
     {
         float startVolume = audioSource.volume;
         float timer = 0;
 
         while (timer < duration)
         {
+            if (audioSource == null)
+            {
+                activeFadeOuts.Remove(soundName);
+                yield break;
+            }
+
+            if (!audioSourcePlaybackIds.TryGetValue(audioSource, out int activePlaybackId) || activePlaybackId != playbackId)
+            {
+                activeFadeOuts.Remove(soundName);
+                yield break;
+            }
+
             timer += Time.deltaTime;
             audioSource.volume = Mathf.Lerp(startVolume, 0, timer / duration);
             yield return null;
         }
 
         activeFadeOuts.Remove(soundName);
+
+        if (!audioSourcePlaybackIds.TryGetValue(audioSource, out int completedPlaybackId) || completedPlaybackId != playbackId)
+            yield break;
+
         ReleaseAudioSource(audioSource);
     }
 
@@ -264,19 +293,21 @@ namespace Ape.Sounds
             AudioSource audioSource = GetAudioSource();
             if (audioSource == null) yield break;
 
-            audioSource.clip = sound.Clip;
-            audioSource.volume = sound.Volume * (isUI ? uiVolume : sfxVolume) * masterVolume * volumeMultiplier;
-            audioSource.pitch = sound.Pitch;
-            audioSource.loop = false;
-            audioSource.Play();
+            int playbackId = StartPlayback(
+                audioSource,
+                sound,
+                sound.Volume * (isUI ? uiVolume : sfxVolume) * masterVolume * volumeMultiplier,
+                sound.Pitch,
+                loop: false,
+                spatialBlend: 0f);
 
-            StartCoroutine(ReleaseWhenFinished(audioSource));
+            StartCoroutine(ReleaseWhenFinished(audioSource, playbackId, ResolvePlaybackDuration(sound.Clip, sound.Pitch)));
 
             if (i < repeatCount - 1)
                 yield return new WaitForSeconds(delayTime);
         }
 
-        activeDelayedSounds.Remove(sound.name);
+        activeDelayedSounds.Remove(ResolveSoundKey(sound));
     }
 
     public void StopDelayedSound(string soundName)
@@ -304,18 +335,18 @@ namespace Ape.Sounds
         if (audioSource == null) return;
 
         soundCooldowns[soundName] = Time.time;
-
-        audioSource.clip = sound.Clip;
-        audioSource.volume = sound.Volume * sfxVolume * masterVolume;
-        audioSource.pitch = sound.Pitch * pitchMultiplier;
-        audioSource.loop = sound.Loop;
-        audioSource.spatialBlend = 1f; // Make it fully 3D
+        int playbackId = StartPlayback(
+            audioSource,
+            sound,
+            sound.Volume * sfxVolume * masterVolume,
+            sound.Pitch * pitchMultiplier,
+            sound.Loop,
+            spatialBlend: 1f);
         audioSource.transform.position = position;
-        audioSource.Play();
 
         if (!sound.Loop)
         {
-            StartCoroutine(ReleaseWhenFinished(audioSource));
+            StartCoroutine(ReleaseWhenFinished(audioSource, playbackId, ResolvePlaybackDuration(sound.Clip, sound.Pitch * pitchMultiplier)));
         }
     }
 
@@ -329,6 +360,8 @@ namespace Ape.Sounds
                 {
                     AudioSource reclaimedSource = activeAudioSources[i];
                     activeAudioSources.RemoveAt(i);
+                    audioSourceSounds.Remove(reclaimedSource);
+                    audioSourcePlaybackIds.Remove(reclaimedSource);
                     return reclaimedSource;
                 }
             }
@@ -342,33 +375,32 @@ namespace Ape.Sounds
 
     private void ReleaseAudioSource(AudioSource source)
     {
+        if (source == null)
+            return;
+
         source.Stop();
         source.clip = null;
+        source.loop = false;
+        source.spatialBlend = 0f;
+        audioSourceSounds.Remove(source);
+        audioSourcePlaybackIds.Remove(source);
         activeAudioSources.Remove(source);
         audioSourcePool.Enqueue(source);
     }
 
-    private IEnumerator ReleaseWhenFinished(AudioSource audioSource)
+    private IEnumerator ReleaseWhenFinished(AudioSource audioSource, int playbackId, float delay)
     {
         if (audioSource == null) yield break;
-        
-        // Wait for the clip length + a small buffer, instead of polling isPlaying every frame
-        // Polling isPlaying can be expensive if many sources are active
-        float delay = 0f;
-        if (audioSource.clip != null)
-        {
-            // Adjust for pitch
-            float pitch = Mathf.Abs(audioSource.pitch);
-            if (pitch < 0.01f) pitch = 1f;
-            delay = audioSource.clip.length / pitch;
-        }
-        
+
         yield return new WaitForSeconds(delay + 0.1f);
-        
-        if (audioSource != null)
-        {
-            ReleaseAudioSource(audioSource);
-        }
+
+        if (audioSource == null)
+            yield break;
+
+        if (!audioSourcePlaybackIds.TryGetValue(audioSource, out int activePlaybackId) || activePlaybackId != playbackId)
+            yield break;
+
+        ReleaseAudioSource(audioSource);
     }
 
     private static string ResolveSoundKey(Sound sound)
@@ -379,6 +411,38 @@ namespace Ape.Sounds
         return !string.IsNullOrWhiteSpace(sound.Name)
             ? sound.Name
             : sound.GetInstanceID().ToString();
+    }
+
+    private int StartPlayback(
+        AudioSource audioSource,
+        Sound sound,
+        float volume,
+        float pitch,
+        bool loop,
+        float spatialBlend)
+    {
+        int playbackId = nextPlaybackId++;
+        audioSourcePlaybackIds[audioSource] = playbackId;
+        audioSourceSounds[audioSource] = sound;
+        audioSource.clip = sound.Clip;
+        audioSource.volume = volume;
+        audioSource.pitch = pitch;
+        audioSource.loop = loop;
+        audioSource.spatialBlend = spatialBlend;
+        audioSource.Play();
+        return playbackId;
+    }
+
+    private static float ResolvePlaybackDuration(AudioClip clip, float pitch)
+    {
+        if (clip == null)
+            return 0f;
+
+        float absolutePitch = Mathf.Abs(pitch);
+        if (absolutePitch < 0.01f)
+            absolutePitch = 1f;
+
+        return clip.length / absolutePitch;
     }
     }
 }

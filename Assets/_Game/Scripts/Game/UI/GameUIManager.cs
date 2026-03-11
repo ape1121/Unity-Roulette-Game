@@ -191,7 +191,6 @@ namespace Ape.Game
             if (!_gameSubscribed && _gameManager != null)
             {
                 _gameManager.StateChanged += HandleGameStateChanged;
-                _gameManager.SpinResolved += HandleSpinResolved;
                 _gameSubscribed = true;
             }
 
@@ -207,7 +206,6 @@ namespace Ape.Game
             if (_gameSubscribed && _gameManager != null)
             {
                 _gameManager.StateChanged -= HandleGameStateChanged;
-                _gameManager.SpinResolved -= HandleSpinResolved;
             }
 
             if (_profileSubscribed && _profileManager != null)
@@ -263,11 +261,6 @@ namespace Ape.Game
         private void HandleGameStateChanged(GameStateSnapshot snapshot)
         {
             RefreshState(snapshot, instant: false);
-        }
-
-        private void HandleSpinResolved(RouletteSpinResult spinResult)
-        {
-            // spawn spin result effect prefab
         }
 
         private void HandleProfileDataChanged(SaveData _)
