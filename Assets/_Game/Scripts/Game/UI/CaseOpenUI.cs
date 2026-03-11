@@ -104,6 +104,8 @@ namespace Ape.Game
         [Min(0f)] [SerializeField] private float _tickPitchStep = 0.04f;
         [Min(1)] [SerializeField] private int _tickPitchCycle = 3;
         [Min(0.5f)] [SerializeField] private float _slowSpinExcitementTriggerCards = 2.5f;
+        [Min(0)] [SerializeField] private int _rollStartLeadingBufferCards = 3;
+        [Min(1)] [SerializeField] private int _rollStartTrailingBufferCards = 6;
 
         public bool IsAnimating => _state == PresentationState.Rolling;
 
@@ -158,12 +160,14 @@ namespace Ape.Game
             if (!caseOpenResult.IsValid || !HasRequiredSetup())
                 return;
 
+            float currentContentX = _contentRect != null ? _contentRect.anchoredPosition.x : 0f;
             StopMotionTweens();
             EnsurePanelOpenState();
 
-            _currentWinningIndex = Mathf.Clamp(caseOpenResult.WinningReelIndex, 0, caseOpenResult.ReelRewards.Count - 1);
+            List<ResolvedReward> rollAnimationRewards = BuildRollAnimationRewards(caseOpenResult, currentContentX, out float startX, out int displayWinningIndex);
+            _currentWinningIndex = displayWinningIndex;
 
-            BuildCards(caseOpenResult.ReelRewards);
+            BuildCards(rollAnimationRewards);
             RefreshResponsiveLayout(force: true);
 
             _state = PresentationState.Rolling;
@@ -172,15 +176,7 @@ namespace Ape.Game
             SetMarkerVisible(true);
 
             float targetX = ResolveTargetContentPosition(_currentWinningIndex);
-            float step = ResolveCardStep();
-            float travelDistance = Mathf.Max(
-                _spinTravelDistance,
-                ResolveViewportWidth() * 2.2f,
-                (_currentWinningIndex + 1) * step * 0.75f);
-            float startX = targetX + travelDistance;
-            float rampUpX = targetX + (travelDistance * 0.72f);
-            float cruiseX = targetX + (travelDistance * 0.24f);
-            float overshootX = targetX - Mathf.Max(0f, _overshootDistance);
+            ResolveSpinPhasePositions(startX, targetX, out float rampUpX, out float cruiseX, out float overshootX);
             int lastTickStep = CalculateTickStep(startX);
             float currentAnimatedX = startX;
             float slowSpinExcitementTriggerDistance = Mathf.Max(ResolveCardStep() * _slowSpinExcitementTriggerCards, ResolveCardStep() * 0.5f);
@@ -772,6 +768,156 @@ namespace Ape.Game
             return _viewportRect != null ? _viewportRect.rect.width : 0f;
         }
 
+        private List<ResolvedReward> BuildRollAnimationRewards(
+            CaseOpenResult caseOpenResult,
+            float currentContentX,
+            out float startX,
+            out int displayWinningIndex)
+        {
+            startX = currentContentX;
+            displayWinningIndex = Mathf.Clamp(caseOpenResult.WinningReelIndex, 0, caseOpenResult.ReelRewards.Count - 1);
+
+            if (_state != PresentationState.Preview || _previewRewards.Count == 0 || _activeRewards.Count == 0)
+                return new List<ResolvedReward>(caseOpenResult.ReelRewards);
+
+            float step = ResolveCardStep();
+            if (step <= 0.01f)
+                return new List<ResolvedReward>(caseOpenResult.ReelRewards);
+
+            float currentCenteredIndex = ResolveCenteredCardIndex(currentContentX);
+            int startPreviewIndex = Mathf.Max(0, Mathf.FloorToInt(currentCenteredIndex) - Mathf.Max(0, _rollStartLeadingBufferCards));
+            float localCenteredIndex = currentCenteredIndex - startPreviewIndex;
+            int visibleCardCount = Mathf.Max(1, Mathf.CeilToInt(ResolveViewportWidth() / step) + 2);
+            int preservedPreviewCount = Mathf.Max(visibleCardCount + Mathf.Max(1, _rollStartTrailingBufferCards), 1);
+            int continuationCount = ResolveResultLeadInCount(startPreviewIndex + preservedPreviewCount, caseOpenResult.ReelRewards);
+
+            float desiredTravel = Mathf.Max(
+                _spinTravelDistance,
+                ResolveViewportWidth() * 2.2f,
+                (caseOpenResult.WinningReelIndex + 1) * step * 0.75f);
+
+            float projectedTravel = ((preservedPreviewCount + continuationCount + caseOpenResult.WinningReelIndex) - localCenteredIndex) * step;
+            if (projectedTravel < desiredTravel)
+            {
+                int cycleLength = Mathf.Max(1, _previewRewards.Count);
+                int extraCardsNeeded = Mathf.CeilToInt((desiredTravel - projectedTravel) / step);
+                int extraFullCycles = Mathf.CeilToInt(extraCardsNeeded / (float)cycleLength);
+                continuationCount += extraFullCycles * cycleLength;
+            }
+
+            int previewPrefixCount = preservedPreviewCount + continuationCount;
+            List<ResolvedReward> rollRewards = BuildPreviewContinuationRewards(startPreviewIndex, previewPrefixCount);
+            rollRewards.AddRange(caseOpenResult.ReelRewards);
+
+            startX = currentContentX + (startPreviewIndex * step);
+            displayWinningIndex = previewPrefixCount + Mathf.Clamp(caseOpenResult.WinningReelIndex, 0, caseOpenResult.ReelRewards.Count - 1);
+            return rollRewards;
+        }
+
+        private List<ResolvedReward> BuildPreviewContinuationRewards(int startPreviewIndex, int count)
+        {
+            List<ResolvedReward> rewards = new List<ResolvedReward>(Mathf.Max(0, count));
+            if (_previewRewards.Count == 0 || count <= 0)
+                return rewards;
+
+            int cycleLength = _previewRewards.Count;
+            for (int i = 0; i < count; i++)
+                rewards.Add(_previewRewards[(startPreviewIndex + i) % cycleLength]);
+
+            return rewards;
+        }
+
+        private int ResolveResultLeadInCount(int nextPreviewGlobalIndex, IReadOnlyList<ResolvedReward> resultRewards)
+        {
+            if (_previewRewards.Count == 0 || resultRewards == null || resultRewards.Count == 0)
+                return 0;
+
+            int resultStartIndex = FindPreviewRewardIndex(resultRewards[0]);
+            if (resultStartIndex < 0)
+                return 0;
+
+            int previewCycleLength = _previewRewards.Count;
+            int nextPreviewCycleIndex = ((nextPreviewGlobalIndex % previewCycleLength) + previewCycleLength) % previewCycleLength;
+            return (resultStartIndex - nextPreviewCycleIndex + previewCycleLength) % previewCycleLength;
+        }
+
+        private int FindPreviewRewardIndex(ResolvedReward reward)
+        {
+            for (int i = 0; i < _previewRewards.Count; i++)
+            {
+                if (RewardsMatch(_previewRewards[i], reward))
+                    return i;
+            }
+
+            return -1;
+        }
+
+        private float ResolveCenteredCardIndex(float contentPositionX)
+        {
+            float cardStep = ResolveCardStep();
+            if (cardStep <= 0.01f)
+                return 0f;
+
+            float viewportCenter = ResolveViewportWidth() * 0.5f;
+            return (viewportCenter - contentPositionX - (_resolvedCardWidth * 0.5f)) / cardStep;
+        }
+
+        private void ResolveSpinPhasePositions(float startX, float targetX, out float rampUpX, out float cruiseX, out float overshootX)
+        {
+            float desiredOvershootX = targetX - Mathf.Max(0f, _overshootDistance);
+            float travelToOvershoot = desiredOvershootX - startX;
+            float direction = Mathf.Sign(travelToOvershoot);
+            float totalForwardDistance = Mathf.Abs(travelToOvershoot);
+
+            if (Mathf.Approximately(direction, 0f) || totalForwardDistance <= 0.01f)
+            {
+                rampUpX = Mathf.Lerp(startX, desiredOvershootX, 0.28f);
+                cruiseX = Mathf.Lerp(startX, desiredOvershootX, 0.76f);
+                overshootX = desiredOvershootX;
+                return;
+            }
+
+            float rampExitSlope = Mathf.Max(0.01f, ResolveEaseEdgeSlope(_rampUpEase, sampleAtEnd: true));
+            float slowEntrySlope = Mathf.Max(0.01f, ResolveEaseEdgeSlope(_slowDownEase, sampleAtEnd: false));
+            float cruiseSpeedDenominator =
+                (_rampUpDuration / rampExitSlope)
+                + _cruiseDuration
+                + (_slowDownDuration / slowEntrySlope);
+
+            if (cruiseSpeedDenominator <= 0.0001f)
+            {
+                rampUpX = Mathf.Lerp(startX, desiredOvershootX, 0.28f);
+                cruiseX = Mathf.Lerp(startX, desiredOvershootX, 0.76f);
+                overshootX = desiredOvershootX;
+                return;
+            }
+
+            float cruiseSpeed = totalForwardDistance / cruiseSpeedDenominator;
+            float rampDistance = cruiseSpeed * _rampUpDuration / rampExitSlope;
+            float slowDistance = cruiseSpeed * _slowDownDuration / slowEntrySlope;
+            float cruiseDistance = Mathf.Max(0f, totalForwardDistance - rampDistance - slowDistance);
+
+            rampUpX = startX + (direction * rampDistance);
+            cruiseX = rampUpX + (direction * cruiseDistance);
+            overshootX = cruiseX + (direction * slowDistance);
+        }
+
+        private static float ResolveEaseEdgeSlope(Ease ease, bool sampleAtEnd)
+        {
+            const float sampleWindow = 0.001f;
+
+            if (sampleAtEnd)
+            {
+                float previousValue = DOVirtual.EasedValue(0f, 1f, 1f - sampleWindow, ease);
+                float endValue = DOVirtual.EasedValue(0f, 1f, 1f, ease);
+                return (endValue - previousValue) / sampleWindow;
+            }
+
+            float startValue = DOVirtual.EasedValue(0f, 1f, 0f, ease);
+            float nextValue = DOVirtual.EasedValue(0f, 1f, sampleWindow, ease);
+            return (nextValue - startValue) / sampleWindow;
+        }
+
         private int CalculateTickStep(float contentPositionX)
         {
             float cardStep = ResolveCardStep();
@@ -894,6 +1040,12 @@ namespace Ape.Game
         private static bool Approximately(Vector2 a, Vector2 b)
         {
             return Mathf.Abs(a.x - b.x) < 0.01f && Mathf.Abs(a.y - b.y) < 0.01f;
+        }
+
+        private static bool RewardsMatch(ResolvedReward left, ResolvedReward right)
+        {
+            return string.Equals(left.RewardId, right.RewardId, StringComparison.Ordinal)
+                && left.Amount == right.Amount;
         }
 
         private void PlayUISound(Sound sound, float pitchMultiplier = 1f)
