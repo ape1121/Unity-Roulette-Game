@@ -18,7 +18,7 @@ MonoBehaviour:
   UiTextConfig: {fileID: 11400000, guid: b567708dfc1fd41f792a5277ec200826, type: 2}
   cashOutOnSafeZoneOnly: 1
   continueEnabled: 1
-  continueCost: 0
+  continueCost: 100
   buyInCost: 0
   startingZone: 1
   maxLevel: 0

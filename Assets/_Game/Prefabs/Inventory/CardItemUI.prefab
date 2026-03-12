@@ -677,6 +677,10 @@ PrefabInstance:
       value: OPEN
       objectReference: {fileID: 0}
     - target: {fileID: 1656458877, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
+      propertyPath: m_Maskable
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1656458877, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_fontSize
       value: 32
       objectReference: {fileID: 0}
@@ -787,6 +791,14 @@ PrefabInstance:
     - target: {fileID: 5271633749540950647, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_Color.r
       value: 0.46426886
+      objectReference: {fileID: 0}
+    - target: {fileID: 5271633749540950647, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5271633749540950647, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
+      propertyPath: m_Maskable
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
