@@ -601,7 +601,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 128
+  m_fontSize: 96.25
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -864,7 +864,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 72
+  m_fontSize: 65.7
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1028,7 +1028,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1656458875, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_Name
-      value: RollButtonText_value
+      value: RollButtonText
       objectReference: {fileID: 0}
     - target: {fileID: 1656458877, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_text
@@ -1176,7 +1176,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1656458875, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_Name
-      value: BackButtonText_value
+      value: BackButtonText
       objectReference: {fileID: 0}
     - target: {fileID: 1656458877, guid: 5886e70fc4ac9448c9d6d0da2fca9248, type: 3}
       propertyPath: m_text
